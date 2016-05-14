@@ -1,0 +1,36 @@
+
+The project, tell-phone-number, is for building a dialog management system to
+transmit structured data between a transmitter and a receiver using human
+conversational dialogue.  
+
+May, 2016
+
+
+-------------
+2016/05/14
+
+Initial choice: Use Otto or build my own interaction engine?
+Otto is great at providing the framework for mapping between utterances and 
+LogicalForms.  Also, the DialogRule framework is interesting, and can be
+used as a production system.
+But Otto has some constraints.  It has a strong sense of whose turn it is, and
+is not designed to be truly mixed initiative in the sense of allowing either party
+to speak at any time.  It does not support a timer with a timeout event to
+model when one party gets impatient.  Also, I would have to implement most of
+the interesting logic in custom java programs anyway.
+
+So therefore, I will write my own dialog management engine, in python.
+I can leverage my cdm rule parser from March.
+
+Initial checkin to repo saund/tell-phone-number
+
+
+
+
+
+
+
+
+
+
+
