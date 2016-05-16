@@ -1,0 +1,116 @@
+
+#These rules are heavily influence by the Otto rule definition. But they are not
+#guaranteed to obey it strictly.
+
+
+#Rules map between DialogActs and strings for the tell-phone-number dialogue.
+#
+#A DialogAct is   Intent(LogicalForm, ...)
+
+#Word categories are like in Otto, in terms of variables enclosed by brackets [$1]
+#Word categories are not rules that produce DialogActs in parsing input sentences.
+#They are notational shortcuts for expressing rules. 
+#They are however used in parsing to allow combinatoric sequences of words to be interpreted.
+
+
+#Intents:
+#
+#InformTD    =  InformTopicData
+#InformDM    =  InformDialogManagement
+#RequestTD   =  RequestTopicData
+#RequestDM   =  RequestDialogManagement
+#CheckTD     =  CheckTopicData
+#CheckDM     =  CheckDialogManagement
+#CheckTD     =  ConfirmTopicData
+#CheckDM     =  ConfirmDialogManagement
+
+
+#LogicalForm predicates
+#
+#ItemValue( value-LogicalForm )
+#ItemType
+#Digit
+#DigitSequence
+#IndexicalPosition
+#IndexicalRelation
+
+
+
+#Digit word categories
+DigitCat[one] <-> one
+DigitCat[two] <-> two
+DigitCat[three] <-> three
+DigitCat[four] <-> four
+DigitCat[five] <-> five
+DigitCat[six] <-> six
+DigitCat[seven] <-> seven
+DigitCat[eight] <-> eight
+DigitCat[nine] <-> nine
+DigitCat[zero] <-> zero
+DigitCat[zero] <-> oh
+
+
+InformTD(ItemValue(Digit($1))) <-> {DigitCat[$1]}
+
+
+
+InformTD(ItemType(digit)) <-> digit
+InformTD(ItemType(digit)) <-> number
+InformTD(ItemType(area-code)) <-> area code
+InformTD(ItemType(prefix)) <-> prefix
+InformTD(ItemType(last-four-digits)) <-> last four digits
+
+
+
+
+#Maybe don't attempt to pick up DigitSequences through rules; write a special function
+InformTD(ItemValue(DigitSequence($1, $2))) <-> \
+{DigitCat[$1]} {DigitCat[$2]} 
+InformTD(ItemValue(DigitSequence($1, $2, $3))) <-> \
+{DigitCat[$1]} {DigitCat[$2]} {DigitCat[$3]} 
+InformTD(ItemValue(DigitSequence($1, $2, $3, $4))) <-> \
+{DigitCat[$1]} {DigitCat[$2]} {DigitCat[$3]} {DigitCat[$4]}
+InformTD(ItemValue(DigitSequence($1, $2, $3, $4, $5))) <-> \
+{DigitCat[$1]} {DigitCat[$2]} {DigitCat[$3]} {DigitCat[$4]}{DigitCat[$5]}
+InformTD(ItemValue(DigitSequence($1, $2, $3, $4, $5, $6))) <-> \
+{DigitCat[$1]} {DigitCat[$2]} {DigitCat[$3]} {DigitCat[$4]}{DigitCat[$5]} {DigitCat[$6]}
+InformTD(ItemValue(DigitSequence($1, $2, $3, $4, $5, $6, $7))) <-> \
+{DigitCat[$1]} {DigitCat[$2]} {DigitCat[$3]} {DigitCat[$4]}{DigitCat[$5]} {DigitCat[$6]} {DigitCat[$7]}
+InformTD(ItemValue(DigitSequence($1, $2, $3, $4, $5, $6, $7, $8))) <-> \
+{DigitCat[$1]} {DigitCat[$2]} {DigitCat[$3]} {DigitCat[$4]}{DigitCat[$5]} {DigitCat[$6]} {DigitCat[$7]} {DigitCat[$8]}
+InformTD(ItemValue(DigitSequence($1, $2, $3, $4, $5, $6, $7, $8, $9))) <-> \
+{DigitCat[$1]} {DigitCat[$2]} {DigitCat[$3]} {DigitCat[$4]}{DigitCat[$5]} {DigitCat[$6]} {DigitCat[$7]} {DigitCat[$8]} {DigitCat[$9]}
+InformTD(ItemValue(DigitSequence($1, $2, $3, $4, $5, $6, $7, $8, $9, $10))) <-> \
+{DigitCat[$1]} {DigitCat[$2]} {DigitCat[$3]} {DigitCat[$4]}{DigitCat[$5]} {DigitCat[$6]} {DigitCat[$7]} {DigitCat[$8]} {DigitCat[$9]} {DigitCat[$10]}
+
+
+#Indexical word categories
+IndexicalCat[first] <-> first
+IndexicalCat[second] <-> second
+IndexicalCat[third] <-> third
+IndexicalCat[fourth] <-> fourth
+IndexicalCat[fifth] <-> fifth
+IndexicalCat[sixth] <-> sixth
+IndexicalCat[seventh] <-> seventh
+IndexicalCat[last] <-> last
+IndexicalCat[last] <-> final
+
+InformTD(IndexicalPosition($1)) <-> {IndexicalCat[$1]} number
+InformTD(IndexicalPosition($1)) <-> {IndexicalCat[$1]} digit
+
+InformTD(IndexicalRelation(retreat)) <-> before
+InformTD(IndexicalRelation(retreat)) <-> last number
+InformTD(IndexicalRelation(retreat)) <-> previous number
+InformTD(IndexicalRelation(advance)) <-> after
+InformTD(IndexicalRelation(advance)) <-> next
+InformTD(IndexicalRelation(advance)) <-> then
+
+
+#as in, "That's the third time I've given you the area code"
+InformDM(Alignment()) <-> last time
+InformDM(Alignment()) <-> next time
+InformDM(Alignment()) <-> second time
+InformDM(Alignment()) <-> third time
+InformDM(Alignment()) <-> fourth time
+
+

@@ -1,0 +1,32 @@
+
+
+TOPRULE = $INFORM_TOPIC_INFO | 
+		  $REQUEST_TOPIC_INFO | 
+		  $CHECK_TOPIC_INFO |
+		  $CONFIRM_TOPIC_INFO;
+
+
+#INFORM_TOPIC_INFO = (($NUMBER) | ($NUMBER $NUMBER) | ($NUMBER $NUMBER $NUMBER) | ($NUMBER $NUMBER $NUMBER $NUMBER));
+
+INFORM_TOPIC_INFO = $NUMBER | ($NUMBER $NUMBER);
+
+NUMBER = (one {digit_value=one} |
+	     two {digit_value=two} |			
+	     three {digit_value=three} |			
+	     four {digit_value=four} |			
+	     five {digit_value=five} |			
+	     six {digit_value=six} |			
+	     seven {digit_value=seven} |			
+	     eight {digit_value=eight} |			
+	     nine {digit_value=nine} |			
+	     zero {digit_value=zero});
+	     two {digit_value=two} );
+
+
+
+REQUEST_TOPIC_INFO = (what is the next number){request=true};
+
+CHECK_TOPIC_INFO = (did you get that){check=true};
+
+CONFIRM_TOPIC_INFO = yes{confirm_value=yes} | no{confirm_value=no};
+
