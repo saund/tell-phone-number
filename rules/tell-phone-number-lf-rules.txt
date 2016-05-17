@@ -63,7 +63,7 @@ InformTD(ItemType(last-four-digits)) <-> last four digits
 
 
 
-#Maybe don't attempt to pick up DigitSequences through rules; write a special function
+#Maybe don't attempt to pick up DigitSequences through rules; write a special function?
 InformTD(ItemValue(DigitSequence($1, $2))) <-> \
 {DigitCat[$1]} {DigitCat[$2]} 
 InformTD(ItemValue(DigitSequence($1, $2, $3))) <-> \
