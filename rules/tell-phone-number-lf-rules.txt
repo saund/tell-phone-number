@@ -59,6 +59,7 @@ InformTD(ItemType(digit)) <-> number
 InformTD(ItemType(area-code)) <-> area code
 InformTD(ItemType(prefix)) <-> prefix
 InformTD(ItemType(last-four-digits)) <-> last four digits
+InformTD(ItemType(last-four-digits)) <-> last four numbers
 
 
 
@@ -71,17 +72,17 @@ InformTD(ItemValue(DigitSequence($1, $2, $3))) <-> \
 InformTD(ItemValue(DigitSequence($1, $2, $3, $4))) <-> \
 {DigitCat[$1]} {DigitCat[$2]} {DigitCat[$3]} {DigitCat[$4]}
 InformTD(ItemValue(DigitSequence($1, $2, $3, $4, $5))) <-> \
-{DigitCat[$1]} {DigitCat[$2]} {DigitCat[$3]} {DigitCat[$4]}{DigitCat[$5]}
+{DigitCat[$1]} {DigitCat[$2]} {DigitCat[$3]} {DigitCat[$4]} {DigitCat[$5]}
 InformTD(ItemValue(DigitSequence($1, $2, $3, $4, $5, $6))) <-> \
-{DigitCat[$1]} {DigitCat[$2]} {DigitCat[$3]} {DigitCat[$4]}{DigitCat[$5]} {DigitCat[$6]}
+{DigitCat[$1]} {DigitCat[$2]} {DigitCat[$3]} {DigitCat[$4]} {DigitCat[$5]} {DigitCat[$6]}
 InformTD(ItemValue(DigitSequence($1, $2, $3, $4, $5, $6, $7))) <-> \
-{DigitCat[$1]} {DigitCat[$2]} {DigitCat[$3]} {DigitCat[$4]}{DigitCat[$5]} {DigitCat[$6]} {DigitCat[$7]}
+{DigitCat[$1]} {DigitCat[$2]} {DigitCat[$3]} {DigitCat[$4]} {DigitCat[$5]} {DigitCat[$6]} {DigitCat[$7]}
 InformTD(ItemValue(DigitSequence($1, $2, $3, $4, $5, $6, $7, $8))) <-> \
-{DigitCat[$1]} {DigitCat[$2]} {DigitCat[$3]} {DigitCat[$4]}{DigitCat[$5]} {DigitCat[$6]} {DigitCat[$7]} {DigitCat[$8]}
+{DigitCat[$1]} {DigitCat[$2]} {DigitCat[$3]} {DigitCat[$4]} {DigitCat[$5]} {DigitCat[$6]} {DigitCat[$7]} {DigitCat[$8]}
 InformTD(ItemValue(DigitSequence($1, $2, $3, $4, $5, $6, $7, $8, $9))) <-> \
-{DigitCat[$1]} {DigitCat[$2]} {DigitCat[$3]} {DigitCat[$4]}{DigitCat[$5]} {DigitCat[$6]} {DigitCat[$7]} {DigitCat[$8]} {DigitCat[$9]}
+{DigitCat[$1]} {DigitCat[$2]} {DigitCat[$3]} {DigitCat[$4]} {DigitCat[$5]} {DigitCat[$6]} {DigitCat[$7]} {DigitCat[$8]} {DigitCat[$9]}
 InformTD(ItemValue(DigitSequence($1, $2, $3, $4, $5, $6, $7, $8, $9, $10))) <-> \
-{DigitCat[$1]} {DigitCat[$2]} {DigitCat[$3]} {DigitCat[$4]}{DigitCat[$5]} {DigitCat[$6]} {DigitCat[$7]} {DigitCat[$8]} {DigitCat[$9]} {DigitCat[$10]}
+{DigitCat[$1]} {DigitCat[$2]} {DigitCat[$3]} {DigitCat[$4]} {DigitCat[$5]} {DigitCat[$6]} {DigitCat[$7]} {DigitCat[$8]} {DigitCat[$9]} {DigitCat[$10]}
 
 
 #Indexical word categories
@@ -94,6 +95,7 @@ IndexicalCat[sixth] <-> sixth
 IndexicalCat[seventh] <-> seventh
 IndexicalCat[last] <-> last
 IndexicalCat[last] <-> final
+IndexicalCat[last] <-> the final
 
 InformTD(IndexicalPosition($1)) <-> {IndexicalCat[$1]} number
 InformTD(IndexicalPosition($1)) <-> {IndexicalCat[$1]} digit

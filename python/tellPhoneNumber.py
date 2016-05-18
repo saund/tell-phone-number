@@ -38,7 +38,7 @@ gl_rules_dirpath = os.path.join(os.getcwd(), '..', 'rules')
 
 
 def loopInput():
-    init('tell-phone-number-rules1.txt')
+    initLFRulesIfNecessary()
     input_string = raw_input('Input: ')
     while input_string != 'stop' and input_string != 'quit':
         print '\n' + input_string
@@ -75,6 +75,7 @@ gl_first_word_string_to_rule_dict = {}
 #where 
 #    wc-lhs is word-category-predicate[arg]
 #    wc-rhs is word tuple
+# (wc-lhs, wc-rhs) constitutes a word-category rule
 #e.g. 
 # the Word-Category rules,   
 #   'AreaCodeCat[area-code] <-> area code
@@ -90,9 +91,18 @@ gl_word_category_rules = {}
 #each first word for that word-category adds this DialogRule to the first-word index.
 
 
+gl_current_rules_filepath = None
+
+def initLFRulesIfNecessary(lf_rule_filename = gl_default_lf_rule_filename):
+    filepath = gl_rules_dirpath + '/' + lf_rule_filename
+    if gl_current_rules_filepath != filepath:
+        initLFRules(lf_rule_filename)
+
+
 def initLFRules(lf_rule_filename = gl_default_lf_rule_filename):
     filepath = gl_rules_dirpath + '/' + lf_rule_filename
     print 'tellPhoneNumber LF rules filepath: ' + filepath
+    gl_current_rules_filepath = filepath
     compileStringToLFRuleDict(filepath)
 
 
@@ -136,7 +146,8 @@ def compileStringToLFRuleDict(filepath):
 
     for dialog_act_rule in dialog_act_rule_list:
         parseAndAddDialogActRule(dialog_act_rule)
-    
+
+    sortWordCategoryRulesByLength()        
     print '\nWordCategory rules:'
     printAllWordCategoryRules()
     print '\nDialogAct rules:'
@@ -159,8 +170,6 @@ def parseRuleLHSRHS(rule_text):
     rhs = rule_text[rightarrow_index+1:]
     rhs = rhs.strip()
     return (lhs, rhs)
-
-
 
 
 
@@ -198,6 +207,12 @@ def parseAndAddDialogActRule(str_rule_lhs_rhs):
     rhs = str_rule_lhs_rhs[1]
 
     rhs = rhs.strip()
+    #rhs can include word-categories like   {DigitCat[$8]}
+    #Make sure these are separated by spaces just in case the rule writer did not include spaces
+    #  {DigitCat[$8]}{DigitCat[$9]}
+    rhs = rhs.replace('}', '} ')
+    rhs = rhs.replace('{', ' {')
+
     rhs_words = rhs.split()
     rhs_words_tup = tuple(rhs_words)
     first_word_or_cat = rhs_words[0]
@@ -236,55 +251,26 @@ def parseAndAddDialogActRule(str_rule_lhs_rhs):
 
 
 
-#Determines if the rule as written out in rule_text is a Word-Category rule or a DialogAct rule
-#A Word-Category rules is a mapping:
-#   Predicate[arg] <-> word1 word2...
-#A DialogAct rule is a mapping:
-#   Intent(LogicalForm) <-> word-or-word-category1 word-or-word-category2 ...
-def parseAndAddRuleObsolete(rule_text):
-    leftarrow_index = rule_text.find('<')
-    if leftarrow_index < 0:
-        print 'could not find < in rule_text: ' + rule_text
-        return
-    rightarrow_index = rule_text.find('>')
-    if rightarrow_index < 0:
-        print 'could not find > in rule_text: ' + rule_text
-        return
-    lhs = rule_text[0:leftarrow_index]
-    lhs = lhs.strip()
-    rhs = rule_text[rightarrow_index+1:]
-    rhs = rhs.strip()
-    rule = (rhs, lhs)
-    space_index = rhs.find(' ')
-    if space_index > 0:
-        first_string_or_category = rhs[0:space_index]
-    else:
-        first_string_or_category = rhs
 
-    #determine if a DialogRule or else a Word Category
-    lsb_index = lhs.find('[')
-    if lsb_index > 0:               #Word Category
-        wcategory_predicate = lhs[0:lsb_index]
-        word_list = rhs.split()
-        word_tuple = tuple(word_list)
-        this_wcategory_predicate_rule_list = gl_word_category_rules.get(wcategory_predicate)
-        if this_wcategory_predicate_rule_list == None:
-            this_wcategory_predicate_rule_list = []
-        this_wcategory_predicate_rule_list.append((lhs, word_tuple))
-
-    else:                           #DialogRule
-        existing_list = gl_first_word_string_to_rule_dict.get(first_string_or_category)
-        if existing_list == None:
-            new_rule_list = [rule]
-            gl_first_word_string_to_rule_dict[first_string_or_category] = new_rule_list
-        else:
-            existing_list.append(rule)
+#gl_word_category_rules is a dictionary:
+#   key: word-category-predicate   value: list of word-category rules with this predicate
+#Different word-category rules share the same predicate but have different arg and 
+#possibly different numbers of words in their text utterance.
+#This runs through all of the word-category predicates in gl_word_category_rules, and
+#for each one, it sorts its list of word-category rules from longest to shortest.
+def sortWordCategoryRulesByLength():
+    for predicate in gl_word_category_rules.keys():
+        rule_list = gl_word_category_rules.get(predicate)
+        rule_list.sort(key = lambda wc_rule_tup: len(wc_rule_tup[1]))  # sorts in place, key is len of rhs of the rule
+        rule_list.reverse()
 
 
 def printAllWordCategoryRules():
     for predicate in gl_word_category_rules.keys():
+        print 'predicate: ' + predicate
         rule_list = gl_word_category_rules.get(predicate)
-        print predicate + ' :: ' + str(rule_list)
+        for rule in rule_list:
+            print '    '  + str(rule)
 
 
 def printAllDialogActRules():
@@ -296,12 +282,12 @@ def printAllDialogActRules():
 
 
 
-
+#Assumes the rule set has already been loaded by initLFRulesIfNecessary() or a related function.
 def applyLFRulesToString(input_string):
     word_list = input_string.split()
     i_word = 0;
     
-    res = []    #a list of rule fits to the_string: [(DialogAct, start_i, end_i),...]
+    fit_rule_list = []    #a list of rule fits to the_string: [(DialogAct, start_i, end_i),...]
     while i_word < len(word_list):
         word_i = word_list[i_word]
         possible_rules = gl_first_word_string_to_rule_dict.get(word_i)
@@ -312,11 +298,43 @@ def applyLFRulesToString(input_string):
                 #fit_tuple is (dialog_rule, i_word_start, i_word_end)  
                 fit_tuple = testRuleOnInputWordsAtWordIndex(possible_rule, word_list, i_word)
                 if fit_tuple != None:
-                    res.append(fit_tuple)
+                    fit_rule_list.append(fit_tuple)
                     print 'fit_tuple: ' + str(fit_tuple)
         i_word += 1
-
+    
+    print 'found ' + str(len(fit_rule_list)) + ' matches'
+    res = selectMaximallyCoveringRules(fit_rule_list, len(word_list))
+    print 'narrowed down to ' + str(len(res)) + ' matches'
     return res
+
+
+
+#fit_rule_list is a list of tuples: (DialogAct, start_index, stop_index)
+#where start_index and stop_index are indices into a word list for input text 
+#Some of the tuples could overlap and claim the same words.
+#This function selects the longest (most-word) fitting tuples in a greedy fashion
+#Returns a list of tuples which is a subset of the tuples passed
+def selectMaximallyCoveringRules(fit_rule_list, input_length):
+    covered_word_flag_ar = [False] * input_length;
+    res = []
+    fit_rule_list.sort(key = lambda tup: tup[2]-tup[1])
+    fit_rule_list.reverse()
+    for fit_rule_tup in fit_rule_list:
+        ok_p = True
+        for ii in range(fit_rule_tup[1], fit_rule_tup[2]+1):
+            if covered_word_flag_ar[ii] == True:
+                ok_p = False
+                break
+        if ok_p == True:
+            res.append(fit_rule_tup)
+            for ii in range(fit_rule_tup[1], fit_rule_tup[2]+1):
+                covered_word_flag_ar[ii] = True
+    res.sort(key = lambda tup: tup[1])
+    return res
+
+
+
+
 
 
 #This applies all available rules to the word_list starting at i_word.
@@ -345,7 +363,9 @@ def testRuleOnInputWordsAtWordIndex(rule, word_list, i_word_start):
     i_rule = 0
     #    rule_rhs_items = rule_rhs.split()
     print ' rule_rhs_items: ' + str(rule_rhs_items)
-    while i_word < len(word_list):
+    #    while i_word < len(word_list):
+    while True:   #march along until either the end of the dialog rule word list or the input word list is exhausted, 
+                  #This test is below.
         rule_word_or_word_category = rule_rhs_items[i_rule]
         print '  test: ' + str(i_word) + ': ' + rule_word_or_word_category
 
@@ -358,7 +378,9 @@ def testRuleOnInputWordsAtWordIndex(rule, word_list, i_word_start):
                 print 'testRuleOnInputWordsAtWordIndex() could not find word-category ' + word_category_predicate
                 i_word += 1
                 continue
-            (num_words_consumed, word_category_arg) = testWordCategoryOnInputWordsAtWordIndex(word_category, word_list, i_word)
+            (num_words_consumed, word_category_arg) = testWordCategoryOnInputWordsAtWordIndex(word_category_predicate, 
+                                                                                              word_list, i_word)
+            print 'testWordCategory... consumed ' + str(num_words_consumed) + ' words'
             if num_words_consumed > 0:
                 lsb_index = rule_word_or_word_category.find('[$')
                 rsb_index = rule_word_or_word_category.find(']')
@@ -369,36 +391,91 @@ def testRuleOnInputWordsAtWordIndex(rule, word_list, i_word_start):
             else:
                 return None
         else:
-            if word_list[i_word] == rule_word_or_word_category:
+            if word_list[i_word] != rule_word_or_word_category:
+                return None
+            else:
                 i_word += 1
                 i_rule += 1
-            else:
-                return None
+
+        #the DialogAct matches
+        if i_rule >= len(rule_rhs_items):
+            print '\n****DialgAct matches: i_word: ' + str(i_word) + ' i_rule: ' + str(i_rule)
+            break
+
         if i_word > len(word_list):
             print 'ran out of words'
             return None
-        #the DialogAct matches
-        if i_rule >= len(rule_rhs_items):
-            break
 
-    print 'matched all words'
     rule_dialog_act = rule[0]
-    lbr_index = rule_dialog_act.find('{$')
-    while lbr_index > 0:
-        rbr_index = rule_dialog_act.find('}', lbr_index+2)
-        if rbr_index < lbr_index:
+    print 'matched all words did DialogRule ' + rule_dialog_act
+    print 'arg_index_map: ' + str(arg_index_map)
+    d_index = rule_dialog_act.find('$')
+    print ' d_index: ' + str(d_index)
+    while d_index > 0:
+        #need to parse out forms:  ($1); ($1, $2, $3)
+        comma_index = rule_dialog_act.find(',', d_index+1)
+        rp_index = rule_dialog_act.find(')', d_index+1)
+        if comma_index > 0 and comma_index > d_index+1 and comma_index < rp_index:
+            rp_index = comma_index
+        print ' rp_index: ' + str(rp_index)
+        if rp_index < d_index:
             print 'testRuleOnInputWordsAtWordIndex() found a minsmatched braces in a rule DialogAct: ' + rule_dialog_act
             return None
-        da_arg_name = rule_dialog_act[lbr_index+2, rbr_index]
+        da_arg_name = rule_dialog_act[d_index+1:rp_index]
+        print ' da_arg_name: ' + da_arg_name
         word_category_arg = arg_index_map.get(da_arg_name)
         if word_category_arg != None:
-            rule_dialog_act = rule_dialog_act[0:lbr_index+1] + word_category_arg + rule_dialog_act[rbr_index:]
-        lbr_index = rule_dialog_act.find('{$', rbr_index+1)
-    print 'returning ' + str((rule_dialog_act, i_word_start, i_word))
-    return (rule_dialog_act, i_word_start, i_word)
+            rule_dialog_act = rule_dialog_act[0:d_index] + word_category_arg + rule_dialog_act[rp_index:]
+        d_index = rule_dialog_act.find('$', rp_index+1)
+    print 'returning ' + str((rule_dialog_act, i_word_start, i_word)) + '\n'
+    return (rule_dialog_act, i_word_start, i_word-1)
 
 
 
+
+#Tests all arg versions of the word_category for the word_category_predicate passed on the 
+#word_list starting at i_word
+#If there's a word-by-word match for all words in the word tuple of a word-category, then
+#that arg is returned along with that word_category's length (number of words)
+#Preferably, the list of word_categories in gl_word_category_rules would have been sorted by 
+#length so that the longest possible match is returned
+#returns (num_words_consumed, word_category_arg)
+def testWordCategoryOnInputWordsAtWordIndex(word_category_predicate, word_list, i_word_start):
+    
+    if i_word_start >= len(word_list):
+        return (0, None)
+
+    word_category_rules = gl_word_category_rules.get(word_category_predicate)
+
+    print 'testWordCategoryOnInputWordsAtWordIndex(' + word_category_predicate + ', ' + str(word_list) + ', ' + str(i_word_start) + ')'
+
+    wc_rule_list = gl_word_category_rules.get(word_category_predicate)
+    if wc_rule_list == None:
+        print 'problem in testWordCategoryOnInputWordsAtWordIndex() no wc rules for predicate ' + word_category_predicate
+        return (0, None)
+
+    for wc_rule in wc_rule_list:
+        rhs = wc_rule[1]  #a tuple of words 
+
+        i_word = i_word_start
+        i_wc_word = 0
+        match_p = True
+        while i_wc_word < len(rhs) and i_word < len(word_list):
+            word_i = word_list[i_word]
+            wc_word = rhs[i_wc_word]
+            if word_i != wc_word:
+                match_p = False
+                break
+            i_word += 1
+            i_wc_word += 1
+        if match_p:
+            lhs = wc_rule[0]
+            lsb_index = lhs.find('[')
+            rsb_index = lhs.find(']')
+            wc_arg = lhs[lsb_index+1:rsb_index]
+            return ( len(rhs), wc_arg)
+
+    return (0, None)
 
 
 
@@ -735,4 +812,51 @@ class OrderedMultinomialBelief():
 
 
 
+###############################################################################
+#
+#archives
+#
 
+#Determines if the rule as written out in rule_text is a Word-Category rule or a DialogAct rule
+#A Word-Category rules is a mapping:
+#   Predicate[arg] <-> word1 word2...
+#A DialogAct rule is a mapping:
+#   Intent(LogicalForm) <-> word-or-word-category1 word-or-word-category2 ...
+def parseAndAddRuleObsolete(rule_text):
+    leftarrow_index = rule_text.find('<')
+    if leftarrow_index < 0:
+        print 'could not find < in rule_text: ' + rule_text
+        return
+    rightarrow_index = rule_text.find('>')
+    if rightarrow_index < 0:
+        print 'could not find > in rule_text: ' + rule_text
+        return
+    lhs = rule_text[0:leftarrow_index]
+    lhs = lhs.strip()
+    rhs = rule_text[rightarrow_index+1:]
+    rhs = rhs.strip()
+    rule = (rhs, lhs)
+    space_index = rhs.find(' ')
+    if space_index > 0:
+        first_string_or_category = rhs[0:space_index]
+    else:
+        first_string_or_category = rhs
+
+    #determine if a DialogRule or else a Word Category
+    lsb_index = lhs.find('[')
+    if lsb_index > 0:               #Word Category
+        wcategory_predicate = lhs[0:lsb_index]
+        word_list = rhs.split()
+        word_tuple = tuple(word_list)
+        this_wcategory_predicate_rule_list = gl_word_category_rules.get(wcategory_predicate)
+        if this_wcategory_predicate_rule_list == None:
+            this_wcategory_predicate_rule_list = []
+        this_wcategory_predicate_rule_list.append((lhs, word_tuple))
+
+    else:                           #DialogRule
+        existing_list = gl_first_word_string_to_rule_dict.get(first_string_or_category)
+        if existing_list == None:
+            new_rule_list = [rule]
+            gl_first_word_string_to_rule_dict[first_string_or_category] = new_rule_list
+        else:
+            existing_list.append(rule)
