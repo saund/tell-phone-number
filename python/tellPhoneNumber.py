@@ -208,20 +208,24 @@ def parseAndAddDialogActRule(str_rule_lhs_rhs):
     #If the first word of the word pattern is actually a word category, then we need to 
     #list this DialogRule under each first word of each arg version of that category 
     #  {predicate[$a]}
-    if lbr_index > 0:
+    if lbr_index >= 0:
         lsq_index = first_word_or_cat.find('[')
         predicate = first_word_or_cat[lbr_index+1:lsq_index]
         cat_list = gl_word_category_rules.get(predicate)
         if cat_list == None:
             print 'Problem in parseAndAddDialogActRule. Predicate ' + predicate + ' not found in word-cateogry dict'
             return
+        #print 'cat_list: ' + str(cat_list)
         for cat_rule in cat_list:
+            #print 'cat_rule: ' + str(cat_rule)
             rhs = cat_rule[1]
             first_word = rhs[0]
+            #print 'first_word: ' + str(first_word)
             first_words_to_index_under.append(first_word)
     else:
         first_words_to_index_under.append(first_word_or_cat)
 
+    #print 'first_words_to_index_under: ' + str(first_words_to_index_under)
 
     for first_word_to_index_under in first_words_to_index_under:
         first_word_rule_list = gl_first_word_string_to_rule_dict.get(first_word_to_index_under)
@@ -334,12 +338,12 @@ def applyLFRulesToString(input_string):
 def testRuleOnInputWordsAtWordIndex(rule, word_list, i_word_start):
 
     print ' testRuleOnInputWordsAtWordIndex(' + str(rule) + ', ' + str(word_list) + ', ' + str(i_word_start) + ')'
-    rule_rhs = rule[0]
+    rule_rhs_items = rule[1]
     arg_index_map = {}    #key: $X where X is an argument indicator, value:  a predicate provided by a word-category
                           #that will substitute for $X in the DialogAct returned (if it matches)
     i_word = i_word_start
     i_rule = 0
-    rule_rhs_items = rule_rhs.split()
+    #    rule_rhs_items = rule_rhs.split()
     print ' rule_rhs_items: ' + str(rule_rhs_items)
     while i_word < len(word_list):
         rule_word_or_word_category = rule_rhs_items[i_rule]
@@ -348,10 +352,10 @@ def testRuleOnInputWordsAtWordIndex(rule, word_list, i_word_start):
         #rule_word_or_word_category is either a word or else an indicator of a word-category, like, {DigitCat[$1]}
         if rule_word_or_word_category.find('{') == 0:
             lbr_index = rule_word_or_word_category.find('[')
-            word_category_name = rule_word_or_word_category[0:lbr_index]
-            word_category = gl_word_category_dict.get(word_category_name)
+            word_category_predicate = rule_word_or_word_category[1:lbr_index]
+            word_category = gl_word_category_rules.get(word_category_predicate)
             if word_category == None:
-                print 'testRuleOnInputWordsAtWordIndex() could not find word-category ' + word_category_name
+                print 'testRuleOnInputWordsAtWordIndex() could not find word-category ' + word_category_predicate
                 i_word += 1
                 continue
             (num_words_consumed, word_category_arg) = testWordCategoryOnInputWordsAtWordIndex(word_category, word_list, i_word)
@@ -378,7 +382,7 @@ def testRuleOnInputWordsAtWordIndex(rule, word_list, i_word_start):
             break
 
     print 'matched all words'
-    rule_dialog_act = rule[1]
+    rule_dialog_act = rule[0]
     lbr_index = rule_dialog_act.find('{$')
     while lbr_index > 0:
         rbr_index = rule_dialog_act.find('}', lbr_index+2)
