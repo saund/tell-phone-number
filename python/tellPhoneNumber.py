@@ -57,29 +57,36 @@ def loopInput():
 
 gl_default_lf_rule_filename = 'tell-phone-number-lf-rules.txt'
 
-#key: first-word-or-category-of-sequence:  value: (rule_rhs, rule_lhs)
-#       where rule_rhs is a sequence of words or catgories
-#             rule_lhs is a text representation of a DialogAct, which is Intent(LogicalForm)
+#key: first-word-or-category-of-sequence:  value: (rule_lhs, rule_rhs)
+#       where rule_lhs is a text representation of a DialogAct, which is Intent(LogicalForm)
+#             rule_rhs is a list words or catgories
+#
 gl_first_word_string_to_rule_dict = {}
 
 #Word-categories are like in Otto, in terms of variables enclosed by brackets [$1]
 #e.g. DigitCat[one] <-> one
-#This allows a rule to be:
+#This allows a DialogAct rule to be:
 #InformTD(ItemValue(Digit($1))) <-> {DigitCat[$1]}
 #Where the {DigitCat[$1]} allows 'one' to generate the DialogAct:
 #InformTD(ItemValue(Digit(one)))
 
-#key:  string: word-category-name[args]    value: list: word-list
-#e.g.  'DigitCat[one]'                     [one]
-gl_word_wcategory_fw_dict = {}
 
-#value: list: word-list             key:  string: word-category-name[args] 
-#e.g.   [one]                       'DigitCat[one]'
-gl_word_wcategory_rv_dict = {}
+#key: word-category-predicate              value: list of (wc-lhs, wc-rhs)
+#where 
+#    wc-lhs is word-category-predicate[arg]
+#    wc-rhs is word tuple
+#e.g. 
+# the Word-Category rules,   
+#   'AreaCodeCat[area-code] <-> area code
+#   'AreaCodeCat[bozotron-code] <-> bozotron code
+# becomes the dictionary entry, 
+#    { AreaCodeCat:[(AreaCodeCat[area-code], (area, code)),
+#                   (AreaCodeCat[bozotron-code], (bozotron, code)) ]
+#
+gl_word_category_rules = {}
 
-#$$$XX This not completed yet about how to organize Word Categories
 
-#$$ Need to make sure that if a DialogAct rhs starts with a word-category, then
+#Need to make sure that if a DialogAct rhs starts with a word-category, then
 #each first word for that word-category adds this DialogRule to the first-word index.
 
 
@@ -94,7 +101,11 @@ def compileStringToLFRuleDict(filepath):
     file = open(filepath, "rU")
     
     gl_first_word_string_to_rule_dict = {}
+    gl_word_category_rules = {}
+    
     rule_text = ''
+    word_category_rule_list = []
+    dialog_act_rule_list = []
     while True:
         text_line = file.readline()
         if not text_line:
@@ -111,15 +122,122 @@ def compileStringToLFRuleDict(filepath):
         else:
             rule_text += text_line
             if len(rule_text) > 1:
-                parseAndAddRule(rule_text)
+                (rule_lhs, rule_rhs) = parseRuleLHSRHS(rule_text)
+                lsb_index = rule_lhs.find('[')
+                if lsb_index > 0:
+                    word_category_rule_list.append((rule_lhs, rule_rhs))
+                else:
+                    dialog_act_rule_list.append((rule_lhs, rule_rhs))
             rule_text = ''
     file.close()
+
+    for word_category_rule in word_category_rule_list:
+        parseAndAddWordCategoryRule(word_category_rule)
+
+    for dialog_act_rule in dialog_act_rule_list:
+        parseAndAddDialogActRule(dialog_act_rule)
     
-    print '\ngl_all_rules:'
-    printAllRules()
+    print '\nWordCategory rules:'
+    printAllWordCategoryRules()
+    print '\nDialogAct rules:'
+    printAllDialogActRules()
 
 
-def parseAndAddRule(rule_text):
+
+#returns (rule_lhs, rule_rhs)
+def parseRuleLHSRHS(rule_text):
+    leftarrow_index = rule_text.find('<')
+    if leftarrow_index < 0:
+        print 'could not find < in rule_text: ' + rule_text
+        return
+    rightarrow_index = rule_text.find('>')
+    if rightarrow_index < 0:
+        print 'could not find > in rule_text: ' + rule_text
+        return
+    lhs = rule_text[0:leftarrow_index]
+    lhs = lhs.strip()
+    rhs = rule_text[rightarrow_index+1:]
+    rhs = rhs.strip()
+    return (lhs, rhs)
+
+
+
+
+
+#A Word-Category rules is a mapping:
+#   Predicate[arg] <-> word1 word2...
+def parseAndAddWordCategoryRule(str_rule_lhs_rhs):
+    lhs = str_rule_lhs_rhs[0]
+    rhs = str_rule_lhs_rhs[1]
+
+    rhs = rhs.strip()
+    rhs_words = rhs.split()
+    rhs_words_tup = tuple(rhs_words)
+
+    lsb_index = lhs.find('[')
+    wcategory_predicate = lhs[0:lsb_index]
+    this_wcategory_predicate_rule_list = gl_word_category_rules.get(wcategory_predicate)
+    if this_wcategory_predicate_rule_list == None:
+        this_wcategory_predicate_rule_list = []
+        gl_word_category_rules[wcategory_predicate] = this_wcategory_predicate_rule_list
+    this_wcategory_predicate_rule_list.append((lhs, rhs_words_tup))
+
+
+#A DialogAct rule is a mapping:
+#   Intent(LogicalForm) <-> word-or-word-category1 word-or-word-category2 ...
+#The str_rule_lhs_hrls passed is a tuple (str_lhs, str_rhs)
+#This turns the str_rhs into a tuple of either words or word-category predicates.
+#This creates a rule, (str_lhs, (word_or_word_category_predicate, word_or_word_category_predicate, ...))
+#Then, this picks off the first word_or_word_category_predicate from the rhs tuple.
+#If this is a word, then this adds the rule to the gl_first_word_string_to_rule_dict, with the
+# key being that word.
+#If the first element is a word_category_predicate, then this adds the rule to every first word
+#of every arg version for the word_category having that predicate.
+def parseAndAddDialogActRule(str_rule_lhs_rhs):
+    lhs = str_rule_lhs_rhs[0]
+    rhs = str_rule_lhs_rhs[1]
+
+    rhs = rhs.strip()
+    rhs_words = rhs.split()
+    rhs_words_tup = tuple(rhs_words)
+    first_word_or_cat = rhs_words[0]
+
+    lbr_index = first_word_or_cat.find('{')
+    first_words_to_index_under = []
+
+    #If the first word of the word pattern is actually a word category, then we need to 
+    #list this DialogRule under each first word of each arg version of that category 
+    #  {predicate[$a]}
+    if lbr_index > 0:
+        lsq_index = first_word_or_cat.find('[')
+        predicate = first_word_or_cat[lbr_index+1:lsq_index]
+        cat_list = gl_word_category_rules.get(predicate)
+        if cat_list == None:
+            print 'Problem in parseAndAddDialogActRule. Predicate ' + predicate + ' not found in word-cateogry dict'
+            return
+        for cat_rule in cat_list:
+            rhs = cat_rule[1]
+            first_word = rhs[0]
+            first_words_to_index_under.append(first_word)
+    else:
+        first_words_to_index_under.append(first_word_or_cat)
+
+
+    for first_word_to_index_under in first_words_to_index_under:
+        first_word_rule_list = gl_first_word_string_to_rule_dict.get(first_word_to_index_under)
+        if first_word_rule_list == None:
+            first_word_rule_list = []
+            gl_first_word_string_to_rule_dict[first_word_to_index_under] = first_word_rule_list
+        first_word_rule_list.append((lhs, rhs_words_tup))
+
+
+
+#Determines if the rule as written out in rule_text is a Word-Category rule or a DialogAct rule
+#A Word-Category rules is a mapping:
+#   Predicate[arg] <-> word1 word2...
+#A DialogAct rule is a mapping:
+#   Intent(LogicalForm) <-> word-or-word-category1 word-or-word-category2 ...
+def parseAndAddRuleObsolete(rule_text):
     leftarrow_index = rule_text.find('<')
     if leftarrow_index < 0:
         print 'could not find < in rule_text: ' + rule_text
@@ -139,15 +257,16 @@ def parseAndAddRule(rule_text):
     else:
         first_string_or_category = rhs
 
-    #$$$XX This not completed yet about how to organize Word Categories
     #determine if a DialogRule or else a Word Category
-    if lhs.find('['):               #Word Category
-        existing_list = gl_first_word_string_to_wcategory_dict.get(first_string_or_category)
-        if existing_list == None:
-            new_wcategory_list = [rule]
-            gl_first_word_string_to_wcategory_dict[first_string_or_category] = new_wcategory_list
-        else:
-            existing_list.append(rule)
+    lsb_index = lhs.find('[')
+    if lsb_index > 0:               #Word Category
+        wcategory_predicate = lhs[0:lsb_index]
+        word_list = rhs.split()
+        word_tuple = tuple(word_list)
+        this_wcategory_predicate_rule_list = gl_word_category_rules.get(wcategory_predicate)
+        if this_wcategory_predicate_rule_list == None:
+            this_wcategory_predicate_rule_list = []
+        this_wcategory_predicate_rule_list.append((lhs, word_tuple))
 
     else:                           #DialogRule
         existing_list = gl_first_word_string_to_rule_dict.get(first_string_or_category)
@@ -158,26 +277,41 @@ def parseAndAddRule(rule_text):
             existing_list.append(rule)
 
 
-def printAllRules():
+def printAllWordCategoryRules():
+    for predicate in gl_word_category_rules.keys():
+        rule_list = gl_word_category_rules.get(predicate)
+        print predicate + ' :: ' + str(rule_list)
+
+
+def printAllDialogActRules():
     for rule_key in gl_first_word_string_to_rule_dict.keys():
-        rule = gl_first_word_string_to_rule_dict[rule_key]
-        print rule_key + ' : '  + str(rule)
+        print rule_key
+        rule_list = gl_first_word_string_to_rule_dict[rule_key]
+        for rule in rule_list:
+            print '    '  + str(rule)
 
 
 
 
 def applyLFRulesToString(input_string):
     word_list = input_string.split()
-    word_index = 0;
+    i_word = 0;
     
     res = []    #a list of rule fits to the_string: [(DialogAct, start_i, end_i),...]
-    while word_index < len(word_list):
-        i_word = word_list[word_index]
-        possible_rules = gl_first_word_string_to_rule_dict.get(i_word)
-        for rule in possible_rules:
-            rule_fit = testRuleOnInputWordsAtWordIndex(rule, word_list, i_word)
-            if rule_fit != None:
-                res.append(rule_fit)
+    while i_word < len(word_list):
+        word_i = word_list[i_word]
+        possible_rules = gl_first_word_string_to_rule_dict.get(word_i)
+        print '\'' + word_i + '\':   possible_rules: ' + str(possible_rules)
+        if possible_rules != None:
+            for possible_rule in possible_rules:
+                print 'possible_rule: ' + str(possible_rule)
+                #fit_tuple is (dialog_rule, i_word_start, i_word_end)  
+                fit_tuple = testRuleOnInputWordsAtWordIndex(possible_rule, word_list, i_word)
+                if fit_tuple != None:
+                    res.append(fit_tuple)
+                    print 'fit_tuple: ' + str(fit_tuple)
+        i_word += 1
+
     return res
 
 
@@ -199,13 +333,17 @@ def applyLFRulesToString(input_string):
 #i_word and i_next_word in the tuple tell what part of the word_list is spanned by the DialogAct.
 def testRuleOnInputWordsAtWordIndex(rule, word_list, i_word_start):
 
+    print ' testRuleOnInputWordsAtWordIndex(' + str(rule) + ', ' + str(word_list) + ', ' + str(i_word_start) + ')'
     rule_rhs = rule[0]
     arg_index_map = {}    #key: $X where X is an argument indicator, value:  a predicate provided by a word-category
                           #that will substitute for $X in the DialogAct returned (if it matches)
     i_word = i_word_start
     i_rule = 0
+    rule_rhs_items = rule_rhs.split()
+    print ' rule_rhs_items: ' + str(rule_rhs_items)
     while i_word < len(word_list):
-        rule_word_or_word_category = rule_rhs[i_rule]
+        rule_word_or_word_category = rule_rhs_items[i_rule]
+        print '  test: ' + str(i_word) + ': ' + rule_word_or_word_category
 
         #rule_word_or_word_category is either a word or else an indicator of a word-category, like, {DigitCat[$1]}
         if rule_word_or_word_category.find('{') == 0:
@@ -220,8 +358,8 @@ def testRuleOnInputWordsAtWordIndex(rule, word_list, i_word_start):
             if num_words_consumed > 0:
                 lsb_index = rule_word_or_word_category.find('[$')
                 rsb_index = rule_word_or_word_category.find(']')
-                arg_indicator = rule_word_or_word_category[lsb_index+2:rsb_index]
-                arg_index_map[arg_indicator] = word_category_arg
+                arg_name = rule_word_or_word_category[lsb_index+2:rsb_index]
+                arg_index_map[arg_name] = word_category_arg
                 i_word += num_words_consumed
                 i_rule += 1
             else:
@@ -232,37 +370,29 @@ def testRuleOnInputWordsAtWordIndex(rule, word_list, i_word_start):
                 i_rule += 1
             else:
                 return None
-        if i_word >= len(word_list):
+        if i_word > len(word_list):
+            print 'ran out of words'
             return None
         #the DialogAct matches
-        if i_rule >= len(rule_rhs):
-            rule_dialog_act = rule[1]
-            lbr_index = rule_dialog_act.find('{$')
-            while lbr_index > 0:
-                rbr_index =
-                $$
+        if i_rule >= len(rule_rhs_items):
+            break
 
-            
-        
-                
+    print 'matched all words'
+    rule_dialog_act = rule[1]
+    lbr_index = rule_dialog_act.find('{$')
+    while lbr_index > 0:
+        rbr_index = rule_dialog_act.find('}', lbr_index+2)
+        if rbr_index < lbr_index:
+            print 'testRuleOnInputWordsAtWordIndex() found a minsmatched braces in a rule DialogAct: ' + rule_dialog_act
+            return None
+        da_arg_name = rule_dialog_act[lbr_index+2, rbr_index]
+        word_category_arg = arg_index_map.get(da_arg_name)
+        if word_category_arg != None:
+            rule_dialog_act = rule_dialog_act[0:lbr_index+1] + word_category_arg + rule_dialog_act[rbr_index:]
+        lbr_index = rule_dialog_act.find('{$', rbr_index+1)
+    print 'returning ' + str((rule_dialog_act, i_word_start, i_word))
+    return (rule_dialog_act, i_word_start, i_word)
 
-        #a rule_word_or_word_category is like,   ((one fine day), DigitCat[$1])
-        #where 'one', 'fine', 'day', and 'DigitCat[$1]' are all strings.
-        #and the word-category DigitCat includes the mapping,
-        #User: DigitCat[one] <-> one
-
-
-
-                
-
-            
-        
-    
-    return None
-        
-        
-
-    
 
 
 
