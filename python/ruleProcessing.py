@@ -107,7 +107,7 @@ gl_first_word_string_to_rule_dict = {}
 
 
 #key: intent predicate of the DialogAct
-#value: a tuple: (da, rhs)
+#value: a list of tuples for this intent: [(da, rhs), (da, rhs)...]
 #where da is a DialogAct instance
 #      rhs is a string of a list of words or category objects e.g. {PredCat[$1]}
 gl_dialog_act_rules = {}
@@ -804,10 +804,111 @@ def generateTextFromDialogActs(da_list):
 
 
 
-#DialogAct is of the form,   intent(lf1, lf2, ...)
+#dialog_act is an instance of a DialogAct
 #Where each LogicalForm is itself a predicate or predicate(lf1, lf2...)
-def generateTextFromDialogAct(DialogAct):
-    return None
+#The most interesting thing this function does is fill in the free arguments $1, $2 etc.
+#from the DialogRule to the utterance.
+def generateTextFromDialogAct(gen_dialog_act):
+    da_rule_list = gl_dialog_act_rules.get(gen_dialog_act.intent)
+    if da_rule_list == None:
+        print 'error generateTextFromDialogAct() sees no rules for dialog_act ' + gen_dialog_act.getPrintString() + ' intent ' + gen_dialog_act.intent
+        return None
+    
+    #Run through all of the LogicalForms and Word-Category rules that use this intent in its DialogAct.
+    #Match predicte-by-predicate recursively.  As free arguments are encountered in the rule, map them
+    #to argument values from the arguments of the generated LogicalForm.
+    #Return the argument mapping for the first match to the dialog_act passed.
+    arg_mapping = None
+    for da_rule in da_rule_list:
+        rule_da = da_rule[0]
+        arg_mapping = recursivelyMapDialogRule(rule_da, gen_dialog_act)
+        if arg_mapping != None:
+            break
+    if arg_mapping == None:
+        print 'error generateTextFromDialogAct() could not find a consistent recursive mapping for dialog_act\n '\
+            + gen_dialog_act.getPrintString() + ' intent ' + gen_dialog_act.intent
+        return None
+
+    word_list = []
+    rhs = da_rule[1]
+    rhs_list = rhs.split()
+    print 'rhs: ' + str(rhs)
+    for word_or_word_category in rhs_list:
+        if word_or_word_category[0] == '{':
+            lsb_index = word_or_word_category.find('[')
+            rsb_index = word_or_word_category.find(']', lsb_index)
+            print 'word_or_word_category: ' + str(word_or_word_category)
+            wc_predicate = word_or_word_category[:lsb_index]
+            arg_name = word_or_word_category[lsb_index+2:rsb_index]
+            arg_value = arg_mapping.get(arg_name);
+            if arg_value == None:
+                print 'error arg_name ' + arg_name + ' not found in mapping ' + str(arg_mapping)
+            else:
+                #$$XX here need to mix in the other words of the word-category
+                word_list.append(arg_value)
+        else:
+            word_list.append(word_or_word_category)
+
+    out_string = ' '.join(word_list)
+    return out_string
+
+
+
+#recursively checks all predicates and argugments of the template rule_da against the 
+#generated DialogAct gen_da.  
+#Fills in an argument map as it goes, leaving off the dollar signs.
+#If successful match, then returns the argument_map.
+#If something doesn't match, then this returns None.
+def recursivelyMapDialogRule(rule_da, gen_da):
+    print '\nrule_da: ' + rule_da.getPrintString()
+    print 'gen_da: ' + gen_da.getPrintString()
+    arg_mapping = {}
+    ok_p = recursivelyMapDialogRuleAux(rule_da, gen_da, arg_mapping)
+    if ok_p:
+        return arg_mapping
+    else:
+        return None
+    
+def recursivelyMapDialogRuleAux(rule_da, gen_da, arg_mapping):
+    print '\nrecurse'
+    print 'rule_da: ' + rule_da.getPrintString()
+    print 'gen_da: ' + gen_da.getPrintString()
+
+    if type(rule_da) != type(gen_da):
+        print 'type(rule_da) ' + str(type(rule_da)) + ' != type(gen_da) ' + str(type(gen_da))
+        return False
+    if len(rule_da.arg_list) != len(gen_da.arg_list):
+        print 'len(rule_da.arg_list) ' + str(len(rule_da.arg_list)) + ' != len(gen_da.arg_list) ' + str(len(gen_da.arg_list))
+        return False
+
+
+    if len(rule_da.arg_list) == 0:
+        d_index = rule_da.predicate.find('$')
+        if d_index == 0:
+            arg_name = rule_da.predicate[1:]
+            arg_value = gen_da.predicate
+            print 'adding arg_mapping[' + arg_name + '] = ' + arg_value
+            arg_mapping[arg_name] = arg_value
+            return True
+        else:
+            if rule_da.predicate == gen_da.predicate:
+                return True
+            else:
+                print 'rule_da.predicate ' + rule_da.predicate + ' != gen_da.predicate ' + gen_da.predicate
+                return False
+    else:
+        for i in range(0, len(rule_da.arg_list)):
+            rule_da_arg = rule_da.arg_list[i]
+            gen_da_arg = gen_da.arg_list[i]
+            if type(rule_da_arg) != type(gen_da_arg):
+                print 'arg ' + str(i) + ': type(rule_da_arg) ' + str(type(rule_da_arg)) + ' != type(gen_da_arg) ' + str(type(gen_da_arg))
+                return False
+            elif type(rule_da_arg) != str:
+                print 'rule_da_arg: ' + str(rule_da_arg) + ' type(rule_da_arg): ' + str(type(rule_da_arg))
+                vv =  recursivelyMapDialogRuleAux(rule_da_arg, gen_da_arg, arg_mapping)
+                if vv == False:
+                    return False
+        return True
 
 
 

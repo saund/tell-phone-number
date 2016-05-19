@@ -56,13 +56,17 @@ def loopDialogMain():
             #print 'intent:' + da.intent
             #print 'arg_list: ' + str(da.arg_list)
             da.printSelf()
+            str_generated = rp.generateTextFromDialogAct(da)
+            if str_generated == None:
+                print 'could not generate a string from da'
+            else:
+                print 'gen: ' + str_generated
             #print 'lfs: ' + str(da.arg_list)
             #for lf in da.arg_list:
             #    lf.printSelf()
 
         #response_da_list = generateLogicalResponse(da_list)
         #tellResponses(response_da_list)
-        
         input_string = raw_input('\nInput: ')
 
 
