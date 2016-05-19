@@ -1,9 +1,10 @@
 #!/usr/bin/python -tt
 
-#tellPhoneNumber.py is an intial start at a dialog management system to
+#dialogAgent.py is for an Agent model for a dialog management system to
 #transmit structured data between a transmitter and a receiver using human
 #conversational dialogue.
-
+#A DialogAgent holds a Dialog
+$$
 
 import csv
 import random
@@ -36,10 +37,22 @@ gl_rules_dirpath = os.path.join(os.getcwd(), '..', 'rules')
 #print 'and then... gl_rules_dirpath: ' + gl_rules_dirpath
 
 
+#Test just the rules in isolated-rules-test.txt
+def loopInputTest():
+    initLFRules('isolated-rules-test.txt')
+    loopInputMain()
 
+    
+#Test the rules in gl_default_lf_rule_filename.
+#Loop one input and print out the set of DialogActs interpreted
 def loopInput():
     initLFRulesIfNecessary()
+    loopInputMain()
+
+
+def loopInputMain():
     input_string = raw_input('Input: ')
+    input_string = removePunctuationAndLowerTextCasing(input_string)
     while input_string != 'stop' and input_string != 'quit':
         print '\n' + input_string
         res = applyLFRulesToString(input_string)
@@ -48,6 +61,23 @@ def loopInput():
         else:
             print 'MATCH: ' + str(res);
         input_string = raw_input('\nInput: ')
+
+
+def removePunctuationAndLowerTextCasing(text_data):
+    text_data = text_data.lower()
+    text_data = text_data.replace(',', '')
+    text_data = text_data.replace('.', ' ')
+    text_data = text_data.replace('!', '')
+    text_data = text_data.replace('"', '')
+    text_data = text_data.replace('?', '')
+    text_data = text_data.replace('*', '')
+    text_data = text_data.replace(':', '')
+    text_data = text_data.replace('-', ' ')
+    text_data = text_data.replace('  ', ' ')
+    text_data = text_data.replace('~', '')
+    text_data = text_data.replace('\\n', ' ')
+    text_data = text_data.replace('=', ' ')     #added 2016/03/01
+    return text_data
 
 
 
@@ -389,13 +419,18 @@ def testRuleOnInputWordsAtWordIndex(rule, word_list, i_word_start):
                 i_word += num_words_consumed
                 i_rule += 1
             else:
-                return None
+                #if we're looking for a word category, allow intervening words
+                i_word += 1
         else:
-            if word_list[i_word] != rule_word_or_word_category:
-                return None
-            else:
+            #if a word-to-word match, then advance
+            if word_list[i_word] == rule_word_or_word_category:
                 i_word += 1
                 i_rule += 1
+            #if a word-to-word non-match, then this rule doesn't apply
+            else:
+                print 'word-to-word non-match ' + word_list[i_word] + ' : ' + rule_word_or_word_category
+                return None
+
 
         #the DialogAct matches
         if i_rule >= len(rule_rhs_items):
