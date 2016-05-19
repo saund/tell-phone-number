@@ -52,24 +52,25 @@ def loopDialogMain():
         da_list = rp.parseDialogActsFromRuleMatches(rule_match_list)
         #print 'got ' + str(len(da_list)) + ' DialogActs'
         #print 'raw: ' + str(da_list)
+        output_word_list = []
         for da in da_list:
             #print 'intent:' + da.intent
             #print 'arg_list: ' + str(da.arg_list)
             da.printSelf()
-            str_generated = rp.generateTextFromDialogAct(da)
-            if str_generated == None:
+            da_generated_word_list = rp.generateTextFromDialogAct(da)
+            if da_generated_word_list == None:
                 print 'could not generate a string from da'
             else:
-                print 'gen: ' + str_generated
+                output_word_list.extend(da_generated_word_list)
             #print 'lfs: ' + str(da.arg_list)
             #for lf in da.arg_list:
             #    lf.printSelf()
+        str_generated = ' '.join(output_word_list)
+        print 'gen: ' + str_generated
 
         #response_da_list = generateLogicalResponse(da_list)
         #tellResponses(response_da_list)
         input_string = raw_input('\nInput: ')
-
-
 
 
 

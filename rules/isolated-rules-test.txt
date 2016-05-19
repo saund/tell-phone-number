@@ -3,19 +3,15 @@
 #A file for isolating rules to do targeted tests
 
 
+
+CommandCat[tell-me] <-> tell me
+
+CommandCat[tell-you] <-> tell you
+
 InfoTypeCat[telephone-number] <-> telephone number
 InfoTypeCat[telephone-number] <-> phone number
 
-CommandCat[tell-me] <-> tell me
-CommandCat[tell-me] <-> give me
-CommandCat[tell-me] <-> provide me
 
-CommandCat[tell-you] <-> tell you
-CommandCat[tell-you] <-> give you
-CommandCat[tell-you] <-> provide you
+RequestTopicInfo(SendReceive($1), InfoTopic($2)) <-> {CommandCat[$1]} {InfoTypeCat[$2]}
 
-
-RequestTopicInfo(receive-telephone-number) <-> {CommandCat[tell-me]} {InfoTypeCat[telephone-number]}
-
-RequestTopicInfo(send-telephone-number) <-> {CommandCat[tell-you]} {InfoTypeCat[telephone-number]}
 

@@ -16,6 +16,26 @@
 #Intents, LogicalForms, and the predicates and arguments that comprise LogicalForms.
 
 
+#This version of 2016/05/19 should work well enough to support simple rules, but
+#it should be significantly restructured.
+#
+#First, the distinction between DialogRules and Word Category rules is bogus.
+#Every LogicalForm to utterance mapping is a Category rule.  It should be called
+#an Utterance Category rule.
+#A so-called DialogRule is actually an Utterance Category rule with the 
+#utterance category being DialogRuleCat.  A DialogRuleCat is constrained to have
+#an Intent as its lead predicate (aka a CommuncativeFunction in Otto).
+#
+#Second, every utterance mapping rule should allow recursion, or the inclusion of
+#utterance category rules on the RHS enclosed by braces { }.
+#
+#Third, the rules should be segregated as Interpretive <- and Generator ->.
+#An utterance rule rule can be both <->.
+#This will allow designation of a preferred way of speaking a DialogAct that can
+#be interpreted from several ways of saying it.
+
+
+
 import csv
 import random
 import sys
@@ -292,6 +312,8 @@ def parseAndAddDialogActRule(str_rule_lhs_rhs):
     if lbr_index >= 0:
         lsq_index = first_word_or_cat.find('[')
         predicate = first_word_or_cat[lbr_index+1:lsq_index]
+        predicate = predicate.strip()
+
         cat_list = gl_word_category_rules.get(predicate)
         if cat_list == None:
             print 'Problem in parseAndAddDialogActRule. Predicate ' + predicate + ' not found in word-cateogry dict'
@@ -382,6 +404,7 @@ def printAllDialogActRules():
 
 class LogicalForm():
     def __init__(self, predicate):
+        predicate = predicate.strip()
         self.predicate = predicate   #If there are args, then this will be uppercase.  If this is an itself just an argument,
                                      #then this is likely to be lowercase.
         self.arg_list = []
@@ -405,6 +428,7 @@ class LogicalForm():
 
 class DialogAct(LogicalForm):
     def __init__(self, intent):
+        intent = intent.strip()
         self.intent = intent
         self.arg_list = []
 
@@ -471,6 +495,7 @@ def parseLogicalFormFromString(str_lf):
         #print 'found primitive lf: ' + lf.getPrintString()
         return lf
     predicate = str_lf[0:lp_index]
+    predicate = predicate.strip()
     lf = LogicalForm(predicate)
     arg_str = str_lf[lp_index+1:len(str_lf)-1]
     str_arg_list = parsePredicatesWithArgs(arg_str)
@@ -489,6 +514,7 @@ def parseLogicalFormFromString(str_lf):
 #  lf1, lf2, lf3...
 # where each lf is a LogicalForm that could be nested,  pred(lf, lf, lf) 
 #This returns a list, [lf1, lf2, lf3...]
+#where each lfX is a string representation of a LogicalForm that could be nested
 # e.g.
 #  'pred1(pred1a(pred1aa(pred1aaa, pred1aab), pred1ab(pred1aba, pred1abb)), pred1b), pred2(pred2a(pred2aa, pred2ab))'
 #  returns [  'pred1(pred1a(pred1aa(pred1aaa, pred1aab), pred1ab(pred1aba, pred1abb)), pred1b)', 
@@ -508,10 +534,12 @@ def parsePredicatesWithArgs(str_preds_args):
         if lp_idx < 0 or (comma_idx >0 and comma_idx < lp_idx):
             key_idx = comma_idx
             arg = str_preds_args[last_idx:key_idx]
+            arg = arg.strip()
             str_arg_list.append(arg)
             last_idx = key_idx+1
             lp_idx = str_preds_args.find('(', last_idx)
             comma_idx = str_preds_args.find(',', last_idx)
+
         #next arg is a predicate with parens
         elif comma_idx < 0 or (lp_idx > 0 and lp_idx < comma_idx):
             key_idx = lp_idx
@@ -528,14 +556,21 @@ def parsePredicatesWithArgs(str_preds_args):
                     paren_count -= 1
 
             arg = str_preds_args[last_idx:key_idx+1]  #include the ')'
+            arg = arg.strip()
             #print 'appending ' + arg
             str_arg_list.append(arg)
             key_idx += 1
             if key_idx >= len(str_preds_args):
                 return str_arg_list
-                last_idx = key_idx+1
-                lp_idx = str_preds_args.find('(', last_idx)
-                comma_idx = str_preds_args.find(',', last_idx)
+            last_idx = key_idx+1
+            lp_idx = str_preds_args.find('(', last_idx)
+            comma_idx = str_preds_args.find(',', last_idx)
+
+        #debugging
+        #print 'str_arg_list: ' + str(str_arg_list) + ' last_idx: ' + str(last_idx) 
+        #        input_string = raw_input('\nPausing: ')
+        #if input_string == 'quit':
+        #    break
 
     if last_idx < len(str_preds_args):
         arg = str_preds_args[last_idx:]
@@ -793,14 +828,14 @@ def testWordCategoryOnInputWordsAtWordIndex(word_category_predicate, word_list, 
 #
 
 def generateTextFromDialogActs(da_list):
-    text_list = []
+    word_list = []
     for da in da_list:
-        text_utterance = generateTextFromDialogAct(da)
-        if text_utterance == None:
+        da_word_list = generateTextFromDialogAct(da)
+        if da_word_list == None:
             print 'error could not generate text from DialogAct ' + da.getPrintString()
         else:
-            text_list.append(text_utterance)
-    return text_list
+            word_list.extend(da_word_list)
+    return word_list
 
 
 
@@ -808,6 +843,7 @@ def generateTextFromDialogActs(da_list):
 #Where each LogicalForm is itself a predicate or predicate(lf1, lf2...)
 #The most interesting thing this function does is fill in the free arguments $1, $2 etc.
 #from the DialogRule to the utterance.
+#Returns a word_list of words generated by the gen_dialog_act passed.
 def generateTextFromDialogAct(gen_dialog_act):
     da_rule_list = gl_dialog_act_rules.get(gen_dialog_act.intent)
     if da_rule_list == None:
@@ -837,20 +873,47 @@ def generateTextFromDialogAct(gen_dialog_act):
         if word_or_word_category[0] == '{':
             lsb_index = word_or_word_category.find('[')
             rsb_index = word_or_word_category.find(']', lsb_index)
-            print 'word_or_word_category: ' + str(word_or_word_category)
-            wc_predicate = word_or_word_category[:lsb_index]
-            arg_name = word_or_word_category[lsb_index+2:rsb_index]
-            arg_value = arg_mapping.get(arg_name);
-            if arg_value == None:
-                print 'error arg_name ' + arg_name + ' not found in mapping ' + str(arg_mapping)
+            wc_predicate = word_or_word_category[1:lsb_index]
+            #print 'word_or_word_category: ' + str(word_or_word_category)
+            if word_or_word_category[lsb_index+1] == '$':
+                arg_name = word_or_word_category[lsb_index+2:rsb_index]
+                arg_value = arg_mapping.get(arg_name);
+                if arg_value == None:
+                    print 'error arg_name ' + arg_name + ' not found in mapping ' + str(arg_mapping)
+                    arg_value = ' [processing error] '
             else:
-                #$$XX here need to mix in the other words of the word-category
-                word_list.append(arg_value)
+                arg_value = word_or_word_category[lsb_index+1:rsb_index]
+            word_cat_rhs_word_tup = lookupWordCategoryRHSWords(wc_predicate, arg_value)
+            #print 'extending word_list ' + str(word_list) + ' with ' + str(word_cat_rhs_word_tup)
+            word_list.extend(word_cat_rhs_word_tup)
+            #print 'word_list is now ' + str(word_list)
         else:
+            #print 'appending word_list ' + str(word_list) + ' with ' + str(word_or_word_category)
             word_list.append(word_or_word_category)
+            #print 'word_list is now ' + str(word_list)
 
-    out_string = ' '.join(word_list)
-    return out_string
+    return word_list
+
+
+#A word-category is of the form  predicate[arg-value]
+#This looks up the word-category in the gl_word_category_rules dictionary, then selects
+#The correct version for the arg_value.
+#This returns a tuple of words which is the rhs of that word-category
+def lookupWordCategoryRHSWords(wc_predicate, arg_value):
+    global gl_word_category_rules
+    wc_rule_list = gl_word_category_rules.get(wc_predicate)
+    if wc_rule_list == None:
+        print 'error lookupWordCategoryRHSWords(' + wc_predicate + ', ' + arg_value + ') found no items' 
+        return ''
+    
+    target_lhs = wc_predicate + '[' + arg_value + ']'
+    for wc_rule in wc_rule_list:
+        lhs = wc_rule[0]
+        if lhs == target_lhs:
+            rhs = wc_rule[1]
+            return rhs
+    print 'error lookupWordCategoryRHSWords(' + wc_predicate + ', ' + arg_value + ') found the predicate but no match to the arg_value'
+    return ''
 
 
 
@@ -860,8 +923,8 @@ def generateTextFromDialogAct(gen_dialog_act):
 #If successful match, then returns the argument_map.
 #If something doesn't match, then this returns None.
 def recursivelyMapDialogRule(rule_da, gen_da):
-    print '\nrule_da: ' + rule_da.getPrintString()
-    print 'gen_da: ' + gen_da.getPrintString()
+    #print '\nrule_da: ' + rule_da.getPrintString()
+    #print 'gen_da: ' + gen_da.getPrintString()
     arg_mapping = {}
     ok_p = recursivelyMapDialogRuleAux(rule_da, gen_da, arg_mapping)
     if ok_p:
@@ -870,15 +933,15 @@ def recursivelyMapDialogRule(rule_da, gen_da):
         return None
     
 def recursivelyMapDialogRuleAux(rule_da, gen_da, arg_mapping):
-    print '\nrecurse'
-    print 'rule_da: ' + rule_da.getPrintString()
-    print 'gen_da: ' + gen_da.getPrintString()
+    #print '\nrecurse'
+    #print 'rule_da: ' + rule_da.getPrintString()
+    #print 'gen_da: ' + gen_da.getPrintString()
 
     if type(rule_da) != type(gen_da):
-        print 'type(rule_da) ' + str(type(rule_da)) + ' != type(gen_da) ' + str(type(gen_da))
+        #print 'type(rule_da) ' + str(type(rule_da)) + ' != type(gen_da) ' + str(type(gen_da))
         return False
     if len(rule_da.arg_list) != len(gen_da.arg_list):
-        print 'len(rule_da.arg_list) ' + str(len(rule_da.arg_list)) + ' != len(gen_da.arg_list) ' + str(len(gen_da.arg_list))
+        #print 'len(rule_da.arg_list) ' + str(len(rule_da.arg_list)) + ' != len(gen_da.arg_list) ' + str(len(gen_da.arg_list))
         return False
 
 
@@ -887,24 +950,24 @@ def recursivelyMapDialogRuleAux(rule_da, gen_da, arg_mapping):
         if d_index == 0:
             arg_name = rule_da.predicate[1:]
             arg_value = gen_da.predicate
-            print 'adding arg_mapping[' + arg_name + '] = ' + arg_value
+            #print 'adding arg_mapping[' + arg_name + '] = ' + arg_value
             arg_mapping[arg_name] = arg_value
             return True
         else:
             if rule_da.predicate == gen_da.predicate:
                 return True
             else:
-                print 'rule_da.predicate ' + rule_da.predicate + ' != gen_da.predicate ' + gen_da.predicate
+                #print 'rule_da.predicate \'' + rule_da.predicate + '\' != gen_da.predicate \'' + gen_da.predicate + '\''
                 return False
     else:
         for i in range(0, len(rule_da.arg_list)):
             rule_da_arg = rule_da.arg_list[i]
             gen_da_arg = gen_da.arg_list[i]
             if type(rule_da_arg) != type(gen_da_arg):
-                print 'arg ' + str(i) + ': type(rule_da_arg) ' + str(type(rule_da_arg)) + ' != type(gen_da_arg) ' + str(type(gen_da_arg))
+                #print 'arg ' + str(i) + ': type(rule_da_arg) ' + str(type(rule_da_arg)) + ' != type(gen_da_arg) ' + str(type(gen_da_arg))
                 return False
             elif type(rule_da_arg) != str:
-                print 'rule_da_arg: ' + str(rule_da_arg) + ' type(rule_da_arg): ' + str(type(rule_da_arg))
+                #print 'rule_da_arg: ' + rule_da_arg.getPrintString() + 'is type ' + str(type(rule_da_arg)) + ' not str so recursing'
                 vv =  recursivelyMapDialogRuleAux(rule_da_arg, gen_da_arg, arg_mapping)
                 if vv == False:
                     return False

@@ -67,8 +67,13 @@ InformTD(ItemType(last-four-digits)) <-> last four numbers
 #ObjectCat[telephone] <-> phone
 
 #A second approach 
-InfoTypeCat[telephone-number] <-> telephone number
 InfoTypeCat[telephone-number] <-> phone number
+InfoTypeCat[telephone-number] <-> telephone number
+
+
+InfoTypeCat[address] <-> place of residence
+InfoTypeCat[address] <-> street address
+InfoTypeCat[address] <-> address
 
 
 
@@ -137,12 +142,21 @@ CommandCat[tell-you] <-> provide you
 
 #e.g. tell me the phone number
 #To preserve generality, do not specify specific non-function words like 'the'.
-RequestTopicInfo(receive-telephone-number) <-> {CommandCat[tell-me]} {InfoTypeCat[telephone-number]}
+#RequestTopicInfo(receive-telephone-number) <-> {CommandCat[tell-me]} {InfoTypeCat[telephone-number]}
+
 
 
 #e.g. I would like to tell you the phone number
 #To preserve generality, do not specify specific non-function words like 'the'.
-RequestTopicInfo(send-telephone-number) <-> {CommandCat[tell-you]} {InfoTypeCat[telephone-number]}
+#RequestTopicInfo(send-telephone-number) <-> {CommandCat[tell-you]} {InfoTypeCat[telephone-number]}
+
+RequestTopicInfo(tell-me) <-> {CommandCat[tell-me]}
+
+
+InfoTopic(telephone-number) <-> {InfoTypeCat[telephone-number]}
+
+RequestTopicInfo(SendReceive($1), InfoTopic($2)) <-> {CommandCat[$1]} {InfoTypeCat[$2]}
+
 
 
 
