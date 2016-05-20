@@ -31,10 +31,15 @@ def loopDialogTest():
     rp.initLFRules('isolated-rules-test.txt')
     loopDialogMain()
 
+
+gl_agent = None
+
     
 #Test the rules in gl_default_lf_rule_filename.
 #Loop one input and print out the set of DialogActs interpreted
 def loopDialog():
+    global gl_agent
+    gl_agent = createBasicAgent()
     rp.initLFRulesIfNecessary()
     loopDialogMain()
 
@@ -50,10 +55,13 @@ def loopDialogMain():
         else:
             print 'MATCH: ' + str(rule_match_list);
         da_list = rp.parseDialogActsFromRuleMatches(rule_match_list)
+
+        response_da_list = generateResponseToInputDialog(da_list)
+
         #print 'got ' + str(len(da_list)) + ' DialogActs'
         #print 'raw: ' + str(da_list)
         output_word_list = []
-        for da in da_list:
+        for da in response_da_list:
             #print 'intent:' + da.intent
             #print 'arg_list: ' + str(da.arg_list)
             da.printSelf()
@@ -65,11 +73,10 @@ def loopDialogMain():
             #print 'lfs: ' + str(da.arg_list)
             #for lf in da.arg_list:
             #    lf.printSelf()
+
         str_generated = ' '.join(output_word_list)
         print 'gen: ' + str_generated
 
-        #response_da_list = generateLogicalResponse(da_list)
-        #tellResponses(response_da_list)
         input_string = raw_input('\nInput: ')
 
 
@@ -77,13 +84,14 @@ def loopDialogMain():
 
 #Returns an Agent that is either a sender ('send') or receiver ('receive') of a telephone number
 #that should be ready to engage in dialogue.
-def createBasicAgent(send_or_receive):
+def createBasicAgent():
     agent = DialogAgent()
     agent.name = 'computer'
     agent.partner_name = 'person'
-    agent.send_receive_role = send_or_receive
-    agent.self_dialog_model = initDialogModel('self', send_or_receive)
-    agent.partner_dialog_model = initDialogModel('partner', sendReceiveOpposite(send_or_receive))
+    #These get set when the agent determines to either send or receive a phone number
+    #agent.send_receive_role = send_or_receive
+    #agent.self_dialog_model = initDialogModel('self', send_or_receive)
+    #agent.partner_dialog_model = initDialogModel('partner', sendReceiveOpposite(send_or_receive))
     return agent
 
 
@@ -103,12 +111,25 @@ class DialogAgent():
     def __init__(self):
         self.name = None
         self.partner_name = None
-        self.send_receive_role = None     #'send' or 'receive'
+        self.send_receive_role = 'banter'     #'send' or 'receive' or 'banter'
         self.self_dialog_model = None
         self.partner_dialog_model = None
 
-
-    def setRole(sender_or_receiver, phone_number=None):
+    #If the role is send, then the DialogAgent will be initialized with a send_phone_number which will
+    #be stuffed into the self_dialog_model.  The DialogAgent will be initialized believing that the 
+    #recipient has no information about the phone number.
+    #If the role is receive, then the send_phone_number will be None and the communction partner 
+    #will be responsible for obtaining the phone number they speak to the DialogAgent, 
+    #and the DialogAgent will start off with no information about the phone number.
+    def setRole(send_or_receive, send_phone_number=None):
+        self.send_receive_role = send_or_receive
+        if send_or_receive == 'banter':
+            self.self_dialog_model = initBanterDialogModel('self')
+            self.partner_dialog_model = initBanterDialogModel('partner')
+            return None
+        #phone number will only be used by the sending DialogModel
+        self.self_dialog_model = initSendReceiveDataDialogModel('self', send_or_receive, send_phone_number)
+        self.partner_dialog_model = initSendReceiveDataDialogModel('partner', sendReceiveOpposite(send_or_receive))
         return None
 
     def printSelf(self):
@@ -125,13 +146,13 @@ class DialogAgent():
 
 gl_default_phone_number = '6506371212'
 
-def initDialogModel(self_or_partner, send_or_receive):
+def initSendReceiveDataDialogModel(self_or_partner, send_or_receive, send_phone_number=None):
     global gl_default_phone_number
     dm = DialogModel()
     dm.model_for = self_or_partner
     dm.data_model = DataModel_USPhoneNumber()
     if send_or_receive == 'send':
-        dm.data_model.setPhoneNumber(gl_default_phone_number)
+        dm.data_model.setPhoneNumber(send_phone_number)
     dm.data_index_pointer = OrderedMultinomialBelief()
     dm.data_index_pointer.initAllConfidenceInOne([0, 1, 2, 3, 4, 5, 6, 7, 8, 9], 0)   #initialize starting at the first digit
     dm.readiness = BooleanBelief()
@@ -206,8 +227,9 @@ class DataModel_USPhoneNumber(DataModel):
             print 'setPhoneNumber got a phone_number_string: ' + phone_number_string + ' that is not 10 digits long'
             return
         for i in range(0, 10):
-            digit = phone_number_string[i]
-            self.data_beliefs[i].setValueDefinite(digit)
+            numerical_digit = phone_number_string[i]
+            word_digit = numericalDigitToWordDigit(numerical_digit)
+            self.data_beliefs[i].setValueDefinite(word_digit)
 
 
     #digit_value is a string
@@ -347,6 +369,16 @@ class OrderedMultinomialBelief():
                 conf = 0.0
             self.value_name_confidence_list.append([this_value, conf])
 
+    def getDominantValue(self):
+        max_confidence = 0.0
+        max_value = -1
+        for i in range(0, len(self.value_name_confidence_list)):
+            value_name_confidence = self.value_name_confidence_list[i]
+            confidence = value_name_confidence[1]
+            if confidence > max_confidence:
+                max_confidence = confidence
+                max_value = value_name_confidence[0]
+        return max_value
 
     def printSelf(self):
         print self.getPrintString()
@@ -367,11 +399,159 @@ class OrderedMultinomialBelief():
         return ret_str
 
 
+gl_number_to_word_map = {'1':'one', '2':'two', '3':'three', '4':'four', '5':'five'\
+                         '6':'six', '7':'seven', '8':'eight', '9':'nine', '0':'zero'}
+
+def numericalDigitToWordDigit(numerical_digit):
+    global gl_number_to_word_map
+    return gl_number_to_word_map.get(numerical_digit)
+
+#
+#
+###############################################################################
+
+###############################################################################
+#
+#
+#
+
+
+def generateResponseToInputDialog(da_list):
+
+    if len(da_list) == 0:
+        return da_list
+    
+    if da_list[0].intent == 'RequestTopicInfo':
+        return handleRequestTopicInfo(da_list)
+        
+    return da_list
+
+
+gl_da_what_is_your_name = rp.parseDialogActFromString('RequestTopicInfo(SendReceive(tell-me), InfoTopic(agent-name))')
+gl_str_da_my_name_is = 'InformTD(self-name, Name($1))'
+
+gl_da_what_is_my_name = rp.parseDialogActFromString('RequestTopicInfo(SendReceive(tell-me), InfoTopic(user-name))')
+gl_str_da_your_name_is = 'InformTD(partner-name, Name($1))'
+
+gl_da_tell_me_phone_number = rp.parseDialogActFromString('RequestTopicInfo(SendReceive(tell-me), InfoTopic(telephone-number))')
+
+gl_da_tell_you_phone_number = rp.parseDialogActFromString('RequestTopicInfo(SendReceive(tell-you), InfoTopic(telephone-number))')
+
+gl_da_affirmation_okay = rp.parseDialogActFromString('ConfirmDialogManagement(affirmation-okay)')
+gl_da_affirmation_yes = rp.parseDialogActFromString('ConfirmDialogManagement(affirmation-yes)')
+gl_da_self_ready = rp.parseDialogActFromString('InformDialogManagement(self-readiness)')
+gl_da_self_not_ready = rp.parseDialogActFromString('InformDialogManagement(self-not-readiness)')
+
+
+
+def handleRequestTopicInfo(da_list):
+    da_request_topic_info = da_list[0]
+
+    #handle 'User: what is your name'
+    mapping = rp.recursivelyMapDialogRule(gl_da_what_is_your_name, da_request_topic_info)
+    if mapping != None:
+        str_da_my_name_is = gl_str_da_my_name_is.replace('$1', gl_agent.name)
+        da_my_name_is = rp.parseDialogActFromString(str_da_my_name_is)
+        return [da_my_name_is]
+
+    #handle 'User: what is my name'
+    mapping = rp.recursivelyMapDialogRule(gl_da_what_is_my_name, da_request_topic_info)
+    if mapping != None:
+        str_da_your_name_is = gl_str_da_your_name_is.replace('$1', gl_agent.partner_name)
+        da_your_name_is = rp.parseDialogActFromString(str_da_your_name_is)
+        return [da_your_name_is]
+
+    #handle 'User: send me the phone number'
+    mapping = rp.recursivelyMapDialogRule(gl_da_tell_me_phone_number, da_request_topic_info)
+    if mapping != None:
+        gl_agent.setRole('send', gl_default_phone_number)
+        #it would be best to spawn another thread to wait a beat then start the
+        #data transmission process, but return okay immediately.
+        #do that later
+        initializeStatesToSendPhoneNumberData(gl_agent)
+        sendNextDataChunk(gl_agent)
+        #return [gl_da_affirmation_okay]
+
+    #handle 'User: take this phone number'
+    mapping = rp.recursivelyMapDialogRule(gl_da_tell_you_phone_number, da_request_topic_info)
+    if mapping != None:
+        gl_agent.setRole('receive')
+        return [gl_da_affirmation_okay, gl_da_self_ready]
+
+
+    print 'no handler for request ' + da_request_topic_info.getPrintString()
+    return da_list;
+
+
+
+
+def initializeStatesToSendPhoneNumberData(agent):
+    #agent is ready
+    agent.self_dialog_model.readiness.setBeliefInTrue(1) 
+    #agent believes partner is ready
+    agent.partner_dialog_model.readiness.setBeliefInTrue(1) 
+
+    #agent believes it is his turn
+    agent.self_dialog_model.turn.setBeliefInTrue(.9) 
+    #agent believes partner believes it is the agent's turn
+    agent.partner_dialog_model.turn.setBeliefInTrue(.1) 
+
+    #initialize agent starting at the first digit
+    agent.self_dialog_model.data_index_pointer.initAllConfidenceInOne([0, 1, 2, 3, 4, 5, 6, 7, 8, 9], 0)   
+    #agent believes the partner is also starting at the first digit
+    agent.partner_dialog_model.data_index_pointer.initAllConfidenceInOne([0, 1, 2, 3, 4, 5, 6, 7, 8, 9], 0)   
+
+    #initialize with chunk size 3
+    agent.self_dialog_model.dm.protocol_chunk_size.initAllConfidenceInOne([1, 2, 3, 10], 3)     
+    #agent believes the partner is ready for chunk size 3
+    agent.partner_dialog_model.dm.protocol_chunk_size.initAllConfidenceInOne([1, 2, 3, 10], 3)     
+
+    #initialize with moderate handshaking
+    agent.self_dialog_model.dm.protocol_handshaking.initAllConfidenceInOne([1, 2, 3, 4, 5], 3)  
+    #agent believes the partner is ready for moderate handshaking
+    agent.partner_dialog_model.dm.protocol_handshaking.initAllConfidenceInOne([1, 2, 3, 4, 5], 3)  
+
+
+
+
+def sendNextDataChunk(agent):
+    consensus_index_pointer = agent.getConsensusIndexPointer()
+    if consensus_index_pointer == None:
+        return dealWithMisalignedIndexPointer()
+
+    digit_lf_sequence = []
+    chunk_size = agent.self_dialog_model.chunk_size.getDominantValue()
+
+    last_index_to_send = consensus_index_pointer + chunk_size
+    digit_sequence_lf = 'InformTD(ItemValue(DigitSequence('
+
+    total_num_digits = len(agent.self_dialog_model.data_model.data_beliefs)
+    for digit_i in range(consensus_index_pointer, min(last_index_to_send+1, total_num_digits)):
+        digit_belief = agent.self_dialog_model.data_model.data_beliefs[digit_i]
+        data_value = digit_belief.getHighestConfidenceValue()  #a number string, e.g. 'one'
+        digit_sequence_lf += data_value + ','
+        
+    #strip off the last comma
+    digit_sequence_lf = digit_sequence_lf[:len(digit_sequence_lf-1)]
+    digit_sequence_lf += ')))'
+
+    #$$XX here advance the index pointer for the agent and the belief for the partner
+
+    return digit_sequence_lf
 
         
         
+        
+
+def testDataAgreement(agent):
+    return None
+    
 
                         
+
+#
+#
+###############################################################################
 
 
 

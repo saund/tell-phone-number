@@ -49,8 +49,27 @@ DigitCat[nine] <-> nine
 DigitCat[zero] <-> zero
 DigitCat[zero] <-> oh
 
-
 InformTD(ItemValue(Digit($1))) <-> {DigitCat[$1]}
+
+InformTD(ItemValue(DigitSequence($1, $2))) <-> \
+{DigitCat[$1]} {DigitCat[$2]} 
+InformTD(ItemValue(DigitSequence($1, $2, $3))) <-> \
+{DigitCat[$1]} {DigitCat[$2]} {DigitCat[$3]} 
+InformTD(ItemValue(DigitSequence($1, $2, $3, $4))) <-> \
+{DigitCat[$1]} {DigitCat[$2]} {DigitCat[$3]} {DigitCat[$4]}
+InformTD(ItemValue(DigitSequence($1, $2, $3, $4, $5))) <-> \
+{DigitCat[$1]} {DigitCat[$2]} {DigitCat[$3]} {DigitCat[$4]} {DigitCat[$5]}
+InformTD(ItemValue(DigitSequence($1, $2, $3, $4, $5, $6))) <-> \
+{DigitCat[$1]} {DigitCat[$2]} {DigitCat[$3]} {DigitCat[$4]} {DigitCat[$5]} {DigitCat[$6]}
+InformTD(ItemValue(DigitSequence($1, $2, $3, $4, $5, $6, $7))) <-> \
+{DigitCat[$1]} {DigitCat[$2]} {DigitCat[$3]} {DigitCat[$4]} {DigitCat[$5]} {DigitCat[$6]} {DigitCat[$7]}
+InformTD(ItemValue(DigitSequence($1, $2, $3, $4, $5, $6, $7, $8))) <-> \
+{DigitCat[$1]} {DigitCat[$2]} {DigitCat[$3]} {DigitCat[$4]} {DigitCat[$5]} {DigitCat[$6]} {DigitCat[$7]} {DigitCat[$8]}
+InformTD(ItemValue(DigitSequence($1, $2, $3, $4, $5, $6, $7, $8, $9))) <-> \
+{DigitCat[$1]} {DigitCat[$2]} {DigitCat[$3]} {DigitCat[$4]} {DigitCat[$5]} {DigitCat[$6]} {DigitCat[$7]} {DigitCat[$8]} {DigitCat[$9]}
+InformTD(ItemValue(DigitSequence($1, $2, $3, $4, $5, $6, $7, $8, $9, $10))) <-> \
+{DigitCat[$1]} {DigitCat[$2]} {DigitCat[$3]} {DigitCat[$4]} {DigitCat[$5]} {DigitCat[$6]} {DigitCat[$7]} {DigitCat[$8]} {DigitCat[$9]} {DigitCat[$10]}
+
 
 
 
@@ -70,33 +89,21 @@ InformTD(ItemType(last-four-digits)) <-> last four numbers
 InfoTypeCat[telephone-number] <-> phone number
 InfoTypeCat[telephone-number] <-> telephone number
 
-
 InfoTypeCat[address] <-> place of residence
 InfoTypeCat[address] <-> street address
 InfoTypeCat[address] <-> address
 
+InfoTypeCat[agent-name] <-> your name
+InfoTypeCat[user-name] <-> my name
+
+InfoNameCat[person] <-> person
+InfoNameCat[computer] <-> computer
 
 
+InformTD(self-name, Name($1)) <-> My name is {InfoNameCat[$1]}
+InformTD(partner-name, Name($1)) <-> I believe your name is {InfoNameCat[$1]}
 
-#Maybe don't attempt to pick up DigitSequences through rules; write a special function?
-InformTD(ItemValue(DigitSequence($1, $2))) <-> \
-{DigitCat[$1]} {DigitCat[$2]} 
-InformTD(ItemValue(DigitSequence($1, $2, $3))) <-> \
-{DigitCat[$1]} {DigitCat[$2]} {DigitCat[$3]} 
-InformTD(ItemValue(DigitSequence($1, $2, $3, $4))) <-> \
-{DigitCat[$1]} {DigitCat[$2]} {DigitCat[$3]} {DigitCat[$4]}
-InformTD(ItemValue(DigitSequence($1, $2, $3, $4, $5))) <-> \
-{DigitCat[$1]} {DigitCat[$2]} {DigitCat[$3]} {DigitCat[$4]} {DigitCat[$5]}
-InformTD(ItemValue(DigitSequence($1, $2, $3, $4, $5, $6))) <-> \
-{DigitCat[$1]} {DigitCat[$2]} {DigitCat[$3]} {DigitCat[$4]} {DigitCat[$5]} {DigitCat[$6]}
-InformTD(ItemValue(DigitSequence($1, $2, $3, $4, $5, $6, $7))) <-> \
-{DigitCat[$1]} {DigitCat[$2]} {DigitCat[$3]} {DigitCat[$4]} {DigitCat[$5]} {DigitCat[$6]} {DigitCat[$7]}
-InformTD(ItemValue(DigitSequence($1, $2, $3, $4, $5, $6, $7, $8))) <-> \
-{DigitCat[$1]} {DigitCat[$2]} {DigitCat[$3]} {DigitCat[$4]} {DigitCat[$5]} {DigitCat[$6]} {DigitCat[$7]} {DigitCat[$8]}
-InformTD(ItemValue(DigitSequence($1, $2, $3, $4, $5, $6, $7, $8, $9))) <-> \
-{DigitCat[$1]} {DigitCat[$2]} {DigitCat[$3]} {DigitCat[$4]} {DigitCat[$5]} {DigitCat[$6]} {DigitCat[$7]} {DigitCat[$8]} {DigitCat[$9]}
-InformTD(ItemValue(DigitSequence($1, $2, $3, $4, $5, $6, $7, $8, $9, $10))) <-> \
-{DigitCat[$1]} {DigitCat[$2]} {DigitCat[$3]} {DigitCat[$4]} {DigitCat[$5]} {DigitCat[$6]} {DigitCat[$7]} {DigitCat[$8]} {DigitCat[$9]} {DigitCat[$10]}
+
 
 
 #Indexical word categories
@@ -134,31 +141,27 @@ InformDM(Alignment()) <-> fourth time
 CommandCat[tell-me] <-> tell me
 CommandCat[tell-me] <-> give me
 CommandCat[tell-me] <-> provide me
+CommandCat[tell-me] <-> what is
 
 CommandCat[tell-you] <-> tell you
 CommandCat[tell-you] <-> give you
 CommandCat[tell-you] <-> provide you
+CommandCat[tell-you] <-> take this
+CommandCat[tell-you] <-> take down this
 
-
-#e.g. tell me the phone number
-#To preserve generality, do not specify specific non-function words like 'the'.
-#RequestTopicInfo(receive-telephone-number) <-> {CommandCat[tell-me]} {InfoTypeCat[telephone-number]}
-
-
-
-#e.g. I would like to tell you the phone number
-#To preserve generality, do not specify specific non-function words like 'the'.
-#RequestTopicInfo(send-telephone-number) <-> {CommandCat[tell-you]} {InfoTypeCat[telephone-number]}
-
-RequestTopicInfo(tell-me) <-> {CommandCat[tell-me]}
-
-
-InfoTopic(telephone-number) <-> {InfoTypeCat[telephone-number]}
 
 RequestTopicInfo(SendReceive($1), InfoTopic($2)) <-> {CommandCat[$1]} {InfoTypeCat[$2]}
 
 
+#If an InfoTypeCat is not recognized, at least notice that a RequestTopicInfo has been issued
+RequestTopicInfo(tell-me) <-> {CommandCat[tell-me]}
 
+
+
+
+
+ConfirmDialogManagement(affirmation-okay) <-> okay
+ConfirmDialogManagement(affirmation-yes) <-> yes
 
 
 InformDialogManagement(self-readiness) <-> i'm ready
@@ -172,11 +175,17 @@ InformDialogManagement(self-not-readiness) <-> wait please
 CheckDialogManagement(other-readiness) <-> are you ready
 
 
+#should not be necessary
+#InfoTopic(telephone-number) <-> {InfoTypeCat[telephone-number]}
+
+#RequestTopicInfo(SendReceive(tell-me), InfoTopic(name)) <-> {CommandCat[tell-me]}
 
 
-
-
-
-
-
-
+#This would work, but we're breaking down into smaller pieces of a SendReceive and an InfoTopic
+#e.g. User: tell me the phone number
+#To preserve generality, do not specify specific non-function words like 'the'.
+#RequestTopicInfo(receive-telephone-number) <-> {CommandCat[tell-me]} {InfoTypeCat[telephone-number]}
+#
+#e.g. User: I would like to tell you the phone number
+#To preserve generality, do not specify specific non-function words like 'the'.
+#RequestTopicInfo(send-telephone-number) <-> {CommandCat[tell-you]} {InfoTypeCat[telephone-number]}
