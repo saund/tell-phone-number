@@ -158,6 +158,11 @@ RequestTopicInfo(tell-me) <-> {CommandCat[tell-me]}
 
 
 
+InformTD(all-done) <-> all done
+
+InformDialogManagement(misaligned-index-pointer) <-> we are out of sync about which digit we're talking about
+
+InformDialogManagement(misaligned-digit-values) <-> we are out of sync about the phone number digits
 
 
 ConfirmDialogManagement(affirmation-okay) <-> okay

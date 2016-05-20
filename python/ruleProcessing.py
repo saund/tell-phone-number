@@ -916,6 +916,11 @@ def lookupWordCategoryRHSWords(wc_predicate, arg_value):
     return ''
 
 
+gl_tell_map = False
+
+def setTellMap(val):
+    global gl_tell_map
+    gl_tell_map = val
 
 #recursively checks all predicates and argugments of the template rule_da against the 
 #generated DialogAct gen_da.  
@@ -923,8 +928,9 @@ def lookupWordCategoryRHSWords(wc_predicate, arg_value):
 #If successful match, then returns the argument_map.
 #If something doesn't match, then this returns None.
 def recursivelyMapDialogRule(rule_da, gen_da):
-    #print '\nrule_da: ' + rule_da.getPrintString()
-    #print 'gen_da: ' + gen_da.getPrintString()
+    if gl_tell_map:
+        print '\nrule_da: ' + rule_da.getPrintString()
+        print 'gen_da: ' + gen_da.getPrintString()
     arg_mapping = {}
     ok_p = recursivelyMapDialogRuleAux(rule_da, gen_da, arg_mapping)
     if ok_p:
@@ -933,41 +939,47 @@ def recursivelyMapDialogRule(rule_da, gen_da):
         return None
     
 def recursivelyMapDialogRuleAux(rule_da, gen_da, arg_mapping):
-    #print '\nrecurse'
-    #print 'rule_da: ' + rule_da.getPrintString()
-    #print 'gen_da: ' + gen_da.getPrintString()
+    if gl_tell_map:
+        print '\nrecurse'
+        print 'rule_da: ' + rule_da.getPrintString()
+        print 'gen_da: ' + gen_da.getPrintString()
 
     if type(rule_da) != type(gen_da):
-        #print 'type(rule_da) ' + str(type(rule_da)) + ' != type(gen_da) ' + str(type(gen_da))
+        if gl_tell_map:
+            print 'type(rule_da) ' + str(type(rule_da)) + ' != type(gen_da) ' + str(type(gen_da))
         return False
     if len(rule_da.arg_list) != len(gen_da.arg_list):
-        #print 'len(rule_da.arg_list) ' + str(len(rule_da.arg_list)) + ' != len(gen_da.arg_list) ' + str(len(gen_da.arg_list))
+        if gl_tell_map:
+            print 'len(rule_da.arg_list) ' + str(len(rule_da.arg_list)) + ' != len(gen_da.arg_list) ' + str(len(gen_da.arg_list))
         return False
-
 
     if len(rule_da.arg_list) == 0:
         d_index = rule_da.predicate.find('$')
         if d_index == 0:
             arg_name = rule_da.predicate[1:]
             arg_value = gen_da.predicate
-            #print 'adding arg_mapping[' + arg_name + '] = ' + arg_value
+            if gl_tell_map:
+                print 'adding arg_mapping[' + arg_name + '] = ' + arg_value
             arg_mapping[arg_name] = arg_value
             return True
         else:
             if rule_da.predicate == gen_da.predicate:
                 return True
             else:
-                #print 'rule_da.predicate \'' + rule_da.predicate + '\' != gen_da.predicate \'' + gen_da.predicate + '\''
+                if gl_tell_map:
+                    print 'rule_da.predicate \'' + rule_da.predicate + '\' != gen_da.predicate \'' + gen_da.predicate + '\''
                 return False
     else:
         for i in range(0, len(rule_da.arg_list)):
             rule_da_arg = rule_da.arg_list[i]
             gen_da_arg = gen_da.arg_list[i]
             if type(rule_da_arg) != type(gen_da_arg):
-                #print 'arg ' + str(i) + ': type(rule_da_arg) ' + str(type(rule_da_arg)) + ' != type(gen_da_arg) ' + str(type(gen_da_arg))
+                if gl_tell_map:
+                    print 'arg ' + str(i) + ': type(rule_da_arg) ' + str(type(rule_da_arg)) + ' != type(gen_da_arg) ' + str(type(gen_da_arg))
                 return False
             elif type(rule_da_arg) != str:
-                #print 'rule_da_arg: ' + rule_da_arg.getPrintString() + 'is type ' + str(type(rule_da_arg)) + ' not str so recursing'
+                if gl_tell_map:
+                    print 'rule_da_arg: ' + rule_da_arg.getPrintString() + ' is type ' + str(type(rule_da_arg)) + ' not str so recursing'
                 vv =  recursivelyMapDialogRuleAux(rule_da_arg, gen_da_arg, arg_mapping)
                 if vv == False:
                     return False

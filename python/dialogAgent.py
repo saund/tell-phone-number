@@ -33,13 +33,16 @@ def loopDialogTest():
 
 
 gl_agent = None
-
+#gl_turn_history = []   defined below
     
+#Reset state by creating a new agent and clearing the turn history.
 #Test the rules in gl_default_lf_rule_filename.
 #Loop one input and print out the set of DialogActs interpreted
 def loopDialog():
     global gl_agent
+    global gl_turn_history
     gl_agent = createBasicAgent()
+    gl_turn_history = []  
     rp.initLFRulesIfNecessary()
     loopDialogMain()
 
@@ -111,6 +114,7 @@ class DialogAgent():
     def __init__(self):
         self.name = None
         self.partner_name = None
+        #for now, role serves as goal/activity status
         self.send_receive_role = 'banter'     #'send' or 'receive' or 'banter'
         self.self_dialog_model = None
         self.partner_dialog_model = None
@@ -121,7 +125,7 @@ class DialogAgent():
     #If the role is receive, then the send_phone_number will be None and the communction partner 
     #will be responsible for obtaining the phone number they speak to the DialogAgent, 
     #and the DialogAgent will start off with no information about the phone number.
-    def setRole(send_or_receive, send_phone_number=None):
+    def setRole(self, send_or_receive, send_phone_number=None):
         self.send_receive_role = send_or_receive
         if send_or_receive == 'banter':
             self.self_dialog_model = initBanterDialogModel('self')
@@ -143,6 +147,16 @@ class DialogAgent():
         pstr += self.partner_dialog_model.getPrintString() + '\n'
         return pstr
 
+    def getConsensusIndexPointer(self, tell=False):
+        self_dom_value = self.self_dialog_model.data_index_pointer.getDominantValue()
+        partner_dom_value = self.partner_dialog_model.data_index_pointer.getDominantValue()
+        if tell:
+            print 'getConsensusIndexPointer  self: ' + str(self_dom_value) + ' partner: ' + str(partner_dom_value)
+        if self_dom_value == partner_dom_value:
+            return self_dom_value
+        else:
+            return None
+
 
 gl_default_phone_number = '6506371212'
 
@@ -151,18 +165,18 @@ def initSendReceiveDataDialogModel(self_or_partner, send_or_receive, send_phone_
     dm = DialogModel()
     dm.model_for = self_or_partner
     dm.data_model = DataModel_USPhoneNumber()
-    if send_or_receive == 'send':
+    if send_or_receive == 'send' and send_phone_number != None:
         dm.data_model.setPhoneNumber(send_phone_number)
     dm.data_index_pointer = OrderedMultinomialBelief()
-    dm.data_index_pointer.initAllConfidenceInOne([0, 1, 2, 3, 4, 5, 6, 7, 8, 9], 0)   #initialize starting at the first digit
+    dm.data_index_pointer.setAllConfidenceInOne([0, 1, 2, 3, 4, 5, 6, 7, 8, 9], 0)   #initialize starting at the first digit
     dm.readiness = BooleanBelief()
     dm.readiness.setBeliefInTrue(0)                                     #initialize not being ready
     dm.turn = BooleanBelief()
     dm.turn.setBeliefInTrue(.5)                                         #initialize not knowing whose turn it is
     dm.protocol_chunk_size = OrderedMultinomialBelief()
-    dm.protocol_chunk_size.initAllConfidenceInOne([1, 2, 3, 10], 3)     #initialize with chunk size 3
+    dm.protocol_chunk_size.setAllConfidenceInOne([1, 2, 3, 10], 3)     #initialize with chunk size 3
     dm.protocol_handshaking = OrderedMultinomialBelief()
-    dm.protocol_handshaking.initAllConfidenceInOne([1, 2, 3, 4, 5], 3)  #initialize with moderate handshaking
+    dm.protocol_handshaking.setAllConfidenceInOne([1, 2, 3, 4, 5], 3)  #initialize with moderate handshaking
     return dm
 
 
@@ -223,7 +237,7 @@ class DataModel_USPhoneNumber(DataModel):
 
     #phone_number_string is like '3452233487', i.e. ten digits in a row
     def setPhoneNumber(self, phone_number_string):
-        if len(phone_number_string) != 10:
+        if phone_number_string != None and len(phone_number_string) != 10:
             print 'setPhoneNumber got a phone_number_string: ' + phone_number_string + ' that is not 10 digits long'
             return
         for i in range(0, 10):
@@ -234,7 +248,7 @@ class DataModel_USPhoneNumber(DataModel):
 
     #digit_value is a string
     def setNthPhoneNumberDigit(self, nth, digit_value):
-        self.data_beleifs[nth].setValueDefinite(digit_value)
+        self.data_beliefs[nth].setValueDefinite(digit_value)
 
     def printSelf(self):
         print self.getPrintString()
@@ -353,13 +367,13 @@ class OrderedMultinomialBelief():
     def __init__(self):
         self.value_name_confidence_list = None   #each element is a list [value, confidence]
 
-    def initEquallyDistributed(self, value_list):
+    def setEquallyDistributed(self, value_list):
         self.value_name_confidence_list = []
         conf = 1.0 / len(value_list)
         for i in range(0, len(value_list)):
             self.value_name_confidence_list.append([value_list[i], conf])
 
-    def initAllConfidenceInOne(self, value_list, all_confidence_value):
+    def setAllConfidenceInOne(self, value_list, all_confidence_value):
         self.value_name_confidence_list = []
         for i in range(0, len(value_list)):
             this_value = value_list[i]
@@ -369,6 +383,7 @@ class OrderedMultinomialBelief():
                 conf = 0.0
             self.value_name_confidence_list.append([this_value, conf])
 
+    #returns -1 if the dominant value is out of range
     def getDominantValue(self):
         max_confidence = 0.0
         max_value = -1
@@ -399,7 +414,7 @@ class OrderedMultinomialBelief():
         return ret_str
 
 
-gl_number_to_word_map = {'1':'one', '2':'two', '3':'three', '4':'four', '5':'five'\
+gl_number_to_word_map = {'1':'one', '2':'two', '3':'three', '4':'four', '5':'five',\
                          '6':'six', '7':'seven', '8':'eight', '9':'nine', '0':'zero'}
 
 def numericalDigitToWordDigit(numerical_digit):
@@ -415,16 +430,38 @@ def numericalDigitToWordDigit(numerical_digit):
 #
 #
 
+#each turn is a tuple: (speaker = 'self' or 'partner', DialogAct list, utterance word tuple)
+#DialogAct list is a list of DialogAct instances, not their string versions
+#for now we may not be including the utterance word tuple because that has to be gotten from the ruleProcessing side
+#Each new turn is prepended to the front of the list so the most recent turn is [0]
+gl_turn_history = []
 
-def generateResponseToInputDialog(da_list):
 
-    if len(da_list) == 0:
-        return da_list
+
+def generateResponseToInputDialog(user_da_list):
+    global gl_turn_history
+
+    if len(user_da_list) == 0:
+        print 'what? user_da_list length is 0'
+        return user_da_list
+
+    gl_turn_history.insert(0, ('partner', user_da_list))
+    da_response = None
+
+    if user_da_list[0].intent == 'RequestTopicInfo':
+        da_response = handleRequestTopicInfo(user_da_list)
+    elif user_da_list[0].intent == 'ConfirmDialogManagement':
+        da_response = handleConfirmDialogManagement(user_da_list)
     
-    if da_list[0].intent == 'RequestTopicInfo':
-        return handleRequestTopicInfo(da_list)
+    if da_response != None:
+        gl_turn_history.insert(0, ('self', da_response))
+    else:
+        print '!Did not generate a response to user input DialogActs:'
+        for user_da in user_da_list:
+            user_da.printSelf()
+        da_response = []
         
-    return da_list
+    return da_response
 
 
 gl_da_what_is_your_name = rp.parseDialogActFromString('RequestTopicInfo(SendReceive(tell-me), InfoTopic(agent-name))')
@@ -439,8 +476,11 @@ gl_da_tell_you_phone_number = rp.parseDialogActFromString('RequestTopicInfo(Send
 
 gl_da_affirmation_okay = rp.parseDialogActFromString('ConfirmDialogManagement(affirmation-okay)')
 gl_da_affirmation_yes = rp.parseDialogActFromString('ConfirmDialogManagement(affirmation-yes)')
+gl_da_affirmation = rp.parseDialogActFromString('ConfirmDialogManagement($1)')
+
 gl_da_self_ready = rp.parseDialogActFromString('InformDialogManagement(self-readiness)')
 gl_da_self_not_ready = rp.parseDialogActFromString('InformDialogManagement(self-not-readiness)')
+gl_da_all_done = rp.parseDialogActFromString('InformTD(all-done)')
 
 
 
@@ -462,14 +502,16 @@ def handleRequestTopicInfo(da_list):
         return [da_your_name_is]
 
     #handle 'User: send me the phone number'
+    #rp.setTellMap(True)
     mapping = rp.recursivelyMapDialogRule(gl_da_tell_me_phone_number, da_request_topic_info)
+    #print 'mapping: ' + str(mapping)
     if mapping != None:
         gl_agent.setRole('send', gl_default_phone_number)
         #it would be best to spawn another thread to wait a beat then start the
         #data transmission process, but return okay immediately.
         #do that later
         initializeStatesToSendPhoneNumberData(gl_agent)
-        sendNextDataChunk(gl_agent)
+        return sendNextDataChunk(gl_agent)
         #return [gl_da_affirmation_okay]
 
     #handle 'User: take this phone number'
@@ -481,6 +523,33 @@ def handleRequestTopicInfo(da_list):
 
     print 'no handler for request ' + da_request_topic_info.getPrintString()
     return da_list;
+
+
+
+def handleConfirmDialogManagement(da_list):
+    da_confirm_dm = da_list[0]
+
+    #handle 'User: okay or User: yes
+    mapping = rp.recursivelyMapDialogRule(gl_da_affirmation, da_confirm_dm)
+    if mapping != None:
+
+        if gl_agent.send_receive_role == 'send':
+            #for now, assume this means the partner received the info
+            pointer_advance_count = updateBeliefInPartnerDataStateBasedOnLastDataSent()  #advances the partner's index pointer
+
+            ret = advanceSelfIndexPointer(gl_agent, pointer_advance_count)  #ret can be 'ok' or 'done-already'
+            if ret == 'done-already':
+                return [gl_da_all_done];
+            
+            misaligned_data_value_list = compareDataModelBeliefs()
+            if len(misaligned_data_value_list) == 0:
+                #advanceIndexPointerBeliefs(gl_agent) #obsolete, advance of self is handled based on belief of advance of partner, above
+                return sendNextDataChunk(gl_agent)
+            else:
+                return dealWithMisalignedDigitValues(misaligned_data_value_list)
+
+
+
 
 
 
@@ -497,19 +566,19 @@ def initializeStatesToSendPhoneNumberData(agent):
     agent.partner_dialog_model.turn.setBeliefInTrue(.1) 
 
     #initialize agent starting at the first digit
-    agent.self_dialog_model.data_index_pointer.initAllConfidenceInOne([0, 1, 2, 3, 4, 5, 6, 7, 8, 9], 0)   
+    agent.self_dialog_model.data_index_pointer.setAllConfidenceInOne([0, 1, 2, 3, 4, 5, 6, 7, 8, 9], 0)   
     #agent believes the partner is also starting at the first digit
-    agent.partner_dialog_model.data_index_pointer.initAllConfidenceInOne([0, 1, 2, 3, 4, 5, 6, 7, 8, 9], 0)   
+    agent.partner_dialog_model.data_index_pointer.setAllConfidenceInOne([0, 1, 2, 3, 4, 5, 6, 7, 8, 9], 0)   
 
     #initialize with chunk size 3
-    agent.self_dialog_model.dm.protocol_chunk_size.initAllConfidenceInOne([1, 2, 3, 10], 3)     
+    agent.self_dialog_model.protocol_chunk_size.setAllConfidenceInOne([1, 2, 3, 10], 3)     
     #agent believes the partner is ready for chunk size 3
-    agent.partner_dialog_model.dm.protocol_chunk_size.initAllConfidenceInOne([1, 2, 3, 10], 3)     
+    agent.partner_dialog_model.protocol_chunk_size.setAllConfidenceInOne([1, 2, 3, 10], 3)     
 
     #initialize with moderate handshaking
-    agent.self_dialog_model.dm.protocol_handshaking.initAllConfidenceInOne([1, 2, 3, 4, 5], 3)  
+    agent.self_dialog_model.protocol_handshaking.setAllConfidenceInOne([1, 2, 3, 4, 5], 3)  
     #agent believes the partner is ready for moderate handshaking
-    agent.partner_dialog_model.dm.protocol_handshaking.initAllConfidenceInOne([1, 2, 3, 4, 5], 3)  
+    agent.partner_dialog_model.protocol_handshaking.setAllConfidenceInOne([1, 2, 3, 4, 5], 3)  
 
 
 
@@ -517,35 +586,237 @@ def initializeStatesToSendPhoneNumberData(agent):
 def sendNextDataChunk(agent):
     consensus_index_pointer = agent.getConsensusIndexPointer()
     if consensus_index_pointer == None:
+        print 'sendNextDataChunk encountered misaligned consensus_index_pointer, calling again with tell=True'
+        agent.getConsensusIndexPointer(True)
         return dealWithMisalignedIndexPointer()
 
+    if consensus_index_pointer >= 10:
+        return [gl_da_all_done];
+
     digit_lf_sequence = []
-    chunk_size = agent.self_dialog_model.chunk_size.getDominantValue()
+    chunk_size = agent.self_dialog_model.protocol_chunk_size.getDominantValue()
+    print 'chunk_size: ' + str(chunk_size) + ' consensus_index_pointer: ' + str(consensus_index_pointer)
 
     last_index_to_send = consensus_index_pointer + chunk_size
-    digit_sequence_lf = 'InformTD(ItemValue(DigitSequence('
+    str_digit_sequence_lf = 'InformTD(ItemValue(DigitSequence('
 
     total_num_digits = len(agent.self_dialog_model.data_model.data_beliefs)
-    for digit_i in range(consensus_index_pointer, min(last_index_to_send+1, total_num_digits)):
+    for digit_i in range(consensus_index_pointer, min(last_index_to_send, total_num_digits)):
         digit_belief = agent.self_dialog_model.data_model.data_beliefs[digit_i]
-        data_value = digit_belief.getHighestConfidenceValue()  #a number string, e.g. 'one'
-        digit_sequence_lf += data_value + ','
+        data_value_tuple = digit_belief.getHighestConfidenceValue()      #returns a tuple e.g. ('one', .8)
+        data_value = data_value_tuple[0]
+        str_digit_sequence_lf += data_value + ','
         
     #strip off the last comma
-    digit_sequence_lf = digit_sequence_lf[:len(digit_sequence_lf-1)]
-    digit_sequence_lf += ')))'
+    str_digit_sequence_lf = str_digit_sequence_lf[:len(str_digit_sequence_lf)-1]
+    str_digit_sequence_lf += ')))'
+    
+    digit_sequence_lf = rp.parseDialogActFromString(str_digit_sequence_lf)
+    return [digit_sequence_lf]
 
-    #$$XX here advance the index pointer for the agent and the belief for the partner
 
-    return digit_sequence_lf
+
+#This advances the index pointer belief of the agent's self and partner data models by chunk_size
+#This is obsolete because it is too simplistic.
+#Instead, we only advance the belief in the partner index pointer when we believe they have received the data
+#and it is correct.  The partner may have advanced their data index pointer, but if self believes they have
+#gotten the information incorrect, then self may have to correct them.
+#Only then do we advance the self index pointer.
+def advanceIndexPointerBeliefs(agent):
+    consensus_index_pointer = agent.getConsensusIndexPointer()
+    if consensus_index_pointer == None:
+        return dealWithMisalignedIndexPointer()
+
+    if consensus_index_pointer >= 10:
+        return [gl_da_all_done];
+
+    chunk_size = agent.self_dialog_model.protocol_chunk_size.getDominantValue()
+
+    next_data_index_pointer_loc = consensus_index_pointer + chunk_size
+
+    agent.self_dialog_model.data_index_pointer.setAllConfidenceInOne([0, 1, 2, 3, 4, 5, 6, 7, 8, 9], next_data_index_pointer_loc)
+    agent.partner_dialog_model.data_index_pointer.setAllConfidenceInOne([0, 1, 2, 3, 4, 5, 6, 7, 8, 9], next_data_index_pointer_loc)
+
+    print 'adancing index pointer by chunk_size: ' + str(chunk_size) + ' to ' + str(consensus_index_pointer)
+
+
+#return 'ok' or 'done-already'
+def advanceSelfIndexPointer(agent, pointer_advance_count):
+    self_dm = agent.self_dialog_model
+    self_index_pointer = self_dm.data_index_pointer.getDominantValue()
+    
+    if self_index_pointer >= 10:
+        return 'done-already'
+
+    next_data_index_pointer_loc = self_index_pointer + pointer_advance_count
+    agent.self_dialog_model.data_index_pointer.setAllConfidenceInOne([0, 1, 2, 3, 4, 5, 6, 7, 8, 9], next_data_index_pointer_loc)
+    print 'adancing index pointer by : ' + str(pointer_advance_count) + ' to ' + str(next_data_index_pointer_loc)
+    return 'ok'
+
+
+
+
+
+
+
+
+#simple version:
+#retrieve data values sent in last single self turn,
+#iterate update belief in partner data values at belief in their index pointer loc, 
+#        then advance belief in their index pointer loc
+#A more advanced version will consider the belief in the partner's expected chunk size, and 
+#account for the fact that the partner may be confused if the number of digits sent does not
+#match their expected chunk size.
+#Returns the number of digits by which the partner's index pointer was advanced
+def updateBeliefInPartnerDataStateBasedOnLastDataSent():
+    gl_turn_history
+    last_self_data_sent = None
+    for turn_i in range(0, len(gl_turn_history)):
+        turn_tup = gl_turn_history[turn_i]
+        if turn_tup[0] == 'partner':
+            continue
+        turn_da_list = turn_tup[1]
+        turn_includes_InformTDItemValue = False
+        for da in turn_da_list:
+            da_print_string = da.getPrintString()
+            if da_print_string.find('InformTD(ItemValue(') < 0:
+                continue
+            turn_includes_InformTDItemValue = True
+            break
+        if turn_includes_InformTDItemValue == True:
+            last_self_data_sent = turn_da_list
+            break
+        else:
+            print 'updateBeliefInPartnerDataStateBasedOnLastDataSent() did not see any data DialogActs to base update on'
+        
+    if last_self_data_sent != None:
+        return updateBeliefInPartnerDataStateBasedOnDataValues(last_self_data_sent)
+    else:
+        return 0
+    
+
+#da_list probably consists of a single DialogAct, either 
+#  InformTD(ItemValue(Digit(x1)))  or else
+#  InformTD(ItemValue(DigitSequence(x1, x2, x3)))  
+#where x1 will be a string digit value, e.g. 'one'
+#Returns the number of digits by which the partner's index pointer was advanced
+def updateBeliefInPartnerDataStateBasedOnDataValues(da_list):
+    print 'updateBeliefInPartnerDataStateBasedOnDataValues(da_list)'
+    for da in da_list:
+        da_print_string = da.getPrintString()
+        print 'da: ' + da_print_string
+        
+        ds_index = da_print_string.find('InformTD(ItemValue(DigitSequence(')
+        if ds_index == 0:
+            start_index = len('InformTD(ItemValue(DigitSequence(')
+            rp_index = da_print_string.find(')', start_index)
+            digit_value_list = extractItemsFromCommaSeparatedListString(da_print_string[start_index:rp_index])
+            print 'digit_value_list: ' + str(digit_value_list)
+            return updateBeliefInPartnerDataStateForDigitValueList(digit_value_list)
+        d_index = da_print_string.find('InformTD(ItemValue(Digit(')
+        if d_index == 0:
+            start_index = len('InformTD(ItemValue(Digit(')
+            rp_index = da_print_string.find(')', start_index)
+            digit_value = da_print_string[start:rp_index]
+            return updateBeliefInPartnerDataStateForDigitValueList([digit_value])
+        print 'updateBeliefInPartnerDataStateBasedOnLastDataSent() was unable to identify digits to update'
+        
+    return 0
+    
+
+
+#iterate update belief in partner data values at belief in their index pointer loc, 
+#        then advance belief in their index pointer loc
+#str_digit_list is a list of strings, e.g. ['one', 'six'...]
+#Returns the number of digits by which the partner's index pointer was advanced
+def updateBeliefInPartnerDataStateForDigitValueList(str_digit_value_list):
+    print 'updateBeliefInPartnerDataStateForDigitList(' + str(str_digit_value_list) + ')'
+    partner_dm = gl_agent.partner_dialog_model
+    partner_index_pointer_advance_count = 0
+
+    for digit_value in str_digit_value_list:
+        partner_index_pointer_value = partner_dm.data_index_pointer.getDominantValue()
+        partner_dm.data_model.setNthPhoneNumberDigit(partner_index_pointer_value, digit_value)
+        partner_index_pointer_value += 1
+        partner_index_pointer_advance_count += 1
+        partner_dm.data_index_pointer.setAllConfidenceInOne([0, 1, 2, 3, 4, 5, 6, 7, 8, 9], partner_index_pointer_value)
+
+    return partner_index_pointer_advance_count
+
+
+
+#Returns a list of data indices for which the confidence is high but the values disagree
+def compareDataModelBeliefs():
+    digits_out_of_agreement = []
+
+    self_dm = gl_agent.self_dialog_model
+    self_data_model_beliefs = gl_agent.self_dialog_model.data_model.data_beliefs  #a list of DigitBelief
+    partner_dm = gl_agent.partner_dialog_model
+    partner_data_model_beliefs = gl_agent.partner_dialog_model.data_model.data_beliefs  #a list of DigitBelief
+
+    for i in range (0, len(self_data_model_beliefs)):
+        self_digit_belief = self_data_model_beliefs[i]       #a DigitBelief
+        self_belief_tup = self_digit_belief.getHighestConfidenceValue()   #a tuple e.g. ('one', .8)
+        partner_digit_belief = partner_data_model_beliefs[i]
+        partner_belief_tup = partner_digit_belief.getHighestConfidenceValue()   #a tuple e.g. ('one', .8)
+        if self_belief_tup[0] == partner_belief_tup[0]:
+            continue
+        if partner_belief_tup[0] == '?':
+            continue
+        if partner_belief_tup[1] > .25:    #Threshold on belief that the partner has a wrong value
+            print 'compareDataModelBeliefs: self: ' + str(self_belief_tup) + ' partner: ' + str(partner_belief_tup)
+            digits_out_of_agreement.append(i)
+
+    return digits_out_of_agreement
+
+
+
 
         
-        
+gl_da_misaligned_index_pointer = rp.parseDialogActFromString('InformDialogManagement(misaligned-index-pointer)')
+gl_da_misaligned_digit_values = rp.parseDialogActFromString('InformDialogManagement(misaligned-digit-values)')
+
+
+def dealWithMisalignedIndexPointer():
+    return [gl_da_misaligned_index_pointer] 
+
+def dealWithMisalignedDigitValues(misaligned_data_value_list):
+    print 'dealWithMisalignedDigitValues: ' + str(misaligned_data_value_list)
+    return [gl_da_misaligned_digit_values] 
+    
+
         
 
 def testDataAgreement(agent):
     return None
     
+
+
+#
+#
+###############################################################################
+
+
+###############################################################################
+#
+#Utils
+#
+
+#I'm pretty sure there's a shorter way to do this using some pythonic magic like map or something
+def extractItemsFromCommaSeparatedListString(str_comma_sep_items):
+    str_item_list = []
+    print 'extractItemsFromCommaSeparatedListString(' + str_comma_sep_items + ')'
+    
+    l1 = str_comma_sep_items.split(',')
+    print 'l1: ' + str(l1)
+    for item in l1:
+        item = item.strip()
+        print ' item: ' + item
+        str_item_list.append(item)
+    return str_item_list
+    
+
+
 
                         
 
