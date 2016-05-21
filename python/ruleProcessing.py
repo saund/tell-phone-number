@@ -48,6 +48,7 @@ import math
 gl_tell = False
 
 def setTell(val):
+    global gl_tell
     gl_tell = val
 
 
@@ -409,6 +410,9 @@ class LogicalForm():
                                      #then this is likely to be lowercase.
         self.arg_list = []
 
+    def getPredicate(self):
+        return self.predicate
+
     def printSelf(self):
         print self.getPrintString()
 
@@ -431,6 +435,9 @@ class DialogAct(LogicalForm):
         intent = intent.strip()
         self.intent = intent
         self.arg_list = []
+
+    def getPredicate(self):
+        return self.intent
 
     def printSelf(self):
         print self.getPrintString()
@@ -597,6 +604,7 @@ def parsePredicatesWithArgs(str_preds_args):
 #Assumes the rule set has already been loaded by initLFRulesIfNecessary() or a related function.
 def applyLFRulesToString(input_string):
     global gl_first_word_string_to_rule_dict
+    global gl_tell
 
     word_list = input_string.split()
     i_word = 0;
@@ -615,7 +623,7 @@ def applyLFRulesToString(input_string):
                     fit_rule_list.append(fit_tuple)
                     #print 'fit_tuple: ' + str(fit_tuple)
         i_word += 1
-    
+
     if gl_tell:
         print 'found ' + str(len(fit_rule_list)) + ' matches'
     res = selectMaximallyCoveringRules(fit_rule_list, len(word_list))
@@ -630,7 +638,20 @@ def applyLFRulesToString(input_string):
 #Some of the tuples could overlap and claim the same words.
 #This function selects the longest (most-word) fitting tuples in a greedy fashion
 #Returns a list of tuples which is a subset of the tuples passed
+#
+#Right now, this not allow muliple DialogActs to 
+#apply to the same set of words, so it does not return two interpretations of the same input
+#.e.g. both InformTD and ConfirmTD.
+#
 def selectMaximallyCoveringRules(fit_rule_list, input_length):
+    global gl_tell    
+    print 'gl_tell: ' + str(gl_tell)
+
+    if gl_tell:
+        print 'selectMaximallyCoveringRules()  input_length: ' + str(input_length) + ' ' + str(len(fit_rule_list)) + ' rules'
+        for fit_rule in fit_rule_list:
+            print str(fit_rule)
+
     covered_word_flag_ar = [False] * input_length;
     res = []
     fit_rule_list.sort(key = lambda tup: tup[2]-tup[1])
@@ -749,6 +770,8 @@ def testRuleOnInputWordsAtWordIndex(rule, word_list, i_word_start):
             #print 'ran out of words B'
             return None
 
+    #print 'still going with rule ' + str(rule) + ' word_list: ' + str(word_list) + ' i_word: ' + str(i_word) + ' i_rule: ' + str(i_rule)
+
     rule_dialog_act = rule[0]
     d_index = rule_dialog_act.find('$')
     while d_index > 0:
@@ -808,6 +831,10 @@ def testWordCategoryOnInputWordsAtWordIndex(word_category_predicate, word_list, 
             i_word += 1
             i_wc_word += 1
         if match_p:
+            if i_wc_word < len(rhs):
+                #print 'testWordCategory... rhs: ' + str(rhs) + ' ran out of words in word_list ' + str(word_list) + ' i_wc_word: ' + str(i_wc_word)
+                return (0, None)
+
             lhs = wc_rule[0]
             lsb_index = lhs.find('[')
             rsb_index = lhs.find(']')
@@ -941,7 +968,7 @@ def recursivelyMapDialogRule(rule_da, gen_da):
 def recursivelyMapDialogRuleAux(rule_da, gen_da, arg_mapping):
     if gl_tell_map:
         print '\nrecurse'
-        print 'rule_da: ' + rule_da.getPrintString()
+        print 'rule_da: ' + rule_da.getPrintString()  + ' len(rule_da.arg_list): ' + str(len(rule_da.arg_list))
         print 'gen_da: ' + gen_da.getPrintString()
 
     if type(rule_da) != type(gen_da):
@@ -953,22 +980,43 @@ def recursivelyMapDialogRuleAux(rule_da, gen_da, arg_mapping):
             print 'len(rule_da.arg_list) ' + str(len(rule_da.arg_list)) + ' != len(gen_da.arg_list) ' + str(len(gen_da.arg_list))
         return False
 
-    if len(rule_da.arg_list) == 0:
+    if rule_da.getPredicate() != gen_da.getPredicate():
         d_index = rule_da.predicate.find('$')
         if d_index == 0:
             arg_name = rule_da.predicate[1:]
             arg_value = gen_da.predicate
-            if gl_tell_map:
-                print 'adding arg_mapping[' + arg_name + '] = ' + arg_value
             arg_mapping[arg_name] = arg_value
+            if gl_tell_map:
+                print 'Match! adding mapping [' + arg_name + ']=' + arg_value
             return True
-        else:
-            if rule_da.predicate == gen_da.predicate:
-                return True
-            else:
-                if gl_tell_map:
-                    print 'rule_da.predicate \'' + rule_da.predicate + '\' != gen_da.predicate \'' + gen_da.predicate + '\''
-                return False
+        if gl_tell_map:
+            print 'rule_da.predicate ' + rule_da.getPredicate() + ' != gen_da.predicate ' + gen_da.getPredicate()
+        return False
+
+    if len(rule_da.arg_list) == 0:
+        if gl_tell_map:
+            print 'Match! ' + rule_da.predicate + ' = ' + gen_da.predicate + ' and no args'
+        return True
+        #Not sure this section is necessary since we do the predicate test above
+        #d_index = rule_da.predicate.find('$')
+        #if d_index == 0:
+        #    arg_name = rule_da.predicate[1:]
+        #    arg_value = gen_da.predicate
+        #    if gl_tell_map:
+        #        print 'BBBadding arg_mapping[' + arg_name + '] = ' + arg_value
+        #    arg_mapping[arg_name] = arg_value
+        #    if gl_tell_map:
+        #        print 'BBBMatch! adding mapping [' + arg_name + ']=' + arg_value
+        #    return True
+        #else:
+        #    if rule_da.predicate == gen_da.predicate:
+        #        if gl_tell_map:
+        #            print 'Match! ' + rule_da.predicate + ' = ' + gen_da.predicate
+        #        return True
+        #    else:
+        #        if gl_tell_map:
+        #            print 'rule_da.predicate \'' + rule_da.predicate + '\' != gen_da.predicate \'' + gen_da.predicate + '\''
+        #        return False
     else:
         for i in range(0, len(rule_da.arg_list)):
             rule_da_arg = rule_da.arg_list[i]
@@ -983,6 +1031,8 @@ def recursivelyMapDialogRuleAux(rule_da, gen_da, arg_mapping):
                 vv =  recursivelyMapDialogRuleAux(rule_da_arg, gen_da_arg, arg_mapping)
                 if vv == False:
                     return False
+        if gl_tell_map:
+            print 'Match! drop through recursion pop'
         return True
 
 

@@ -49,6 +49,7 @@ DigitCat[nine] <-> nine
 DigitCat[zero] <-> zero
 DigitCat[zero] <-> oh
 
+#Sending of digit values as InformTopicData DialogActs
 InformTD(ItemValue(Digit($1))) <-> {DigitCat[$1]}
 
 InformTD(ItemValue(DigitSequence($1, $2))) <-> \
@@ -69,6 +70,34 @@ InformTD(ItemValue(DigitSequence($1, $2, $3, $4, $5, $6, $7, $8, $9))) <-> \
 {DigitCat[$1]} {DigitCat[$2]} {DigitCat[$3]} {DigitCat[$4]} {DigitCat[$5]} {DigitCat[$6]} {DigitCat[$7]} {DigitCat[$8]} {DigitCat[$9]}
 InformTD(ItemValue(DigitSequence($1, $2, $3, $4, $5, $6, $7, $8, $9, $10))) <-> \
 {DigitCat[$1]} {DigitCat[$2]} {DigitCat[$3]} {DigitCat[$4]} {DigitCat[$5]} {DigitCat[$6]} {DigitCat[$7]} {DigitCat[$8]} {DigitCat[$9]} {DigitCat[$10]}
+
+
+#Sending of digit values as ConfirmTopicData DialogActs
+#Right now, ruleProcessing.selectMaximallyCoveringRules() does not allow muliple DialogActs to 
+#apply to the same set of words, so it does not return two interpretations of the same input
+#.e.g. both InformTD and ConfirmTD.
+#ConfirmTD(ItemValue(Digit($1))) <-> {DigitCat[$1]}
+#
+#ConfirmTD(ItemValue(DigitSequence($1, $2))) <-> \
+#{DigitCat[$1]} {DigitCat[$2]} 
+#ConfirmTD(ItemValue(DigitSequence($1, $2, $3))) <-> \
+#{DigitCat[$1]} {DigitCat[$2]} {DigitCat[$3]} 
+#ConfirmTD(ItemValue(DigitSequence($1, $2, $3, $4))) <-> \
+#{DigitCat[$1]} {DigitCat[$2]} {DigitCat[$3]} {DigitCat[$4]}
+#ConfirmTD(ItemValue(DigitSequence($1, $2, $3, $4, $5))) <-> \
+#{DigitCat[$1]} {DigitCat[$2]} {DigitCat[$3]} {DigitCat[$4]} {DigitCat[$5]}
+#ConfirmTD(ItemValue(DigitSequence($1, $2, $3, $4, $5, $6))) <-> \
+#{DigitCat[$1]} {DigitCat[$2]} {DigitCat[$3]} {DigitCat[$4]} {DigitCat[$5]} {DigitCat[$6]}
+#ConfirmTD(ItemValue(DigitSequence($1, $2, $3, $4, $5, $6, $7))) <-> \
+#{DigitCat[$1]} {DigitCat[$2]} {DigitCat[$3]} {DigitCat[$4]} {DigitCat[$5]} {DigitCat[$6]} {DigitCat[$7]}
+#ConfirmTD(ItemValue(DigitSequence($1, $2, $3, $4, $5, $6, $7, $8))) <-> \
+#{DigitCat[$1]} {DigitCat[$2]} {DigitCat[$3]} {DigitCat[$4]} {DigitCat[$5]} {DigitCat[$6]} {DigitCat[$7]} {DigitCat[$8]}
+#ConfirmTD(ItemValue(DigitSequence($1, $2, $3, $4, $5, $6, $7, $8, $9))) <-> \
+#{DigitCat[$1]} {DigitCat[$2]} {DigitCat[$3]} {DigitCat[$4]} {DigitCat[$5]} {DigitCat[$6]} {DigitCat[$7]} {DigitCat[$8]} {DigitCat[$9]}
+#ConfirmTD(ItemValue(DigitSequence($1, $2, $3, $4, $5, $6, $7, $8, $9, $10))) <-> \
+#{DigitCat[$1]} {DigitCat[$2]} {DigitCat[$3]} {DigitCat[$4]} {DigitCat[$5]} {DigitCat[$6]} {DigitCat[$7]} {DigitCat[$8]} {DigitCat[$9]} #{DigitCat[$10]}
+
+
 
 
 
@@ -106,6 +135,7 @@ InformTD(partner-name, Name($1)) <-> I believe your name is {InfoNameCat[$1]}
 
 
 
+
 #Indexical word categories
 IndexicalCat[first] <-> first
 IndexicalCat[second] <-> second
@@ -121,12 +151,17 @@ IndexicalCat[last] <-> the final
 InformTD(IndexicalPosition($1)) <-> {IndexicalCat[$1]} number
 InformTD(IndexicalPosition($1)) <-> {IndexicalCat[$1]} digit
 
-InformTD(IndexicalRelation(retreat)) <-> before
-InformTD(IndexicalRelation(retreat)) <-> last number
-InformTD(IndexicalRelation(retreat)) <-> previous number
-InformTD(IndexicalRelation(advance)) <-> after
-InformTD(IndexicalRelation(advance)) <-> next
-InformTD(IndexicalRelation(advance)) <-> then
+InformTD(IndexicalRelation(first)) <-> first
+InformTD(IndexicalRelation(second)) <-> second
+InformTD(IndexicalRelation(third)) <-> third
+InformTD(IndexicalRelation(last)) <-> last
+InformTD(IndexicalRelation(last)) <-> final
+InformTD(IndexicalRelation(previous)) <-> before
+InformTD(IndexicalRelation(previous)) <-> last number
+InformTD(IndexicalRelation(previous)) <-> previous number
+InformTD(IndexicalRelation(next)) <-> after
+InformTD(IndexicalRelation(next)) <-> next
+InformTD(IndexicalRelation(next)) <-> then
 
 
 #as in, "That's the third time I've given you the area code"
@@ -150,15 +185,24 @@ CommandCat[tell-you] <-> take this
 CommandCat[tell-you] <-> take down this
 
 
-RequestTopicInfo(SendReceive($1), InfoTopic($2)) <-> {CommandCat[$1]} {InfoTypeCat[$2]}
+RequestTopicData(SendReceive($1), InfoTopic($2)) <-> {CommandCat[$1]} {InfoTypeCat[$2]}
+
+RequestTopicData(SendReceive(tell-me), InfoTopic(user-name)) <-> who am i
+RequestTopicData(SendReceive(tell-me), InfoTopic(agent-name)) <-> who are you
+
+InfoTypeCat[agent-name] <-> your name
+InfoTypeCat[user-name] <-> my name
+
+#If an InfoTypeCat is not recognized, at least notice that a RequestTopicData has been issued
+RequestTopicData(tell-me) <-> {CommandCat[tell-me]}
 
 
-#If an InfoTypeCat is not recognized, at least notice that a RequestTopicInfo has been issued
-RequestTopicInfo(tell-me) <-> {CommandCat[tell-me]}
 
+InformTD(all-done) <-> We're all done
 
+InformDialogManagement(misaligned-roles) <-> Hello?
 
-InformTD(all-done) <-> all done
+InformDialogManagement(dialog-invitation) <-> Would you like to send or receive a phone number?
 
 InformDialogManagement(misaligned-index-pointer) <-> we are out of sync about which digit we're talking about
 
@@ -180,17 +224,25 @@ InformDialogManagement(self-not-readiness) <-> wait please
 CheckDialogManagement(other-readiness) <-> are you ready
 
 
+
+RequestDialogManagement(what) <-> what
+
+
+
+
+
+
 #should not be necessary
 #InfoTopic(telephone-number) <-> {InfoTypeCat[telephone-number]}
 
-#RequestTopicInfo(SendReceive(tell-me), InfoTopic(name)) <-> {CommandCat[tell-me]}
+#RequestTopicData(SendReceive(tell-me), InfoTopic(name)) <-> {CommandCat[tell-me]}
 
 
 #This would work, but we're breaking down into smaller pieces of a SendReceive and an InfoTopic
 #e.g. User: tell me the phone number
 #To preserve generality, do not specify specific non-function words like 'the'.
-#RequestTopicInfo(receive-telephone-number) <-> {CommandCat[tell-me]} {InfoTypeCat[telephone-number]}
+#RequestTopicData(receive-telephone-number) <-> {CommandCat[tell-me]} {InfoTypeCat[telephone-number]}
 #
 #e.g. User: I would like to tell you the phone number
 #To preserve generality, do not specify specific non-function words like 'the'.
-#RequestTopicInfo(send-telephone-number) <-> {CommandCat[tell-you]} {InfoTypeCat[telephone-number]}
+#RequestTopicData(send-telephone-number) <-> {CommandCat[tell-you]} {InfoTypeCat[telephone-number]}
