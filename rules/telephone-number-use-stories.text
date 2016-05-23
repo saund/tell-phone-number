@@ -1,0 +1,969 @@
+
+
+Notes on the development of a conversational agent to communicate (both transmit and receive)
+telephone numbers using the devices of human dialogue management.
+May, 2016
+
+this branch from working on Jumbo the week up to and including 2016/05/22
+
+
+----------
+
+[?okay (tell | give) me the ?[phone | telephone] number [now | jibo | again]
+What is the ?[phone | telephone] number ?again
+
+
+-------------------------
+** Information Items **
+These will be arguments to Intents and LogicalForms
+
+
+* Topic Items *
+
+*Item value*
+(TopicData, confirmation-repeat)
+one
+two 
+three 
+four
+five
+six
+seven
+eight 
+nine
+zero
+oh
+dash
+parenthesis
+open parenthesis
+close parenthesis
+
+
+*Item group type*
+(TopicData)
+area code
+last four digits
+
+
+*Item type*
+(TopicData)
+digit
+dash
+punctuation
+parenthesis
+
+
+*Indexical-Position*
+(DM-data)
+first
+last
+second
+third
+fourth
+fifth
+sixth
+seventh
+eight
+ninth
+tenth
+
+*Indexical-Relation*
+(DM-data)
+next
+then
+after
+before
+
+
+
+*Dialog Management Items*
+
+*DM-Management - affirmation*
+yes
+yep
+yup
+that's right
+right
+correct
+that's correct
+
+*DM-Management - turn-continuer*
+yes
+yep
+yeah
+yup
+go on
+
+*DM-Management - negation*
+no
+wrong
+incorrect
+not correct
+not right
+
+
+*DM-Management - start-task*
+[tell | give] ?me [the | {person}'s] ?[phone | telephone] number
+
+
+*DM-Management - start-over*
+start over
+start from the top
+say the whole thing again
+give me the entire number again.
+tell me the entire number again.
+let's try this again
+
+*DM-Management - repeat*
+say that again
+say the number again
+say those numbers again
+repeat that
+?please give me [ ] again
+?please tell me [ ] again
+one more time ?please
+try again
+try that again
+
+
+*DM-Management - alignment*
+did you get that?
+do you have that?
+can you repeat that back to me
+can you confirm you got those numbers
+can you repeat them back to me
+  to make sure I communicated that to you
+  to make sure you got it
+I want to make sure you have that.
+okay?
+got that?
+
+
+*DM-Management - presence*
+are you there?
+still there?
+can you hear me?
+did you go away?
+are you still listening?
+[Name]?
+
+*DM-Management - communciation-channel*
+I can't hear you
+can you hear me?
+there's noise on the line
+you're dropping out
+all I hear is static
+you voice is not clear
+the sound is garbled
+
+*DM-Management - understanding*
+what?
+I didn't get that
+I cannot understand you
+I cannot understand what you are saying
+
+
+*DM-Management - readiness*
+are you ready
+hang on
+wait 
+wait a sec
+wait a second
+wait a minute
+hold on
+I'm ready
+start
+ok
+
+
+*DM-Management - protocol*
+more slowly
+slower
+faster
+speed it up
+slow down
+one number at a time
+two numbers at a time
+you're going too fast
+you're speaking too fast
+that's too fast
+this is too fast 
+say the [sequence subpart] [indexical first, next]
+go on
+next
+next number
+what comes next?
+what's next?
+area code first
+prefix next
+last four digits
+
+
+[let me | how about if] I say one number at a time
+let's do this one number at a time
+
+two numbers at a time
+tell me the numbers in groups of [three or four | three and four]
+
+
+
+
+*dialog management words - verbs*
+confirm
+try
+say
+repeat
+make sure
+
+*dialog management words - pronouns*
+that
+it
+
+
+*dialog management words - self-correction*
+sorry
+wait
+
+
+*dialog management words - politeness*
+sorry
+I'm sorry
+no problem
+no worries
+that's all right
+I apologize
+thank you
+
+
+
+------------
+
+*Logical Forms*
+
+
+
+**Intents**
+
+Inform
+Proffer information about topic or dialog management.
+Assumption that the recipient's belief confidence is low.
+
+Request
+Request information about topic or dialog management,
+or request adjustment in dialog management protocol.
+Assumption that the speaker's belief confidence is low.
+
+Check
+Solicit request of confirmation of topic information or dialog management.
+Assumption that the speaker's belief confidence is high.
+
+Confirm
+Reiterate topic information or affirm/disaffirm dialog management protocol state.
+Assumption that the recipient's belief confidence is high.
+Used if sender believes the recipient's information is correct.
+
+Correction
+Assumethat that the recipient's belief confidence is high.
+Used if sender believes the recipient's information is incorrect.
+
+
+
+InformTopicInfo
+InformDialogManagement
+
+RequestTopicInfo
+RequestDialogManagement
+
+CheckTopicInfo
+CheckDialogManagement
+
+ConfirmTopicInfo
+ConfirmDialogManagement
+
+CorrectTopicInfo
+CorrectDialogManagement
+
+
+----------------------------------------
+
+
+
+----------------------------------------
+//////////////
+//Utterance Categories
+//with examples
+//
+//Format:  Intent(arguments'-types)
+//
+//The four intents are:
+//-Inform
+//-Request   (RequestInfo.  Other domains will have a RequestAction intent)
+//-Confirm
+//-Check
+//
+
+
+
+--------------
+*** Inform ***
+* Proffer information about topic or dialog management. *
+*
+
+InformTopicInfo(ItemValue)
+"six two three"
+
+InformTopicInfo(ItemGroupType)
+"area code"
+
+InformTopicInfo(ItemGroupType, ItemValue)
+"area code two one three"
+"the area code is two one three"
+
+?InformTopicInfo(ItemType)
+?"parenthesis around these area code"
+
+InformTopicInfo(IndexicalPosition)
+"first"
+
+InformTopicInfo(IndexicalPosition, ItemType)
+"first digit"
+
+InformTopicInfo(IndexicalPosition, ItemType, ItemValue)
+"the first digit is six"
+
+InformTopicInfo(IndexicalRelation)
+"next"
+
+InformTopicInfo(IndexicalRelation, ItemType)
+"next digit"
+"after the area code"
+
+InformTopicInfo(IndexicalRelation, ItemValue)
+"after the seven"
+
+InformTopicInfo(ItemValue, IndexicalPosition, ItemValue)
+"after the six is seven"
+
+InformDialogManagement(affirmation)
+"correct"
+"that's right"
+
+InformDialogManagement(ItemValue, affirmation)
+"six, yes"
+"yes six"
+
+InformDialogManagement(turn-continuer)
+"yeah"
+"go on"
+
+InformDialogManagement(ItemValue, turn-continuer)
+"seven yeah"
+
+InformDialogManagement(negation)
+"no that's wrong"
+
+InformDialogManagement(partner-correction)
+"no that's"
+
+$$
+
+
+InformDialogManagement(negation, ItemValue)
+"no not seven"
+
+InformDialogManagement(start-task)
+"tell me the phone number"
+
+InformDialogManagement(start-over)
+"let's start again"
+
+InformDialogManagement(alignment)
+"let's try that again"
+"please speak more slowly"
+
+InformDialogManagement(alignment, ItemType)
+"please say that number again"
+
+InformDialogManagement(alignment, DM-item)
+"I told you to speak more slowly"
+
+InformDialogManagement(protocol)
+"one number at a time"
+
+InformDialogManagement(presence)
+"i'm here"
+"I have my earbuds on"
+
+InformDialogManagement(communication-channel)
+"the sound quality is good"
+
+InformDialogManagement(readiness)
+"i'm ready"
+
+InformDialogManagement(understanding)
+"i think i understood that"
+"i heard what you said"
+
+
+
+
+
+
+---------------
+*** Request ***
+* Request information about topic or dialog management. *
+*
+
+
+RequestTopicInfo()         
+"tell me"                   
+(Unusual to have a request without any indication of what is being requested.
+ In this example, it would come from previous context.)
+
+RequestTopicInfo(IndexicalRelation, ItemValue)
+"what comes after the seven?"
+
+InformTopicInfo(ItemValue, IndexicalPosition, ItemValue)
+"does six come after the seven?"
+
+RequestTopicInfo(ItemValue, IndexicalRelation)
+"does seven come next?"
+
+RequestTopicInfo(IndexicalRelation, ItemType)
+"next number please"
+
+RequestTopicInfo(ItemValue)
+"was that a seven?"
+
+RequestTopicInfo(ItemGroupType)
+"what is the area code?"
+"please tell me the number"
+
+?RequestTopicInfo(ItemType)
+?"is that a number"
+
+RequestTopicInfo(ItemType, ItemValue)
+"is that the number six?"
+
+RequestTopicInfo(IndexicalPosition)
+"which digit in the number?"
+
+RequestTopicInfo(IndexicalRelation)
+"what comes next?"
+
+RequestDialogManagement(affirmation)
+"is that correct?"
+
+RequestDialogManagement(negation)
+"is that wrong?"
+
+RequestDialogManagement(turn-request)
+"shall I go on?"
+
+RequestDialogManagement(start-task)
+"can we please start?"
+
+RequestDialogManagement(start-over)
+"can we start over?"
+
+RequestDialogManagement(repeat-request)
+"say that again please"
+
+RequestDialogManagement(alignment)
+"are you getting this?"
+
+RequestDialogManagement(protocol)
+"please say one number at a time"
+
+RequestDialogManagement(presence)
+"are you on a handset or speaker phone?"
+
+RequestDialogManagement(communication-channel)
+"how is the voice quality?"
+
+RequestDialogManagement(readiness)
+"what are you doing?"
+
+RequestDialogManagement(understanding)
+"what did you understand of what I said?"
+"please repeat that back to me"
+
+
+
+-------------
+*** Check ***
+* Solicit request of confirmation of topic information or dialog management. *
+*
+
+CheckTopicInfo()
+"did you get that?"
+
+CheckTopicInfo(ItemValue)
+"did you get that seven?"
+"is that seven?"
+
+CheckTopicInfo(ItemValue, IndexicalPosition)
+"did you get that seven is next?"
+
+CheckTopicInfo(ItemValue, IndexicalPosition, ItemValue)
+"did you get that seven is after the six"
+
+CheckTopicInfo(ItemGroupType)
+"are you ready for the area code?"
+
+CheckTopicInfo(ItemType)
+"are we on to the area code?"
+
+?CheckTopicInfo(IndexicalPosition)
+?"are we at the second digit?"
+
+CheckTopicInfo(IndexicalPosition, ItemType)
+"are we at the second digit?"
+
+CheckTopicInfo(indexical-relation)
+"ready for next?"
+
+CheckTopicInfo(IndexicalRelation, ItemType)
+"ready for the next digit?"
+
+CheckTopicInfo(IndexicalRelation, ItemValue)
+"ready for the after the six?"
+
+CheckDialogManagement(affirmation)
+"is that correct?"
+
+CheckDialogManagement(turn-continuer)
+"okay?"
+(in context)
+
+?CheckDialogManagement(negation)
+"okay?"
+(in context)
+
+CheckDialogManagement(start-task)
+"okay?"
+(in context)
+
+CheckDialogManagement(start-over)
+"okay?"
+(in context)
+
+CheckDialogManagement(alignment)
+"did you get that?"
+
+CheckDialogManagement(protocol)
+"area code first?"
+
+CheckDialogManagement(presence)
+"are you there?"
+
+CheckDialogManagement(communication-channel)
+"can you hear me?"
+
+CheckDialogManagement(readiness)
+"are you ready?"
+(in context)
+
+CheckDialogManagement(understanding)
+"did you get that?"
+
+
+
+---------------
+*** Confirm ***
+*   Reiterate topic information or affirm dialog management protocol state *
+*
+
+ConfirmTopicInfo(ItemValue)
+"six two three"
+
+ConfirmTopicInfo(ItemGroupType)
+"area code"
+"okay that's the area code"
+
+ConfirmTopicInfo(ItemGroupType, ItemValue)
+"area code six two three"
+"okay the area code is six two three"
+
+?ConfirmTopicInfo(ItemType)
+
+ConfirmTopicInfo(IndexicalPosition, ItemType)
+"i got that as the second digit"
+
+ConfirmTopicInfo(IndexicalRelation)
+"yes next"
+
+ConfirmTopicInfo(IndexicalRelation, ItemType)
+"okay next digit"
+
+ConfirmDialogManagement(affirmation)
+"yes fine"
+"okay good"
+
+ConfirmDialogManagement(turn-continuer)
+"okay then"
+
+ConfirmDialogManagement(negation)
+"sorry no"
+
+ConfirmDialogManagement(self-correction)
+"sorry"
+
+ConfirmDialogManagement(start-task)
+"yes please start"
+
+ConfirmDialogManagement(start-over)
+"yes please start over"
+
+ConfirmDialogManagement(alignment)
+"no I didn't get that"
+
+ConfirmDialogManagement(protocol)
+"okay one number at a time"
+
+ConfirmDialogManagement(presence)
+"I'm here"
+
+ConfirmDialogManagement(communication-channel)
+"I can hear you"
+
+ConfirmDialogManagement(readiness)
+"yes ready"
+
+ConfirmDialogManagement(understanding)
+"I got that"
+"yes"
+"yes, okay"
+
+
+
+//examples
+//////////////
+
+
+
+
+
+
+*DM-Management - affirmation*
+*DM-Management - turn-continuer*
+*DM-Management - negation*
+*DM-Management - start-task*
+*DM-Management - start-over*
+*DM-Management - repeat-request*
+*DM-Management - alignment*
+[*DM-Management - alignment-check*]
+[*DM-Management - alignment-problem*]
+*DM-Management - protocol*
+*DM-Management - readiness*
+*DM-Management - politeness*
+
+
+InformDialogManagement
+RequestTopicInfo
+RequestDialogManagement
+ConfirmTopicInfo
+ConfirmDialogManagement
+CheckTopicInfo
+CheckDialogManagement
+
+
+
+
+
+-------------------------------------
+Surplus
+
+
+
+
+*ActivityDirective*
+
+*ActivityDirective-StartOver*
+?please start over
+?please say that again
+?please give me the entire number again.
+?please tell me again
+one more time ?please
+let's try again
+
+
+InformSequence(item)
+InformSequence(sequence, start, end)
+
+
+
+ConfirmSequence(item)
+ConfirmSequence(sequence, start, end)
+
+Affirmation()
+Affirmation(item)
+Affirmation(sequence, start, end)
+
+Negation
+Negation(item)
+Negation(sequence, start, end)
+
+Request( )
+
+ActivityDirective(DM-directive)
+ActivityDirectiveRequest(DM-directive)
+ActivityDirectiveConfirmation(DM-directive)
+
+
+
+
+the [nth] digit is 
+
+what is the [nth] digit?
+
+
+
+
+-----------
+Synopsis of Utterance Categories
+(needs to be updated)
+
+InformTopicInfo(ItemValue)
+InformTopicInfo(ItemGroupType)
+InformTopicInfo(ItemType)
+InformTopicInfo(IndexicalPosition)
+InformTopicInfo(IndexicalRelation)
+
+InformDialogManagement(affirmation)
+InformDialogManagement(turn-continuer)
+InformDialogManagement(negation)
+InformDialogManagement(start-task)
+InformDialogManagement(start-over)
+InformDialogManagement(alignment-problem)
+InformDialogManagement(protocol)
+InformDialogManagement(readiness)
+
+RequestTopicInfo(ItemValue)
+RequestTopicInfo(ItemGroupType)
+RequestTopicInfo(ItemType)
+RequestTopicInfo(IndexicalPosition)
+RequestTopicInfo(IndexicalRelation)
+
+RequestDialogManagement(affirmation)
+RequestDialogManagement(turn-request)
+RequestDialogManagement(negation)
+RequestDialogManagement(start-task)
+RequestDialogManagement(start-over)
+RequestDialogManagement(repeat-request)
+RequestDialogManagement(alignment-problem)
+RequestDialogManagement(protocol)
+RequestDialogManagement(readiness)
+
+ConfirmTopicInfo(ItemValue)
+ConfirmTopicInfo(ItemGroupType)
+ConfirmTopicInfo(ItemType)
+ConfirmTopicInfo(IndexicalPosition)
+ConfirmTopicInfo(IndexicalRelation)
+
+ConfirmDialogManagement(affirmation)
+ConfirmDialogManagement(turn-continuer)
+ConfirmDialogManagement(negation)
+ConfirmDialogManagement(start-task)
+ConfirmDialogManagement(start-over)
+ConfirmDialogManagement(alignment-problem)
+ConfirmDialogManagement(protocol)
+ConfirmDialogManagement(readiness)
+
+
+CheckTopicInfo(ItemValue)
+CheckTopicInfo(ItemGroupType)
+CheckTopicInfo(ItemType)
+CheckTopicInfo(indexical-position)
+CheckTopicInfo(indexical-relation)
+CheckDialogManagement(affirmation)
+CheckDialogManagement(turn-continuer)
+CheckDialogManagement(negation)
+CheckDialogManagement(start-task)
+CheckDialogManagement(start-over)
+CheckDialogManagement(alignment-check)
+CheckDialogManagement(protcol-adjustment)
+CheckDialogManagement(readiness)
+
+
+
+
+
+-----------------------------------------------
+
+Use stories
+(Use story numbers 1-9 in parentheses are in notes of 5/9/2016, 
+ which do not have the detailed DialogAct variants)
+
+DialogActs are from /rules/tell-phone-number-lf-rules.txt
+
+--------------------
+Use story 10.  (1)
+
+S:  six five zero            InformTopicInfo(DataValue(DigitSequence
+
+P:  six five zero            ConfirmTopicInfo(DataValue(DigitSequence  (incorrect)
+
+S:  seven eight three
+
+P:  seven eight three
+
+
+--------------------
+Use story 11.    (3, 4, 5)
+
+S:  six five zero            InformTopicInfo(DataValue(DigitSequence
+
+P:  seven five zero          ConfirmTopicInfo(DataValue(DigitSequence (incorrect)
+
+
+--------------------
+Use story 12.
+
+S:  six five zero            InformTopicInfo(DataValue(DigitSequence
+
+P:  six four zero            ConfirmTopicInfo(DataValue(DigitSequence (incorrect)
+
+continued below
+
+
+--------------------
+Use story 13.
+
+S:  six five zero            InformTopicInfo(DataValue(DigitSequence
+
+P:  what five zero           RequestDialogManagement(what)
+                             ConfirmTopicInfo(DataValue(DigitSequence (correct)
+
+
+--------------------
+Use story 14.
+
+S:  six five zero            InformTopicInfo(DataValue(DigitSequence
+
+P:  six five what            ConfirmTopicInfo(DataValue(DigitSequence (correct)
+	                         RequestDialogManagement(what)
+
+--------------------
+Use story 15.
+
+S:  six five zero            InformTopicInfo(DataValue(DigitSequence
+
+P:  six what zero            ConfirmTopicInfo(DataValue(DigitSequence (correct)
+	                         RequestDialogManagement(what)
+                             ConfirmTopicInfo(DataValue(DigitSequence (correct)
+
+
+--------------------
+Use story 16.       (6)
+
+S:  six five zero            InformTopicInfo(DataValue(DigitSequence
+
+P:  yup                      ConfirmDialogManagement(affirmation-yes)
+
+S:  seven eight three
+
+P:  yup
+
+
+--------------------
+Use story 17.
+
+S:  six five zero            InformTopicInfo(DataValue(DigitSequence
+
+P:  seven eight three        ConfirmTopicInfo(DataValue(DigitSequence (correct, but for for next chunk!)
+
+
+--------------------
+Use story 18.     (2)
+
+S:  six five zero            InformTopicInfo(DataValue(DigitSequence
+
+P:  what                     RequestDialogManagement(what)
+
+
+
+--------------------
+Use story 19.     (2)
+
+S:  six five zero            InformTopicInfo(DataValue(DigitSequence
+
+P:  what was that            RequestDialogManagement(misalignment-self-hearing-or-understanding)
+
+
+--------------------
+Use story 20.     (7, 8)
+
+S:  six five zero            InformTopicInfo(DataValue(DigitSequence
+
+(wait)
+
+
+--------------------
+Use story 21.     (650) 438-5923
+
+What happens when prosody is misinterpreted?
+
+S:  six five zero            InformTopicInfo(DataValue(DigitSequence
+
+P:  six four zero            ConfirmTopicInfo(DataValue(DigitSequence  (incorrect)
+
+S:  six five zero            InformTopicInfo(DataValue(DigitSequence
+         ^
+       emphasis
+
+                             P doesn't get that S's utterance was a correction.
+							 They hear this last utterance as the prefix
+
+P:  six five zero            ConfirmTopicInfo(DataValue(DigitSequence  
+               ^
+		  rising expectation as in, penultimate chucnk
+		  
+                             S interprets this as correct confirmation area code
+
+S:  four three eight         InformTopicInfo(DataValue(DigitSequence
+
+P:  four three eight         ConfirmTopicInfo(DataValue(DigitSequence
+
+S:  five nine two three      InformTopicInfo(DataValue(DigitSequence
+
+P:  that's too many digits
+
+
+
+
+--------------------
+Use story 22.
+
+S:  six five zero            InformTopicInfo(DataValue(DigitSequence
+
+P:  six four zero            ConfirmTopicInfo(DataValue(DigitSequence (incorrect)
+
+S:  six five zero            InformTopicInfo(DataValue(DigitSequence
+
+
+
+--------------------
+Use story 23.
+
+S:  six five zero            InformTopicInfo(DataValue(DigitSequence
+
+P:  six four zero            ConfirmTopicInfo(DataValue(DigitSequence (incorrect)
+
+S:  no that's six five zero  InformDialogManagement(negation)
+                             InformTopicInfo(DataValue(DigitSequence
+
+
+--------------------
+Use story 23.
+
+S:  six five zero            InformTopicInfo(DataValue(DigitSequence
+
+P:  not that's six four zero            ConfirmTopicInfo(DataValue(DigitSequence (incorrect)
+
+S:  six five zero            InformTopicInfo(DataValue(DigitSequence
+
+
+
+
+

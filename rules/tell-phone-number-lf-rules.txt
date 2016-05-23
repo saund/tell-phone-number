@@ -229,9 +229,11 @@ InfoTypeCat[user-name] <-> my name
 RequestTopicInfo(tell-me) <-> {CommandCat[tell-me]}
 
 
+InformDialogManagement(greeting) <-> hello
 
 InformTopicInfo(all-done) <-> We're all done
 
+#capitalization and punctuation means this can be processed as output only.
 InformDialogManagement(misaligned-roles) <-> Hello?
 
 InformDialogManagement(dialog-invitation) <-> Would you like to send or receive a phone number?
@@ -243,9 +245,16 @@ InformDialogManagement(misaligned-digit-values) <-> we are out of sync about the
 
 #Also serves as CheckTopicInfo(request-affirmation), as in okay? as a question
 #When we have prosody then maybe we can separate these.
+#These are turn continuers.
+ConfirmDialogManagement(affirmation-okay) <-> ok
 ConfirmDialogManagement(affirmation-okay) <-> okay
 ConfirmDialogManagement(affirmation-yes) <-> yes
 ConfirmDialogManagement(affirmation-yes) <-> yup
+ConfirmDialogManagement(affirmation-yes) <-> proceed
+ConfirmDialogManagement(affirmation-yes) <-> go on
+ConfirmDialogManagement(affirmation-yes) <-> keep going
+ConfirmDialogManagement(affirmation-yes) <-> what else
+
 
 InformDialogManagement(self-correction) <-> sorry
 
@@ -278,6 +287,8 @@ InformDialogManagement(self-not-readiness) <-> i am not ready
 InformDialogManagement(self-not-readiness) <-> please wait
 InformDialogManagement(self-not-readiness) <-> wait please 
 
+InformDialogManagement(repeat-intention) <-> I'll repeat that.
+
 
 CheckDialogManagement(other-readiness) <-> are you ready
 
@@ -299,7 +310,9 @@ RequestDialogManagement(misalignment-partner-hearing-or-understanding) <-> you d
 RequestDialogManagement(misalignment-partner-hearing-or-understanding) <-> you did not hear 
 RequestDialogManagement(misalignment-parnter-hearing-or-understanding) <-> you didn't hear 
 
-RequestDialogManagement(request-repeat) <-> say that again
+RequestDialogManagement(misalignment-request-repeat) <-> say that again
+RequestDialogManagement(misalignment-request-repeat) <-> repeat that
+RequestDialogManagement(misalignment-request-repeat) <-> again please
 RequestDialogManagement(again) <-> again
 
 
