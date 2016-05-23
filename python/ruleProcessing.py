@@ -408,6 +408,7 @@ class LogicalForm():
         predicate = predicate.strip()
         self.predicate = predicate   #If there are args, then this will be uppercase.  If this is an itself just an argument,
                                      #then this is likely to be lowercase.
+        self.print_string = None
         self.arg_list = []
 
     def getPredicate(self):
@@ -417,6 +418,8 @@ class LogicalForm():
         print self.getPrintString()
 
     def getPrintString(self):
+        if self.print_string != None:
+            return self.print_string
         print_string = self.predicate + ''
         if len(self.arg_list) > 0:
             print_string += '('
@@ -427,6 +430,7 @@ class LogicalForm():
                 print_string += arg_str
                 argsep = ','
             print_string += ')'
+        self.print_string = print_string
         return print_string
 
 
