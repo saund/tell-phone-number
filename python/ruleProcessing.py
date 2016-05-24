@@ -428,7 +428,7 @@ class LogicalForm():
                 arg_str = arg.getPrintString()
                 print_string += argsep 
                 print_string += arg_str
-                argsep = ','
+                argsep = ', '                #note the space after the comma
             print_string += ')'
         self.print_string = print_string
         return print_string
@@ -455,7 +455,7 @@ class DialogAct(LogicalForm):
                 arg_str = arg.getPrintString()
                 print_string += argsep 
                 print_string += arg_str
-                argsep = ','
+                argsep = ', '         #note the space after the comma
             print_string += ')'
         return print_string
 

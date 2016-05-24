@@ -328,13 +328,18 @@ CheckDialogManagement(other-readiness) <-> are you ready
 RequestDialogManagement(what) <-> como
 RequestDialogManagement(what) <-> what
 
+#i did not/do not  get/hear/understand  that 
 RequestDialogManagement(misalignment-self-hearing-or-understanding) <-> huh
-RequestDialogManagement(misalignment-self-hearing-or-understanding) <-> what was that
+RequestDialogManagement(misalignment-self-hearing-or-understanding, pronoun_ref) <-> what was that
 RequestDialogManagement(misalignment-self-hearing-or-understanding) <-> what did you say
-RequestDialogManagement(misalignment-self-hearing-or-understanding) <-> i did not get that
-RequestDialogManagement(misalignment-self-hearing-or-understanding) <-> i didn't get that
-RequestDialogManagement(misalignment-self-hearing-or-understanding) <-> i did not hear 
-RequestDialogManagement(misalignment-self-hearing-or-understanding) <-> i didn't hear 
+RequestDialogManagement(misalignment-self-hearing-or-understanding, pronoun_ref) <-> i did not get that
+RequestDialogManagement(misalignment-self-hearing-or-understanding, pronoun_ref) <-> i didn't get that
+RequestDialogManagement(misalignment-self-hearing-or-understanding, pronoun_ref) <-> i did not hear that 
+RequestDialogManagement(misalignment-self-hearing-or-understanding, pronoun_ref) <-> i didn't hear that
+RequestDialogManagement(misalignment-self-hearing-or-understanding) <-> i did not hear you
+RequestDialogManagement(misalignment-self-hearing-or-understanding) <-> i didn't hear you
+RequestDialogManagement(misalignment-self-hearing-or-understanding) <-> i did not hear
+RequestDialogManagement(misalignment-self-hearing-or-understanding) <-> i didn't hear
 
 RequestDialogManagement(misalignment-partner-hearing-or-understanding) <-> you did not get that
 RequestDialogManagement(misalignment-partner-hearing-or-understanding) <-> you didn't get that
@@ -361,7 +366,7 @@ RequestDialogManagement(misalignment-request-repeat, $1) <-> again please the {I
 #RequestDialogManagement(misalignment-request-repeat, $1) <-> what was that {InfoTypeCat[$1]}
 
 #i did not/do not  get/hear/understand  the/that    digit/area-code/prefix/number/...
-RequestDialogManagement(misalignment-self-hearing-or-understanding, $1) <->\
+RequestDialogManagement(misalignment-self-hearing-or-understanding, ItemType($1)) <->\
                    i {GrammaticalDoNotCat[$2]}{ActionCat[receive-info]} {GrammaticalIndicativeCat[$3]} {InfoTypeCat[$1]}
 
 #RequestDialogManagement(misalignment-self-hearing-or-understanding, $1) <-> i {GrammaticalDoNotCat[$2]} get the {InfoTypeCat[$1]}
