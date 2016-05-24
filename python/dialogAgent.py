@@ -350,7 +350,7 @@ class DataModel_USPhoneNumber(DataModel):
                              DigitBelief(), DigitBelief(), DigitBelief(),\
                              DigitBelief(), DigitBelief(), DigitBelief(), DigitBelief()]
         #data segments, [start_index, end_index] inclusive
-        self.data_indices = {'area_code':[0,2],\
+        self.data_indices = {'area-code':[0,2],\
                              'prefix':[3,5],\
                              'last-four-digits':[6,9]}
 
@@ -673,6 +673,13 @@ gl_da_tell_me_phone_number = rp.parseDialogActFromString('RequestTopicInfo(SendR
 
 gl_da_tell_you_phone_number = rp.parseDialogActFromString('RequestTopicInfo(SendReceive(tell-you), InfoTopic(telephone-number))')
 
+gl_da_request_topic_info = rp.parseDialogActFromString('RequestTopicInfo(ItemType($1))')
+gl_str_request_topic_info = 'RequestTopicInfo(ItemType($1))'
+
+gl_da_say_item_type = rp.parseDialogActFromString('InformTopicInfo(SayItemType($1))')
+gl_str_da_say_item_type = 'InformTopicInfo(SayItemType($1))'
+
+
 gl_da_affirmation_okay = rp.parseDialogActFromString('ConfirmDialogManagement(affirmation-okay)')
 gl_da_affirmation_yes = rp.parseDialogActFromString('ConfirmDialogManagement(affirmation-yes)')
 gl_da_affirmation = rp.parseDialogActFromString('ConfirmDialogManagement($1)')
@@ -920,7 +927,7 @@ def handleInformDialogManagement(da_list):
 #Request information about topic
 #
 def handleRequestTopicInfo(da_list):
-    da_request_topic_data = da_list[0]
+    da_request_topic_info = da_list[0]
 
     print 'handleRequestTopicInfo da_list: '
     for da in da_list:
@@ -928,7 +935,7 @@ def handleRequestTopicInfo(da_list):
 
     #handle 'User: what is your name'
     #rp.setTellMap(True)
-    mapping = rp.recursivelyMapDialogRule(gl_da_what_is_your_name, da_request_topic_data)
+    mapping = rp.recursivelyMapDialogRule(gl_da_what_is_your_name, da_request_topic_info)
     #print 'mapping: ' + str(mapping)
     if mapping != None:
         str_da_my_name_is = gl_str_da_my_name_is.replace('$1', gl_agent.name)
@@ -936,7 +943,7 @@ def handleRequestTopicInfo(da_list):
         return [da_my_name_is]
 
     #handle 'User: what is my name'
-    mapping = rp.recursivelyMapDialogRule(gl_da_what_is_my_name, da_request_topic_data)
+    mapping = rp.recursivelyMapDialogRule(gl_da_what_is_my_name, da_request_topic_info)
     if mapping != None:
         str_da_your_name_is = gl_str_da_your_name_is.replace('$1', gl_agent.partner_name)
         da_your_name_is = rp.parseDialogActFromString(str_da_your_name_is)
@@ -944,7 +951,7 @@ def handleRequestTopicInfo(da_list):
 
     #handle 'User: send me the phone number'
     #rp.setTellMap(True)
-    mapping = rp.recursivelyMapDialogRule(gl_da_tell_me_phone_number, da_request_topic_data)
+    mapping = rp.recursivelyMapDialogRule(gl_da_tell_me_phone_number, da_request_topic_info)
     #print 'mapping: ' + str(mapping)
     if mapping != None:
         gl_agent.setRole('send', gl_default_phone_number)
@@ -955,14 +962,39 @@ def handleRequestTopicInfo(da_list):
         return prepareNextDataChunk(gl_agent)
         #return [gl_da_affirmation_okay]
 
+    #handle 'User; what is the phone number'
+    mapping = rp.recursivelyMapDialogRule(gl_da_request_topic_info, da_request_topic_info)
+    if mapping != None:
+        print 'mapping: ' + str(mapping)
+        if mapping.get('1') == 'telephone-number':
+            gl_agent.setRole('send', gl_default_phone_number)
+            initializeStatesToSendPhoneNumberData(gl_agent)
+            return prepareNextDataChunk(gl_agent)
+        elif mapping.get('1') in gl_agent.self_dialog_model.data_model.data_indices.keys():
+            send_chunk_name = mapping.get('1')
+            if gl_agent.send_receive_role == 'send':
+                chunk_indices = gl_agent.self_dialog_model.data_model.data_indices.get(send_chunk_name)
+                chunk_start_index = chunk_indices[0]
+                gl_agent.self_dialog_model.data_index_pointer.setAllConfidenceInOne(gl_10_digit_index_list, chunk_start_index)
+                gl_agent.partner_dialog_model.data_index_pointer.setAllConfidenceInOne(gl_10_digit_index_list, chunk_start_index)
+                str_da_say_item_type = gl_str_da_say_item_type.replace('$1', send_chunk_name)
+                da_say_item_type = rp.parseDialogActFromString(str_da_say_item_type)
+                print 'str_da_say_item_type: ' + str_da_say_item_type
+                print 'da_say_item_type: ' + da_say_item_type.getPrintString()
+                prepo = prepareNextDataChunk(gl_agent)
+                print 'prepo: ' + str(prepo)
+                ret = [da_say_item_type]
+                ret.extend(prepo)
+                print 'ret: ' + str(ret)
+                return ret
     #handle 'User: take this phone number'
-    mapping = rp.recursivelyMapDialogRule(gl_da_tell_you_phone_number, da_request_topic_data)
+    mapping = rp.recursivelyMapDialogRule(gl_da_tell_you_phone_number, da_request_topic_info)
     if mapping != None:
         gl_agent.setRole('receive')
         return [gl_da_affirmation_okay, gl_da_self_ready]
 
 
-    print 'no handler for request ' + da_request_topic_data.getPrintString()
+    print 'handleRequestTopicInfo has no handler for request ' + da_request_topic_info.getPrintString()
     return da_list;
 
 

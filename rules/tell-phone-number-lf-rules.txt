@@ -130,21 +130,38 @@ InformTopicInfo(ItemValue(DigitSequence($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
 
 
 
-InformTopicInfo(ItemType(digit)) <-> digit
-InformTopicInfo(ItemType(digit)) <-> number
-InformTopicInfo(ItemType(area-code)) <-> area code
-InformTopicInfo(ItemType(prefix)) <-> prefix
-InformTopicInfo(ItemType(last-four-digits)) <-> last four digits
-InformTopicInfo(ItemType(last-four-digits)) <-> last four numbers
+
+
+
 
 #One possible approach
 #InformTopicInfo(ItemType(telephone-number)) <-> {ObjectCat[telephone]} number
 #ObjectCat[telephone] <-> telephone
 #ObjectCat[telephone] <-> phone
 
+#InformTopicInfo(ItemType(digit)) <-> digit
+#InformTopicInfo(ItemType(digit)) <-> number
+#InformTopicInfo(ItemType(area-code)) <-> area code
+#InformTopicInfo(ItemType(prefix)) <-> prefix
+#InformTopicInfo(ItemType(last-four-digits)) <-> last four digits
+#InformTopicInfo(ItemType(last-four-digits)) <-> last four numbers
+
+
+
 #A second approach 
+
+InformTopicInfo(ItemType($1)) <-> {InfoTypeCat[$1]}
+
 InfoTypeCat[telephone-number] <-> phone number
 InfoTypeCat[telephone-number] <-> telephone number
+InfoTypeCat[digit] <-> number
+InfoTypeCat[digit] <-> digit
+InfoTypeCat[area-code] <-> area code
+InfoTypeCat[prefix] <-> prefix
+InfoTypeCat[last-four-digits] <-> last four digits
+InfoTypeCat[last-four-digits] <-> last four numbers
+
+
 
 InfoTypeCat[address] <-> place of residence
 InfoTypeCat[address] <-> street address
@@ -165,6 +182,9 @@ InformTopicInfo(self-name, Name($1)) <-> my name it is {InfoNameCat[$1]}
 InformTopicInfo(partner-name, Name($1)) <-> I believe your name is {InfoNameCat[$1]}
 
 
+
+InformTopicInfo(SayItemType($1)) <-> the {InfoTypeCat[$1]} is 
+InformTopicInfo(SayItemType(last-four-digits)) <-> the last four digits are 
 
 
 
@@ -217,7 +237,12 @@ CommandCat[tell-you] <-> take this
 CommandCat[tell-you] <-> take down this
 
 
+#command form: tell me / tell you the the...
 RequestTopicInfo(SendReceive($1), InfoTopic($2)) <-> {CommandCat[$1]} {InfoTypeCat[$2]}
+
+#Pure request form; what is/was the/that digit/area-code/prefix/number/ telephone number
+RequestTopicInfo(ItemType($1)) <-> what {GrammaticalBeCat[$2]}{GrammaticalIndicativeCat[$3]}{InfoTypeCat[$1]}
+
 
 RequestTopicInfo(SendReceive(tell-me), InfoTopic(user-name)) <-> who am i
 RequestTopicInfo(SendReceive(tell-me), InfoTopic(agent-name)) <-> who are you
@@ -227,6 +252,12 @@ InfoTypeCat[user-name] <-> my name
 
 #If an InfoTypeCat is not recognized, at least notice that a RequestTopicInfo has been issued
 RequestTopicInfo(tell-me) <-> {CommandCat[tell-me]}
+
+
+
+
+
+
 
 
 InformDialogManagement(greeting) <-> hello
@@ -314,6 +345,66 @@ RequestDialogManagement(misalignment-request-repeat) <-> say that again
 RequestDialogManagement(misalignment-request-repeat) <-> repeat that
 RequestDialogManagement(misalignment-request-repeat) <-> again please
 RequestDialogManagement(again) <-> again
+
+RequestDialogManagement(misalignment-request-repeat, $1) <-> say the {InfoTypeCat[$1]} again
+RequestDialogManagement(misalignment-request-repeat, $1) <-> repeat the {InfoTypeCat[$1]} 
+RequestDialogManagement(misalignment-request-repeat, $1) <-> again please the {InfoTypeCat[$1]} 
+
+
+
+#what is/was the/that digit/area-code/prefix/number/ telephone number
+#does not come under DM misalignment repair.  but RequestTopicInfo 
+#RequestDialogManagement(misalignment-request-repeat, $1) <-> what {GrammaticalBeCat[$2]}{GrammaticalIndicativeCat[$3]}{InfoTypeCat[$1]}
+#RequestDialogManagement(misalignment-request-repeat, $1) <-> what is the {InfoTypeCat[$1]}
+#RequestDialogManagement(misalignment-request-repeat, $1) <-> what is that {InfoTypeCat[$1]}
+#RequestDialogManagement(misalignment-request-repeat, $1) <-> what was the {InfoTypeCat[$1]}
+#RequestDialogManagement(misalignment-request-repeat, $1) <-> what was that {InfoTypeCat[$1]}
+
+#i did not/do not  get/hear/understand  the/that    digit/area-code/prefix/number/...
+RequestDialogManagement(misalignment-self-hearing-or-understanding, $1) <->\
+                   i {GrammaticalDoNotCat[$2]}{ActionCat[receive-info]} {GrammaticalIndicativeCat[$3]} {InfoTypeCat[$1]}
+
+#RequestDialogManagement(misalignment-self-hearing-or-understanding, $1) <-> i {GrammaticalDoNotCat[$2]} get the {InfoTypeCat[$1]}
+#RequestDialogManagement(misalignment-self-hearing-or-understanding, $1) <-> i did not get the {InfoTypeCat[$1]}
+#RequestDialogManagement(misalignment-self-hearing-or-understanding, $1) <-> i didn't get the {InfoTypeCat[$1]}
+#RequestDialogManagement(misalignment-self-hearing-or-understanding, $1) <-> i did not hear the {InfoTypeCat[$1]}
+#RequestDialogManagement(misalignment-self-hearing-or-understanding, $1) <-> i didn't hear the {InfoTypeCat[$1]}
+
+
+
+GrammaticalBeCat[present-singular] <-> is
+GrammaticalBeCat[present-plural] <-> are
+GrammaticalBeCat[infinitive] <-> be
+GrammaticalBeCat[past-singular] <-> was
+GrammaticalBeCat[past-plural] <-> were
+
+GrammaticalBeNotCat[present-singular] <-> isn't
+GrammaticalBeNotCat[present-singular] <-> is not
+GrammaticalBeNotCat[present-plural] <-> aren't
+GrammaticalBeNotCat[present-plural] <-> are not
+GrammaticalBeNotCat[past-singular] <-> wasn't
+GrammaticalBeNotCat[past-singular] <-> was not
+GrammaticalBeNotCat[past-plural] <-> weren't
+GrammaticalBeNotCat[past-plural] <-> were not
+
+GrammaticalDoNotCat[present] <-> doesn't
+GrammaticalDoNotCat[present] <-> does not
+GrammaticalDoNotCat[past] <-> didn't
+GrammaticalDoNotCat[past] <-> did not
+GrammaticalDoNotCat[future] <-> won't
+GrammaticalDoNotCat[future] <-> will not 
+
+GrammaticalIndicativeCat[definite-near] <-> this
+GrammaticalIndicativeCat[definite] <-> the
+GrammaticalIndicativeCat[definite-far] <-> that
+GrammaticalIndicativeCat[indefinite] <-> a
+
+
+ActionCat[receive-info] <-> hear
+ActionCat[receive-info] <-> get
+ActionCat[receive-info] <-> catch
+ActionCat[receive-info] <-> receive
+ActionCat[receive-info] <-> understand
 
 
 CheckTopicInfo(request-confirmation) <-> is that
