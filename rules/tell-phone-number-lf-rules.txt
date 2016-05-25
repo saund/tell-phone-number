@@ -283,6 +283,8 @@ ConfirmDialogManagement(affirmation-yes) <-> yes
 ConfirmDialogManagement(affirmation-yes) <-> yup
 ConfirmDialogManagement(affirmation-yes) <-> proceed
 ConfirmDialogManagement(affirmation-yes) <-> go on
+ConfirmDialogManagement(affirmation-yes) <-> got it
+ConfirmDialogManagement(affirmation-yes) <-> got that
 ConfirmDialogManagement(affirmation-yes) <-> keep going
 ConfirmDialogManagement(affirmation-yes) <-> what else
 
