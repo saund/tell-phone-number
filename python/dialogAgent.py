@@ -89,7 +89,7 @@ def loopDialogMain():
             #for lf in da.arg_list:
             #    lf.printSelf()
 
-        printAgentBeliefs(False)
+        #printAgentBeliefs(False)
         str_generated = ' '.join(output_word_list)
         print 'gen: ' + str_generated
 
@@ -99,6 +99,8 @@ def loopDialogMain():
 
 
 #self_or_partner is 'self' or 'partner'
+#Returns a tuple of the last turn on the part of self or partner:
+#  (speaker = 'self' or 'partner', DialogAct list, utterance word tuple)
 def fetchLastUtteranceFromTurnHistory(self_or_partner):
     global gl_turn_history
     for item_tup in gl_turn_history:
@@ -614,6 +616,8 @@ def numericalDigitToWordDigit(numerical_digit):
 
 def printAgentBeliefs(abbrev_p = True):
     global gl_agent
+    if gl_agent.self_dialog_model == None:
+        return
     print 'self: iptr     ' + str(gl_agent.self_dialog_model.data_index_pointer.getDominantValue())
     if abbrev_p:
         print gl_agent.self_dialog_model.data_model.getPrintStringAbbrev()
@@ -703,15 +707,47 @@ gl_da_tell_me_topic_info = rp.parseDialogActFromString('RequestTopicInfo(SendRec
 gl_da_tell_you_topic_info = rp.parseDialogActFromString('RequestTopicInfo(SendReceive(tell-you), InfoTopic($1))')
 
 gl_da_request_topic_info = rp.parseDialogActFromString('RequestTopicInfo(ItemType($1))')
-gl_str_request_topic_info = 'RequestTopicInfo(ItemType($1))'
+gl_str_da_request_topic_info = 'RequestTopicInfo(ItemType($1))'
 
 gl_da_say_item_type = rp.parseDialogActFromString('InformTopicInfo(SayItemType($1))')
 gl_str_da_say_item_type = 'InformTopicInfo(SayItemType($1))'
 
 
 gl_da_affirmation_okay = rp.parseDialogActFromString('ConfirmDialogManagement(affirmation-okay)')
+
 gl_da_affirmation_yes = rp.parseDialogActFromString('ConfirmDialogManagement(affirmation-yes)')
+gl_str_da_affirmation_yes = 'ConfirmDialogManagement(affirmation-yes)'
+
 gl_da_affirmation = rp.parseDialogActFromString('ConfirmDialogManagement($1)')
+
+gl_da_correction_dm_negation = rp.parseDialogActFromString('CorrectionDialogManagement(negation)')
+gl_str_da_correction_dm_negation = 'CorrectionDialogManagement(negation)'
+
+
+#e.g. 'that is the [area code]'
+gl_da_correction_dm_item_type_present = rp.parseDialogActFromString('CorrectionTopicInfo(partner-correction-present, ItemType($1))')
+gl_str_da_correction_dm_item_type_present = 'CorrectionTopicInfo(partner-correction-present, ItemType($1))'
+
+#e.g.. 'that was the [area code]'
+gl_da_correction_dm_item_type_past = rp.parseDialogActFromString('CorrectionTopicInfo(partner-correction-past, ItemType($1))')
+gl_str_da_correction_dm_item_type_past = 'CorrectionTopicInfo(partner-correction-past, ItemType($1))'
+
+
+#e.g. 'is the area code'
+gl_da_inform_item_type = rp.parseDialogActFromString('InformTopicInfo(info-type-present, ItemType($1))')
+gl_str_da_inform_item_type = 'InformTopicInfo(info-type-present, ItemType($1))'
+
+
+
+#g.e. 'six is the the digit
+gl_da_correction_dm_item_value_digit_item_type_present = rp.parseDialogActFromString('CorrectionTopicInfo(partner-correction-present, InfoTopic(ItemValue(Digit($1))), ItemType($2))')
+gl_str_da_correction_dm_item_value_digit_item_type_present = 'CorrectionTopicInfo(partner-correction-present, InfoTopic(ItemValue(Digit($1))), ItemType($2))'
+
+#g.e. 'six five zero is the the area code
+#Not doing it this way because it requires spelling out each DigitSequence arugment.
+#Instead, we'll generate this form of output by stringing together indivdual InformTopicInfo(Digit dialog acts for each digit
+#gl_da_correction_dm_item_value_digit_sequence_item_type_present = rp.parseDialogActFromString('CorrectionTopicInfo(partner-correction-present, #InfoTopic(ItemValue(DigitSequence($1))), ItemType($2))')
+#gl_str_da_correction_dm_item_value_digit_sequence_item_type_present = 'CorrectionTopicInfo(partner-correction-present, InfoTopic(ItemValue(DigitSequence($1))), ItemType($2))'
 
 
 gl_da_self_ready = rp.parseDialogActFromString('InformDialogManagement(self-readiness)')
@@ -721,24 +757,35 @@ gl_da_all_done = rp.parseDialogActFromString('InformTopicInfo(all-done)')
 gl_da_what = rp.parseDialogActFromString('RequestDialogManagement(what)')
 gl_str_da_what = 'RequestDialogManagement(what)'
 
-gl_misalignment_self_hearing_or_understanding = rp.parseDialogActFromString('RequestDialogManagement(misalignment-self-hearing-or-understanding)')
-gl_str_misalignment_self_hearing_or_understanding = 'RequestDialogManagement(misalignment-self-hearing-or-understanding)'
 
-gl_misalignment_self_hearing_or_understanding_pronoun_ref = rp.parseDialogActFromString('RequestDialogManagement(misalignment-self-hearing-or-understanding, pronoun_ref)')
-gl_str_misalignment_self_hearing_or_understanding_pronoun_ref = 'RequestDialogManagement(misalignment-self-hearing-or-understanding, pronoun_ref)'
+gl_da_misalignment_self_hearing_or_understanding = rp.parseDialogActFromString('RequestDialogManagement(misalignment-self-hearing-or-understanding)')
+gl_str_da_misalignment_self_hearing_or_understanding = 'RequestDialogManagement(misalignment-self-hearing-or-understanding)'
 
-gl_misalignment_self_hearing_or_understanding_item_type = rp.parseDialogActFromString('RequestDialogManagement(misalignment-self-hearing-or-understanding, ItemType($1))')
-gl_str_misalignment_self_hearing_or_understanding_item_type = 'RequestDialogManagement(misalignment-self-hearing-or-understanding, ItemType($1))'
+gl_da_misalignment_self_hearing_or_understanding_pronoun_ref = rp.parseDialogActFromString('RequestDialogManagement(misalignment-self-hearing-or-understanding, pronoun_ref)')
+gl_str_da_misalignment_self_hearing_or_understanding_pronoun_ref = 'RequestDialogManagement(misalignment-self-hearing-or-understanding, pronoun_ref)'
 
-gl_misalignment_request_repeat = rp.parseDialogActFromString('RequestDialogManagement(misalignment-request-repeat)')
-gl_str_misalignment_request_repeat = 'RequestDialogManagement(misalignment-request-repeat)'
+gl_da_misalignment_self_hearing_or_understanding_item_type = rp.parseDialogActFromString('RequestDialogManagement(misalignment-self-hearing-or-understanding, ItemType($1))')
+gl_str_da_misalignment_self_hearing_or_understanding_item_type = 'RequestDialogManagement(misalignment-self-hearing-or-understanding, ItemType($1))'
 
-gl_inform_dm_repeat_intention = rp.parseDialogActFromString('InformDialogManagement(repeat-intention)')
-gl_str_inform_dm_repeat_intention = 'InformDialogManagement(repeat-intention)'
+gl_da_misalignment_request_repeat = rp.parseDialogActFromString('RequestDialogManagement(misalignment-request-repeat)')
+gl_str_da_misalignment_request_repeat = 'RequestDialogManagement(misalignment-request-repeat)'
 
-gl_correction_topic_info = rp.parseDialogActFromString('CorrectionTopicInfo(partner-correction)')
-gl_str_correction_topic_info = 'CorrectionTopicInfo(partner-correction)'
+gl_da_misalignment_request_repeat_item_type = rp.parseDialogActFromString('RequestDialogManagement(misalignment-request-repeat, ItemType($1))')
+gl_str_da_misalignment_request_repeat_item_type = 'RequestDialogManagement(misalignment-request-repeat, ItemType($1))'
 
+gl_da_inform_dm_repeat_intention = rp.parseDialogActFromString('InformDialogManagement(repeat-intention)')
+gl_str_da_inform_dm_repeat_intention = 'InformDialogManagement(repeat-intention)'
+
+
+
+gl_da_correction_topic_info = rp.parseDialogActFromString('CorrectionTopicInfo(partner-correction)')
+gl_str_da_correction_topic_info = 'CorrectionTopicInfo(partner-correction)'
+
+gl_da_clarification_utterance_past = rp.parseDialogActFromString('RequestDialogManagement(clarification-utterance-past, ItemType($1))')
+gl_str_da_clarification_utterance_past = 'RequestDialogManagement(clarification-utterance-past, ItemType($1))'
+
+gl_da_clarification_utterance_present = rp.parseDialogActFromString('RequestDialogManagement(clarification-utterance-present, ItemType($1))')
+gl_str_da_clarification_utterance_present = 'RequestDialogManagement(clarification-utterance-present, ItemType($1))'
 
 
 #gg
@@ -872,12 +919,12 @@ def handleInformTopicInfo_SendRole(da_list):
 
         #since we haven't advanced the self data index pointer, then actually we are re-sending the 
         #previous chunk.  We could adjust chunk size at this point also.
-        ret = [gl_inform_dm_repeat_intention]
+        ret = [gl_da_inform_dm_repeat_intention]
         ret.extend(prepareNextDataChunk(gl_agent))
         return ret
 
     elif check_matches_last_chunk_p == False:
-        ret = [gl_correction_topic_info]
+        ret = [gl_da_correction_topic_info]
         #Since there was no advance, this will send the last data chunk again.
         ret.extend(prepareNextDataChunk(gl_agent))
         return ret
@@ -1059,16 +1106,16 @@ def handleRequestDialogManagement(da_list):
     #    da.printSelf()
     #handle "i didn't get that"
     #print 'str_da_request_dm: ' + str_da_request_dm
-    #print 'gl_str_misalignment_self_hearing_or_understanding_pronoun_ref: ' + gl_str_misalignment_self_hearing_or_understanding_pronoun_ref
+    #print 'gl_str_da_misalignment_self_hearing_or_understanding_pronoun_ref: ' + gl_str_da_misalignment_self_hearing_or_understanding_pronoun_ref
 
     #handle what was that?   (pronoun_ref)
-    if str_da_request_dm == gl_str_misalignment_self_hearing_or_understanding_pronoun_ref:
+    if str_da_request_dm == gl_str_da_misalignment_self_hearing_or_understanding_pronoun_ref:
         last_self_utterance_tup = fetchLastUtteranceFromTurnHistory('self')
         if last_self_utterance_tup != None:
             return last_self_utterance_tup[1]
 
     #handle "repeat that"
-    if str_da_request_dm == gl_str_misalignment_request_repeat:
+    if str_da_request_dm == gl_str_da_misalignment_request_repeat:
         last_self_utterance_tup = fetchLastUtteranceFromTurnHistory('self')
         if last_self_utterance_tup != None:
             #print 'last_self_utterance_tup: ' + str(last_self_utterance_tup)
@@ -1081,18 +1128,124 @@ def handleRequestDialogManagement(da_list):
             return last_self_utterance_tup[1]
 
     #handle what did you say?  (no pronoun)
-    if str_da_request_dm == gl_str_misalignment_self_hearing_or_understanding:
+    if str_da_request_dm == gl_str_da_misalignment_self_hearing_or_understanding:
         last_self_utterance_tup = fetchLastUtteranceFromTurnHistory('self')
         if last_self_utterance_tup != None:
             return last_self_utterance_tup[1]
 
-    print 'str_da_request_dm: ' + str_da_request_dm
-    print 'gl_misalignment_self_hearing_or_understanding_item_type: ' + gl_misalignment_self_hearing_or_understanding_item_type.getPrintString()
-    mapping = rp.recursivelyMapDialogRule(gl_misalignment_self_hearing_or_understanding_item_type, da_request_dm)
+
+    #print 'str_da_request_dm: ' + str_da_request_dm
+    #print 'gl_da_misalignment_self_hearing_or_understanding_item_type: ' + gl_da_misalignment_self_hearing_or_understanding_item_type.getPrintString()
+    #handle "I did not understand the area code, etc"
+    mapping_ma = rp.recursivelyMapDialogRule(gl_da_misalignment_self_hearing_or_understanding_item_type, da_request_dm)
+    #handle "repeat the area code, etc'
+    mapping_rr = rp.recursivelyMapDialogRule(gl_da_misalignment_request_repeat_item_type, da_request_dm)
+
+    mapping = None
+    if mapping_ma != None:
+        mapping = mapping_ma
+    if mapping_rr != None:
+        mapping = mapping_rr
     if mapping != None:
         misunderstood_item_type = mapping.get('1')
         if misunderstood_item_type in gl_agent.self_dialog_model.data_model.data_indices.keys():
             return handleSendSegmentChunkNameAndData(misunderstood_item_type)
+
+    #handle "was that the area code?"
+    mapping_cpa = rp.recursivelyMapDialogRule(gl_da_clarification_utterance_past, da_request_dm)
+    print 'mapping_cpa: ' + str(mapping_cpa)
+    #handle "is that the area code?"
+    mapping_cpr = rp.recursivelyMapDialogRule(gl_da_clarification_utterance_present, da_request_dm)
+    if mapping_cpa != None:
+        mapping = mapping_cpa
+    if mapping_cpr != None:
+        mapping = mapping_cpr
+    if mapping != None:
+        clarification_item_type = mapping.get('1')
+        last_self_utterance_tup = fetchLastUtteranceFromTurnHistory('self')
+        da_list = last_self_utterance_tup[1]
+        segment_names = findSegmentNameForDialogActs(da_list)
+        print 'segment_names: ' + str(segment_names)
+
+        if len(segment_names) == 1 and segment_names[0] == clarification_item_type:
+            return [gl_da_affirmation_yes]
+        #generate correction, 'no, [six five zero] is the [prefix]'
+        elif len(segment_names) == 1:
+            digit_value_list = collectDataValuesFromDialogActs(da_list)
+            digit_value_da = synthesizeLogicalFormForDigitOrDigitSequence(digit_value_list)
+
+            da_str_inform_item_type = gl_str_da_inform_item_type.replace('$1', segment_names[0])
+            da_inform_item_type = rp.parseDialogActFromString(da_str_inform_item_type)
+            return [gl_da_correction_dm_negation, digit_value_da, da_inform_item_type]
+
+        return [da_request_dm]
+
+                                                  
+
+#da_list is a list of DialogActs
+#Returns a list of data segment names (e.g. 'area-code') for the agent's self_dialog_model.data_model 
+#that match the digits
+def findSegmentNameForDialogActs(da_list):
+    global gl_agent
+    test_digit_value_list = collectDataValuesFromDialogActs(da_list)
+    matching_segment_name_list = []
+
+    for segment_name in gl_agent.self_dialog_model.data_model.data_indices.keys():
+        segment_indices = gl_agent.self_dialog_model.data_model.data_indices[segment_name]
+        segment_start_index = segment_indices[0]
+        segment_end_index = segment_indices[1]
+
+        print 'testing segment_name ' + segment_name
+        test_digit_i = 0
+        match_p = True
+        for segment_i in range(segment_start_index, segment_end_index+1):
+            segment_digit_belief = gl_agent.self_dialog_model.data_model.data_beliefs[segment_i]
+            segment_data_value_tuple = segment_digit_belief.getHighestConfidenceValue()      #returns a tuple e.g. ('one', .8)
+            segment_data_value = segment_data_value_tuple[0]
+            if test_digit_i >= len(test_digit_value_list):
+                match_p = False
+                break
+            test_digit_value = test_digit_value_list[test_digit_i]
+            if segment_data_value != test_digit_value:
+                print 'XX segment_data_value ' + segment_data_value + ' != test_digit_value ' + test_digit_value
+                match_p = False
+                break
+            elif segment_i == segment_end_index:
+                if test_digit_i+1 < len(test_digit_value_list):
+                    print 'test_digit_i ' + str(test_digit_i) + ' < ' + 'len(test_digit_value_list): ' + str(len(test_digit_value_list))
+                    match_p = False
+                break
+            test_digit_i += 1
+        if match_p:
+            matching_segment_name_list.append(segment_name)
+    return matching_segment_name_list
+        
+
+    
+
+    
+#Runs through a list of DialogActs that might include InformTopicInfo(ItemValue( Digit or DigitSequence.
+#Collects up all of the digits in order and returns them in a list.
+def collectDataValuesFromDialogActs(da_list):
+    digit_value_list = []
+    for da in da_list:
+        da_print_string = da.getPrintString()
+        ds_index = da_print_string.find('InformTopicInfo(ItemValue(DigitSequence(')
+        if ds_index == 0:
+            start_index = len('InformTopicInfo(ItemValue(DigitSequence(')
+            rp_index = da_print_string.find(')', start_index)
+            digit_value_list.extend(extractItemsFromCommaSeparatedListString(da_print_string[start_index:rp_index]))
+            continue
+        d_index = da_print_string.find('InformTopicInfo(ItemValue(Digit(')
+        if d_index == 0:
+            start_index = len('InformTopicInfo(ItemValue(Digit(')
+            rp_index = da_print_string.find(')', start_index)
+            digit_value_list.append(da_print_string[start_index:rp_index])
+            continue
+    return digit_value_list
+
+
+
 
     
 
@@ -1389,20 +1542,50 @@ def prepareNextDataChunk(agent):
         data_value_tuple = digit_belief.getHighestConfidenceValue()      #returns a tuple e.g. ('one', .8)
         data_value = data_value_tuple[0]
         data_value_list.append(data_value)
+
+    digit_sequence_lf = synthesizeLogicalFormForDigitOrDigitSequence(data_value_list)
+    if digit_sequence_lf != None:
+        return [digit_sequence_lf]
+    else:
+        return []
         
-    if len(data_value_list) == 1:
-        str_digit_sequence_lf = 'InformTopicInfo(ItemValue(Digit(' + data_value_list[0] + ')))'
+#    if len(data_value_list) == 1:
+#        str_digit_sequence_lf = 'InformTopicInfo(ItemValue(Digit(' + data_value_list[0] + ')))'
+#    else:
+#        str_digit_sequence_lf = 'InformTopicInfo(ItemValue(DigitSequence('
+#        for data_value in data_value_list:
+#            str_digit_sequence_lf += data_value + ','
+#
+#        #strip off the last comma
+#        str_digit_sequence_lf = str_digit_sequence_lf[:len(str_digit_sequence_lf)-1]
+#        str_digit_sequence_lf += ')))'
+#    
+#    digit_sequence_lf = rp.parseDialogActFromString(str_digit_sequence_lf)
+#    return [digit_sequence_lf]
+
+
+
+#digit_list is a list like ['six', 'five', 'zero')
+#This returns a single LogicalForm, either InformTopicInfo(ItemValue(Digit or else InformTopicInfo(ItemValue(DigitSequence
+def synthesizeLogicalFormForDigitOrDigitSequence(digit_list):
+    if len(digit_list) == 0:
+        return None
+    elif len(digit_list) == 1:
+        str_digit_sequence_lf = 'InformTopicInfo(ItemValue(Digit(' + digit_list[0] + ')))'
     else:
         str_digit_sequence_lf = 'InformTopicInfo(ItemValue(DigitSequence('
-        for data_value in data_value_list:
-            str_digit_sequence_lf += data_value + ','
+        for digit in digit_list:
+            str_digit_sequence_lf += digit + ','
 
         #strip off the last comma
         str_digit_sequence_lf = str_digit_sequence_lf[:len(str_digit_sequence_lf)-1]
         str_digit_sequence_lf += ')))'
     
     digit_sequence_lf = rp.parseDialogActFromString(str_digit_sequence_lf)
-    return [digit_sequence_lf]
+    return digit_sequence_lf
+
+
+
 
 
 ####

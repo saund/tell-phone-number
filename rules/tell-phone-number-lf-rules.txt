@@ -312,6 +312,20 @@ CorrectionTopicInfo(partner-correction) <-> wrong it's
 CorrectionTopicInfo(partner-correction) <-> wrong it is
 CorrectionTopicInfo(partner-correction) <-> wrong it was
 
+#"that is the area code"
+CorrectionTopicInfo(partner-correction-present, ItemType($1)) <-> that is the {InfoTypeCat[$1]}
+CorrectionTopicInfo(partner-correction-past, ItemType($1)) <-> that was the {InfoTypeCat[$1]}
+
+#"is the area code"
+InformTopicInfo(info-type-present, ItemType($1)) <-> is the {InfoTypeCat[$1]}
+#"was the area code"
+InformTopicInfo(info-type-past, ItemType($1)) <-> was the {InfoTypeCat[$1]}
+
+#CorrectionTopicInfo(partner-correction-present, InfoTopic(ItemValue(Digit($1))), ItemType($2)) <-> {DigitCat[$1]} is the {InfoTypeCat[$2]}
+#CorrectionTopicInfo(partner-correction-present, InfoTopic(ItemValue(DigitSequence($1))), ItemType($2)) <-> {DigitCat[$1]} is the {InfoTypeCat[$2]}
+
+
+
 
 InformDialogManagement(self-readiness) <-> i'm ready
 InformDialogManagement(self-readiness) <-> i am ready
@@ -353,10 +367,14 @@ RequestDialogManagement(misalignment-request-repeat) <-> repeat that
 RequestDialogManagement(misalignment-request-repeat) <-> again please
 RequestDialogManagement(again) <-> again
 
-RequestDialogManagement(misalignment-request-repeat, $1) <-> say the {InfoTypeCat[$1]} again
-RequestDialogManagement(misalignment-request-repeat, $1) <-> repeat the {InfoTypeCat[$1]} 
-RequestDialogManagement(misalignment-request-repeat, $1) <-> again please the {InfoTypeCat[$1]} 
+RequestDialogManagement(misalignment-request-repeat, ItemType($1)) <-> say the {InfoTypeCat[$1]} again
+RequestDialogManagement(misalignment-request-repeat, ItemType($1)) <-> repeat the {InfoTypeCat[$1]} 
+RequestDialogManagement(misalignment-request-repeat, ItemType($1)) <-> again please the {InfoTypeCat[$1]} 
 
+RequestDialogManagement(clarification-utterance-past, ItemType($1)) <-> was that the {InfoTypeCat[$1]}
+RequestDialogManagement(clarification-utterance-past, ItemType($1)) <-> did you just say the {InfoTypeCat[$1]}
+RequestDialogManagement(clarification-utterance-past, ItemType($1)) <-> did you just give the {InfoTypeCat[$1]}
+RequestDialogManagement(clarification-utterance-present, ItemType($1)) <-> is that the {InfoTypeCat[$1]}
 
 
 #what is/was the/that digit/area-code/prefix/number/ telephone number
@@ -376,6 +394,7 @@ RequestDialogManagement(misalignment-self-hearing-or-understanding, ItemType($1)
 #RequestDialogManagement(misalignment-self-hearing-or-understanding, $1) <-> i didn't get the {InfoTypeCat[$1]}
 #RequestDialogManagement(misalignment-self-hearing-or-understanding, $1) <-> i did not hear the {InfoTypeCat[$1]}
 #RequestDialogManagement(misalignment-self-hearing-or-understanding, $1) <-> i didn't hear the {InfoTypeCat[$1]}
+
 
 
 

@@ -894,6 +894,7 @@ def generateTextFromDialogAct(gen_dialog_act):
     if arg_mapping == None:
         print 'error generateTextFromDialogAct() could not find a consistent recursive mapping for dialog_act\n '\
             + gen_dialog_act.getPrintString() + ' intent ' + gen_dialog_act.intent
+        print 'da: ' + gen_dialog_act.getPrintString()
         return None
 
     word_list = []
