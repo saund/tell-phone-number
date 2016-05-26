@@ -142,9 +142,11 @@ InformTopicInfo(ItemValue(DigitSequence($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
 #InformTopicInfo(ItemType(digit)) <-> digit
 #InformTopicInfo(ItemType(digit)) <-> number
 #InformTopicInfo(ItemType(area-code)) <-> area code
-#InformTopicInfo(ItemType(prefix)) <-> prefix
-#InformTopicInfo(ItemType(last-four-digits)) <-> last four digits
-#InformTopicInfo(ItemType(last-four-digits)) <-> last four numbers
+#InformTopicInfo(ItemType(exchange)) <-> exchange
+#InformTopicInfo(ItemType(exchange)) <-> prefix
+#InformTopicInfo(ItemType(line-number)) <-> line number
+#InformTopicInfo(ItemType(line-number)) <-> last four digits
+#InformTopicInfo(ItemType(line-number)) <-> last four numbers
 
 
 
@@ -157,9 +159,11 @@ InfoTypeCat[telephone-number] <-> telephone number
 InfoTypeCat[digit] <-> number
 InfoTypeCat[digit] <-> digit
 InfoTypeCat[area-code] <-> area code
-InfoTypeCat[prefix] <-> prefix
-InfoTypeCat[last-four-digits] <-> last four digits
-InfoTypeCat[last-four-digits] <-> last four numbers
+InfoTypeCat[exchange] <-> prefix
+InfoTypeCat[exchange] <-> exchange
+InfoTypeCat[line-number] <-> line number
+InfoTypeCat[line-number] <-> last four digits
+InfoTypeCat[line-number] <-> last four numbers
 
 
 
@@ -184,7 +188,7 @@ InformTopicInfo(partner-name, Name($1)) <-> I believe your name is {InfoNameCat[
 
 
 InformTopicInfo(SayItemType($1)) <-> the {InfoTypeCat[$1]} is 
-InformTopicInfo(SayItemType(last-four-digits)) <-> the last four digits are 
+InformTopicInfo(SayItemType(line-number)) <-> the line number is
 
 
 
@@ -240,8 +244,9 @@ CommandCat[tell-you] <-> take down this
 #command form: tell me / tell you the the...
 RequestTopicInfo(SendReceive($1), InfoTopic($2)) <-> {CommandCat[$1]} {InfoTypeCat[$2]}
 
-#Pure request form; what is/was the/that digit/area-code/prefix/number/ telephone number
+#Pure request form; what is/was the/that digit/area-code/exchange/number/ telephone number
 RequestTopicInfo(ItemType($1)) <-> what {GrammaticalBeCat[$2]}{GrammaticalIndicativeCat[$3]}{InfoTypeCat[$1]}
+RequestTopicInfo(ItemType($1)) <-> {GrammaticalIndicativeCat[$3]}{InfoTypeCat[$1]}{GrammaticalBeCat[$2]} what
 
 
 RequestTopicInfo(SendReceive(tell-me), InfoTopic(user-name)) <-> who am i
@@ -284,9 +289,25 @@ ConfirmDialogManagement(affirmation-yes) <-> yup
 ConfirmDialogManagement(affirmation-yes) <-> proceed
 ConfirmDialogManagement(affirmation-yes) <-> go on
 ConfirmDialogManagement(affirmation-yes) <-> got it
+ConfirmDialogManagement(affirmation-yes) <-> got it already
 ConfirmDialogManagement(affirmation-yes) <-> got that
+ConfirmDialogManagement(affirmation-yes) <-> allright
+ConfirmDialogManagement(affirmation-yes) <-> all right
+ConfirmDialogManagement(affirmation-yes) <-> i got it already
+ConfirmDialogManagement(affirmation-yes) <-> i got that already
+
+
+#These should probably be broken out as request-for-next-chunk, which 
+#would imply affirmation-yes but goes beyond that.
 ConfirmDialogManagement(affirmation-yes) <-> keep going
 ConfirmDialogManagement(affirmation-yes) <-> what else
+ConfirmDialogManagement(affirmation-yes) <-> then what
+ConfirmDialogManagement(affirmation-yes) <-> what's next
+ConfirmDialogManagement(affirmation-yes) <-> what is next
+ConfirmDialogManagement(affirmation-yes) <-> what comes next
+ConfirmDialogManagement(affirmation-yes) <-> what's after that
+ConfirmDialogManagement(affirmation-yes) <-> what is after that
+ConfirmDialogManagement(affirmation-yes) <-> what comes after that
 
 
 InformDialogManagement(self-correction) <-> sorry
@@ -362,9 +383,21 @@ RequestDialogManagement(misalignment-partner-hearing-or-understanding) <-> you d
 RequestDialogManagement(misalignment-partner-hearing-or-understanding) <-> you did not hear 
 RequestDialogManagement(misalignment-parnter-hearing-or-understanding) <-> you didn't hear 
 
+#Request repeat of last utterance
+#This should also include 'what' but 'what' is so multi-purpose it gets its own predicate
 RequestDialogManagement(misalignment-request-repeat) <-> say that again
 RequestDialogManagement(misalignment-request-repeat) <-> repeat that
+RequestDialogManagement(misalignment-request-repeat) <-> repeat them
 RequestDialogManagement(misalignment-request-repeat) <-> again please
+
+#Request repeat of last utterance containing topic info
+RequestDialogManagement(misalignment-request-repeat, pronoun-ref) <-> what is it again
+RequestDialogManagement(misalignment-request-repeat, pronoun-ref) <-> what is that again
+RequestDialogManagement(misalignment-request-repeat, pronoun-ref) <-> what was it again
+RequestDialogManagement(misalignment-request-repeat, pronoun-ref) <-> what was that again
+RequestDialogManagement(misalignment-request-repeat, pronoun-ref) <-> what were they again
+
+
 RequestDialogManagement(again) <-> again
 
 RequestDialogManagement(misalignment-request-repeat, ItemType($1)) <-> say the {InfoTypeCat[$1]} again
@@ -375,9 +408,10 @@ RequestDialogManagement(clarification-utterance-past, ItemType($1)) <-> was that
 RequestDialogManagement(clarification-utterance-past, ItemType($1)) <-> did you just say the {InfoTypeCat[$1]}
 RequestDialogManagement(clarification-utterance-past, ItemType($1)) <-> did you just give the {InfoTypeCat[$1]}
 RequestDialogManagement(clarification-utterance-present, ItemType($1)) <-> is that the {InfoTypeCat[$1]}
+RequestDialogManagement(clarification-utterance-present, ItemType($1)) <-> are those the {InfoTypeCat[$1]}
 
 
-#what is/was the/that digit/area-code/prefix/number/ telephone number
+#what is/was the/that digit/area-code/exchange/line-number/ telephone number
 #does not come under DM misalignment repair.  but RequestTopicInfo 
 #RequestDialogManagement(misalignment-request-repeat, $1) <-> what {GrammaticalBeCat[$2]}{GrammaticalIndicativeCat[$3]}{InfoTypeCat[$1]}
 #RequestDialogManagement(misalignment-request-repeat, $1) <-> what is the {InfoTypeCat[$1]}
@@ -385,7 +419,7 @@ RequestDialogManagement(clarification-utterance-present, ItemType($1)) <-> is th
 #RequestDialogManagement(misalignment-request-repeat, $1) <-> what was the {InfoTypeCat[$1]}
 #RequestDialogManagement(misalignment-request-repeat, $1) <-> what was that {InfoTypeCat[$1]}
 
-#i did not/do not  get/hear/understand  the/that    digit/area-code/prefix/number/...
+#i did not/do not  get/hear/understand  the/that    digit/area-code/exchange/line-number/...
 RequestDialogManagement(misalignment-self-hearing-or-understanding, ItemType($1)) <->\
                    i {GrammaticalDoNotCat[$2]}{ActionCat[receive-info]} {GrammaticalIndicativeCat[$3]} {InfoTypeCat[$1]}
 
@@ -436,6 +470,10 @@ ActionCat[receive-info] <-> understand
 CheckTopicInfo(request-confirmation) <-> is that
 CheckTopicInfo(request-affirmation) <-> is that right
 CheckTopicInfo(request-affirmation) <-> is that correct
+
+
+
+
 
 
 
