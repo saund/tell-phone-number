@@ -787,6 +787,10 @@ gl_str_da_misalignment_request_repeat_item_type = 'RequestDialogManagement(misal
 gl_da_inform_dm_repeat_intention = rp.parseDialogActFromString('InformDialogManagement(repeat-intention)')
 gl_str_da_inform_dm_repeat_intention = 'InformDialogManagement(repeat-intention)'
 
+gl_da_misalignment_start_again = rp.parseDialogActFromString('RequestDialogManagement(misalignment-start-again)')
+gl_str_da_misalignment_start_again = 'RequestDialogManagement(misalignment-start-again)'
+
+
 
 
 gl_da_correction_topic_info = rp.parseDialogActFromString('CorrectionTopicInfo(partner-correction)')
@@ -797,6 +801,8 @@ gl_str_da_clarification_utterance_past = 'RequestDialogManagement(clarification-
 
 gl_da_clarification_utterance_present = rp.parseDialogActFromString('RequestDialogManagement(clarification-utterance-present, ItemType($1))')
 gl_str_da_clarification_utterance_present = 'RequestDialogManagement(clarification-utterance-present, ItemType($1))'
+
+
 
 
 #gg
@@ -835,58 +841,25 @@ def handleInformTopicInfo(da_list):
 #For agent send role, handle InformTopicInfo of the following kinds
 #(DialogActs coming from information recipient partner):
 #  - partner check-confirming digit values only (CheckTopicInfo)
-#    In this case, agent surmises that the partner's belief in the index pointer has advanced
-#    It is possible the partner could submit digit values that are not correct reiteration
-#    of the chunck just sent, but align with a different part of the number, e.g. self
-#    issuing an area code and partner responding with the correct exchange.  So this function 
-#    has to make an inference about partner index pointer for the check data values received.
+#    In this case, try to align the partner's stated check digits with the self data model
+#    in order to infer what digits the partner is checking, some of which they might have
+#    checked before.  If alignment is successful and unambiguous, then it allows us to advance
+#    the partner index pointer, and set self data index pointer accordingly.
 #  - partner check-confirming digit values mixed with an indication of misunderstanding, e.g. what?
-#    In this case, agent surmises that the partner's belief in the index pointer has not advanced.
-#  
-#
-#XBut sometimes the partner's index pointer belief model cannot be resolved in this turn.
-#XThey might issue a digit confirmation tentatively, and it doesn't get resolved until 
-#Xself issues a confirmation back. E.g.
-#X
-#Xself:      six two three
-#Xpartner:   six two three     -> tentative advance of partner index pointer
-#Xself:      right             -> accept partner index pointer advance 
-#X
-#Xself:      six two three
-#Xpartner:   six two four?     -> tentative advance of partner index pointer
-#Xself:      no                -> reject advance of partner index pointer
-#X
-#Xself:      six two three
-#Xpartner:   six two three    -> tentative advance of partner index pointer
-#Xself:      four five one    -> accept advance of partner index pointer, partner has 
-#X                               implicitly received approval of their tentative advance
+#    In this case, place the partner data_index_pointer at the first what?, but send
+#    context digits mirroring the sender's
 #
 #These are InformTopicInfo because we are not currently able to parse input as multiple
 #candidate DialogActs with different intents.
 def handleInformTopicInfo_SendRole(da_list):
     global gl_agent
-        
-    #This is our belief in what the partner's index pointer is.
-    #This will be updated based on the partner DialogActs' indications that the partner has
-    #advanced the index pointer or not.  In other words, do they indicate that 
-    #they are confused, and hence maintain the pointer at the beginning or within the
-    #last data chucnk,
-    #or do they indicate confidence in their digits received (which may be incorrect)
-    #and hence have advanced the pointer to the next chunk?
-    #tentative_partner_index_pointer = gl_agent.partner_dialog_model.data_index_pointer.getDominantValue()
 
     partner_digit_word_sequence = []
 
-    #maintain this flag as check digits from the partner are processed under the expectation of reiterating
-    #the last sent chunk.  If this flag ends up getting set to false because something other than repeat check
-    #was said, then we'll have to do something else.
-    check_matches_last_chunk_p = True
     partner_expresses_confusion_p = False
 
-    temp_digit_index_pointer = gl_agent.self_dialog_model.data_index_pointer.getDominantValue()
-
-    #print 'handleInformTopicInfo '
-    #printAgentBeliefs()
+    print 'handleInformTopicInfo '
+    printAgentBeliefs()
 
     #could be an interspersing of ItemValue(Digit( and ItemValue(DigitSequence
     for da in da_list:
@@ -896,28 +869,12 @@ def handleInformTopicInfo_SendRole(da_list):
             rp_index = str_da_inform_td.find(')', start_index)
             partner_check_digit_value = str_da_inform_td[start_index:rp_index]
             partner_digit_word_sequence.append(partner_check_digit_value)
-            
-            digit_belief = gl_agent.self_dialog_model.data_model.data_beliefs[temp_digit_index_pointer]
-            data_value_tuple = digit_belief.getHighestConfidenceValue()      #returns a tuple e.g. ('one', .8)
-            correct_digit_value = data_value_tuple[0]
-            if partner_check_digit_value == correct_digit_value:
-                temp_digit_index_pointer += 1
-            else:
-                check_matches_last_chunk_p = False
 
         elif str_da_inform_td.find('InformTopicInfo(ItemValue(DigitSequence(') == 0:
             start_index = len('InformTopicInfo(ItemValue(DigitSequence(')
             rp_index = str_da_inform_td.find(')', start_index)
             digit_value_list = extractItemsFromCommaSeparatedListString(str_da_inform_td[start_index:rp_index])
             partner_digit_word_sequence.extend(digit_value_list)
-            for partner_check_digit_value in digit_value_list:
-                digit_belief = gl_agent.self_dialog_model.data_model.data_beliefs[temp_digit_index_pointer]
-                data_value_tuple = digit_belief.getHighestConfidenceValue()      #returns a tuple e.g. ('one', .8)
-                correct_digit_value = data_value_tuple[0]
-                if partner_check_digit_value == correct_digit_value:
-                    temp_digit_index_pointer += 1
-                else:
-                    check_matches_last_chunk_p = False
 
         #This applies to an isolated 'what?' which we intend to have substituted for a digit value so
         #is indicative of confusion
@@ -926,50 +883,66 @@ def handleInformTopicInfo_SendRole(da_list):
         elif str_da_inform_td == gl_str_da_what:
             #partner indicates confusion so we surmise they have not advanced their index pointer with this data chunk.
             #So reset the tentative_partner_index_pointer.
-            temp_digit_index_pointer = gl_agent.self_dialog_model.data_index_pointer.getDominantValue()
             partner_expresses_confusion_p = True
+            #Add ? partner utterance explicitly into the list of digits we heard them say, in order to
+            #pinpoint the index pointer for their indicated check-confusion
+            partner_digit_word_sequence.append('?')
 
-    possiblyAdjustChunkSize(len(partner_digit_word_sequence))
-            
+    last_self_utterance_tup = fetchLastUtteranceFromTurnHistory('self', [ 'InformTopicInfo' ])
+    last_self_utterance_da_list = last_self_utterance_tup[1]
+    last_sent_digit_value_list = collectDataValuesFromDialogActs(last_self_utterance_da_list)
+    self_data_index_pointer = gl_agent.self_dialog_model.data_index_pointer.getDominantValue()
+
+    #Here try to align partner's check digit sequence with what self has just provided as a partial digit sequence,
+    #or else with the context of previously provided values, or even with correct data that has not been provided
+    #in this conversation (i.e. if partner knows the phone number already)
+
+
+    #This is an easy out, to be made more sophisticated later
     if partner_expresses_confusion_p:
-
         #since we haven't advanced the self data index pointer, then actually we are re-sending the 
         #previous chunk.  We could adjust chunk size at this point also.
         ret = [gl_da_inform_dm_repeat_intention]
         ret.extend(prepareNextDataChunk(gl_agent))
         return ret
 
-    elif check_matches_last_chunk_p == False:
-        ret = [gl_da_correction_topic_info]
-        #Since there was no advance, this will send the last data chunk again.
-        ret.extend(prepareNextDataChunk(gl_agent))
-        return ret
+    print 'last_sent_digit_value_list: ' + str(last_sent_digit_value_list) + ' partner_digit_word_sequence: ' + str(partner_digit_word_sequence)
 
-    #all good, we have received from the partner a correct check of the last chunk of digits sent
-    else:
-        
+
+    #Pick off the most straightforward case, where partner echoes the last sent digits correctly
+
+    mismatch_p = False
+    for i in range(0, min(len(last_sent_digit_value_list), len(partner_digit_word_sequence))):
+        if last_sent_digit_value_list[i] != partner_digit_word_sequence[i]:
+            mismatch_p = True
+            
+    if mismatch_p == False:
+        possiblyAdjustChunkSize(len(partner_digit_word_sequence))
         #1.0 is full confidence that the partner's data belief is as self heard it
         pointer_advance_count = updateBeliefInPartnerDataStateForDigitValueList(partner_digit_word_sequence, 1.0) 
         
         #print 'after updateBeliefInPartnerDataState...'
         #printAgentBeliefs()
         middle_or_at_end = advanceSelfIndexPointer(gl_agent, pointer_advance_count)  
-        #print 'after advanceSelfIndexPointer...'
-        #printAgentBeliefs()
-        (self_belief_partner_is_wrong_digit_indices, self_believes_partner_registers_unknown_digit_indices) = compareDataModelBeliefs()
+        print 'after advanceSelfIndexPointer...'
+        printAgentBeliefs()
+        (self_belief_partner_is_wrong_digit_indices, self_belief_partner_registers_unknown_digit_indices) = compareDataModelBeliefs()
+        print 'self_belief_partner_is wrong...' + str(self_belief_partner_is_wrong_digit_indices) + ' self_belief unknown... ' +\
+            str(self_belief_partner_registers_unknown_digit_indices)
 
         if middle_or_at_end == 'at-end' and len(self_belief_partner_is_wrong_digit_indices) == 0 and\
-                len(self_believes_partner_registers_unknown_digit_indices) == 0:
+                len(self_belief_partner_registers_unknown_digit_indices) == 0:
             gl_agent.setRole('banter')
             return [gl_da_all_done];
 
         else:
             return prepareAndSendNextDataChunkBasedOnDataBeliefComparisonAndIndexPointers()
 
-        #return prepareNextDataChunk(gl_agent)
-    
-
-
+    #XX TODO: Here do the interesting alignment stuff
+    ret = [gl_da_inform_dm_repeat_intention]
+    ret.extend(prepareNextDataChunk(gl_agent))
+    return ret
+        
 
 
 def handleInformTopicInfo_ReceiveRole(da_list):
@@ -1081,6 +1054,11 @@ def handleRequestTopicInfo(da_list):
         elif mapping.get('1') in gl_agent.self_dialog_model.data_model.data_indices.keys():
             segment_chunk_name = mapping.get('1')
             if gl_agent.send_receive_role == 'send':
+                #If partner is asking for a chunk, reset belief in partner data_model for this segment as unknown
+                chunk_indices = gl_agent.self_dialog_model.data_model.data_indices.get(segment_chunk_name)
+                for i in range(chunk_indices[0], chunk_indices[1] + 1):
+                    data_index_pointer = gl_10_digit_index_list[i]
+                    gl_agent.partner_dialog_model.data_model.setNthPhoneNumberDigit(data_index_pointer, '?', 1.0)
                 return handleSendSegmentChunkNameAndData(segment_chunk_name)
 
 #            if gl_agent.send_receive_role == 'send':
@@ -1115,6 +1093,7 @@ def handleRequestTopicInfo(da_list):
 #Request information about dialog management, or request adjustment in dialog management protocol.
 #
 def handleRequestDialogManagement(da_list):
+    global gl_agent
     da_request_dm = da_list[0] 
     str_da_request_dm = da_request_dm.getPrintString()
 
@@ -1124,6 +1103,16 @@ def handleRequestDialogManagement(da_list):
     #handle "i didn't get that"
     #print 'str_da_request_dm: ' + str_da_request_dm
     #print 'gl_str_da_misalignment_self_hearing_or_understanding_pronoun_ref: ' + gl_str_da_misalignment_self_hearing_or_understanding_pronoun_ref
+    #handle restart 'let's start again'
+    if str_da_request_dm == gl_str_da_misalignment_start_again:
+        if gl_agent.send_receive_role == 'send':
+            initializeStatesToSendPhoneNumberData(gl_agent)
+            str_da_say_the_telephone_number_is = gl_str_da_say_item_type.replace('$1', 'area-code')
+            da_say_the_telephone_number_is = rp.parseDialogActFromString(str_da_say_the_telephone_number_is)
+            da_ret = [ gl_da_affirmation_okay, da_say_the_telephone_number_is]
+            da_first_chunk = prepareNextDataChunk(gl_agent)
+            da_ret.extend(da_first_chunk)
+            return da_ret
 
     #handle what was it again?   pronoun_ref, repeat the last utterance containing topic info
     if str_da_request_dm == gl_str_da_misalignment_request_repeat_pronoun_ref:
@@ -1172,6 +1161,11 @@ def handleRequestDialogManagement(da_list):
     if mapping != None:
         misunderstood_item_type = mapping.get('1')
         if misunderstood_item_type in gl_agent.self_dialog_model.data_model.data_indices.keys():
+            #If partner is asking for a chunk, reset belief in partner data_model for this segment as unknown
+            chunk_indices = gl_agent.self_dialog_model.data_model.data_indices.get(segment_chunk_name)
+            for i in range(chunk_indices[0], chunk_indices[1] + 1):
+                data_index_pointer = gl_10_digit_index_list[i]
+                gl_agent.partner_dialog_model.data_model.setNthPhoneNumberDigit(data_index_pointer, '?', 1.0)
             return handleSendSegmentChunkNameAndData(misunderstood_item_type)
 
     #handle "was that the area code?"
@@ -1273,21 +1267,38 @@ def collectDataValuesFromDialogActs(da_list):
     
 
 
-
+#This sets the self and partner data_index_pointer to the start of the segment
+#Returns a list of dialog-acts which could be empty.
 def handleSendSegmentChunkNameAndData(segment_chunk_name):
+    global gl_agent
     chunk_indices = gl_agent.self_dialog_model.data_model.data_indices.get(segment_chunk_name)
-    #If partner is asking for a chunk, reset belief in partner data_model for this segment as unknown
-    for i in range(chunk_indices[0], chunk_indices[1] + 1):
-        data_index_pointer = gl_10_digit_index_list[i]
-        gl_agent.partner_dialog_model.data_model.setNthPhoneNumberDigit(data_index_pointer, '?', 1.0)
+    #This decision to reset belief in partner data_model now made by the caller.
+    ##If partner is asking for a chunk, reset belief in partner data_model for this segment as unknown
+    #for i in range(chunk_indices[0], chunk_indices[1] + 1):
+    #    data_index_pointer = gl_10_digit_index_list[i]
+    #    gl_agent.partner_dialog_model.data_model.setNthPhoneNumberDigit(data_index_pointer, '?', 1.0)
+
     chunk_start_index = chunk_indices[0]
     gl_agent.self_dialog_model.data_index_pointer.setAllConfidenceInOne(gl_10_digit_index_list, chunk_start_index)
     gl_agent.partner_dialog_model.data_index_pointer.setAllConfidenceInOne(gl_10_digit_index_list, chunk_start_index)
     str_da_say_item_type = gl_str_da_say_item_type.replace('$1', segment_chunk_name)
     da_say_item_type = rp.parseDialogActFromString(str_da_say_item_type)
     ret = [da_say_item_type]
-    ret.extend(prepareNextDataChunk(gl_agent))
-    return ret
+
+    data_value_list = []
+    for digit_i in range(chunk_indices[0], chunk_indices[1]+1):
+        digit_belief = gl_agent.self_dialog_model.data_model.data_beliefs[digit_i]
+        data_value_tuple = digit_belief.getHighestConfidenceValue()      #returns a tuple e.g. ('one', .8)
+        data_value = data_value_tuple[0]
+        data_value_list.append(data_value)
+
+    digit_sequence_lf = synthesizeLogicalFormForDigitOrDigitSequence(data_value_list)
+    if digit_sequence_lf != None:
+        ret.append(digit_sequence_lf)
+        return ret
+    else:
+        return []
+
 
 
 
@@ -1409,9 +1420,10 @@ def prepareAndSendNextDataChunkBasedOnDataBeliefComparisonAndIndexPointers():
     global gl_agent
     (self_belief_partner_is_wrong_digit_indices, self_belief_partner_registers_unknown_digit_indices) = compareDataModelBeliefs()
 
-    print 'prepareAndSendNext... self data_index_point'
+    print 'prepareAndSendNext... self data_index_pointer'
     
     consensus_index_pointer = gl_agent.getConsensusIndexPointer()
+    print 'consensus_index_pointer: ' + str(consensus_index_pointer)
     data_index_of_focus = None
 
     #Assume the unknown digits are in small-to-large order.
@@ -1429,19 +1441,25 @@ def prepareAndSendNextDataChunkBasedOnDataBeliefComparisonAndIndexPointers():
 
     print 'data_index_of_focus: ' + str(data_index_of_focus)
 
-    #Most of the time, this will just hit on the next chunk of digits to send...
+    #Most of the time, this will just hit on the next chunk of digits to send.
     if consensus_index_pointer != None and consensus_index_pointer == data_index_of_focus:
         return prepareNextDataChunk(gl_agent)
 
+    #$$ Need to do more here to catch mismatch
+
     #If we drop through to here, then say explicitly what chunk segment we're delivering next
     (segment_name, segment_start_index, chunk_size) = findSegmentNameAndChunkSizeForDataIndex(data_index_of_focus)
-    gl_agent.self_dialog_model.data_index_pointer.setAllConfidenceInOne(gl_10_digit_index_list, segment_start_index)
-    gl_agent.partner_dialog_model.data_index_pointer.setAllConfidenceInOne(gl_10_digit_index_list, segment_start_index)
-    str_da_say_item_type = gl_str_da_say_item_type.replace('$1', segment_name)
-    da_say_item_type = rp.parseDialogActFromString(str_da_say_item_type)
-    ret = [da_say_item_type]
-    ret.extend(prepareNextDataChunk(gl_agent))
-    return ret
+    return handleSendSegmentChunkNameAndData(segment_name)
+
+    #This is broken. Do not say the segment_name and then call prepareNextDataChunk because the data chunk size might
+    #not be the size of the segment.
+    #gl_agent.self_dialog_model.data_index_pointer.setAllConfidenceInOne(gl_10_digit_index_list, segment_start_index)
+    #gl_agent.partner_dialog_model.data_index_pointer.setAllConfidenceInOne(gl_10_digit_index_list, segment_start_index)
+    #str_da_say_item_type = gl_str_da_say_item_type.replace('$1', segment_name)
+    #da_say_item_type = rp.parseDialogActFromString(str_da_say_item_type)
+    #ret = [da_say_item_type]
+    #ret.extend(prepareNextDataChunk(gl_agent))
+    #return ret
 
 
 
@@ -1591,21 +1609,22 @@ def prepareNextDataChunk(agent):
         elif consensus_index_pointer > segment_end_index:
             continue
         else:
-            segment_chunk_size = segment_end_index - consensus_index_pointer + 1
+            chunk_size_to_end_of_segment = segment_end_index - consensus_index_pointer + 1
             break
 
     pref_chunk_size_options = agent.self_dialog_model.protocol_chunk_size.getTwoMostDominantValues()
-    if pref_chunk_size_options[0][0] < segment_chunk_size and pref_chunk_size_options[1][0] < segment_chunk_size:
+    if pref_chunk_size_options[0][0] < chunk_size_to_end_of_segment and pref_chunk_size_options[1][0] < chunk_size_to_end_of_segment:
         print ' aa' 
         chunk_size = pref_chunk_size_options[0][0]
-    elif pref_chunk_size_options[0][0] > segment_chunk_size:
-        print ' bb'
-        chunk_size = pref_chunk_size_options[0][0]
+    #No, do not send a chunk that crosses segment boundaries
+    #elif pref_chunk_size_options[0][0] > chunk_size_to_end_of_segment
+    #    print ' bb'
+    #    chunk_size = pref_chunk_size_options[0][0]
     else:
         print ' cc'
-        chunk_size = segment_chunk_size
+        chunk_size = chunk_size_to_end_of_segment
     
-    print 'pref_chunk_size_options: ' + str(pref_chunk_size_options) + ' segment_chunk_size: ' + str(segment_chunk_size)
+    print 'pref_chunk_size_options: ' + str(pref_chunk_size_options) + ' segment_chunk_size: ' + str(chunk_size_to_end_of_segment)
     print 'chunk_size: ' + str(chunk_size) + ' consensus_index_pointer: ' + str(consensus_index_pointer) + ' segment_name: ' + segment_name
 
     data_value_list = []
@@ -1914,3 +1933,148 @@ def extractItemsFromCommaSeparatedListString(str_comma_sep_items):
 #
 #archives
 #
+
+
+
+
+
+#For agent send role, handle InformTopicInfo of the following kinds
+#(DialogActs coming from information recipient partner):
+#  - partner check-confirming digit values only (CheckTopicInfo)
+#    In this case, agent surmises that the partner's belief in the index pointer has advanced
+#    It is possible the partner could submit digit values that are not correct reiteration
+#    of the chunck just sent, but align with a different part of the number, e.g. self
+#    issuing an area code and partner responding with the correct exchange.  So this function 
+#    has to make an inference about partner index pointer for the check data values received.
+#  - partner check-confirming digit values mixed with an indication of misunderstanding, e.g. what?
+#    In this case, agent surmises that the partner's belief in the index pointer has not advanced.
+#  
+#
+#XBut sometimes the partner's index pointer belief model cannot be resolved in this turn.
+#XThey might issue a digit confirmation tentatively, and it doesn't get resolved until 
+#Xself issues a confirmation back. E.g.
+#X
+#Xself:      six two three
+#Xpartner:   six two three     -> tentative advance of partner index pointer
+#Xself:      right             -> accept partner index pointer advance 
+#X
+#Xself:      six two three
+#Xpartner:   six two four?     -> tentative advance of partner index pointer
+#Xself:      no                -> reject advance of partner index pointer
+#X
+#Xself:      six two three
+#Xpartner:   six two three    -> tentative advance of partner index pointer
+#Xself:      four five one    -> accept advance of partner index pointer, partner has 
+#X                               implicitly received approval of their tentative advance
+#
+#These are InformTopicInfo because we are not currently able to parse input as multiple
+#candidate DialogActs with different intents.
+# This is old, being replaced by a version that tries to align the partner's check digit 
+#sequence with the correct self digit sequence, as a better way to infer partner's
+#data index pointer.
+def handleInformTopicInfo_SendRole_old(da_list):
+    global gl_agent
+        
+    #This is our belief in what the partner's index pointer is.
+    #This will be updated based on the partner DialogActs' indications that the partner has
+    #advanced the index pointer or not.  In other words, do they indicate that 
+    #they are confused, and hence maintain the pointer at the beginning or within the
+    #last data chucnk,
+    #or do they indicate confidence in their digits received (which may be incorrect)
+    #and hence have advanced the pointer to the next chunk?
+    #tentative_partner_index_pointer = gl_agent.partner_dialog_model.data_index_pointer.getDominantValue()
+
+    partner_digit_word_sequence = []
+
+    #maintain this flag as check digits from the partner are processed under the expectation of reiterating
+    #the last sent chunk.  If this flag ends up getting set to false because something other than repeat check
+    #was said, then we'll have to do something else.
+    check_matches_last_chunk_p = True
+    partner_expresses_confusion_p = False
+
+    temp_digit_index_pointer = gl_agent.self_dialog_model.data_index_pointer.getDominantValue()
+
+    #print 'handleInformTopicInfo '
+    #printAgentBeliefs()
+
+    #could be an interspersing of ItemValue(Digit( and ItemValue(DigitSequence
+    for da in da_list:
+        str_da_inform_td = da.getPrintString()
+        if str_da_inform_td.find('InformTopicInfo(ItemValue(Digit(') == 0:
+            start_index = len('InformTopicInfo(ItemValue(Digit(')
+            rp_index = str_da_inform_td.find(')', start_index)
+            partner_check_digit_value = str_da_inform_td[start_index:rp_index]
+            partner_digit_word_sequence.append(partner_check_digit_value)
+            
+            digit_belief = gl_agent.self_dialog_model.data_model.data_beliefs[temp_digit_index_pointer]
+            data_value_tuple = digit_belief.getHighestConfidenceValue()      #returns a tuple e.g. ('one', .8)
+            correct_digit_value = data_value_tuple[0]
+            if partner_check_digit_value == correct_digit_value:
+                temp_digit_index_pointer += 1
+            else:
+                check_matches_last_chunk_p = False
+
+        elif str_da_inform_td.find('InformTopicInfo(ItemValue(DigitSequence(') == 0:
+            start_index = len('InformTopicInfo(ItemValue(DigitSequence(')
+            rp_index = str_da_inform_td.find(')', start_index)
+            digit_value_list = extractItemsFromCommaSeparatedListString(str_da_inform_td[start_index:rp_index])
+            partner_digit_word_sequence.extend(digit_value_list)
+            for partner_check_digit_value in digit_value_list:
+                digit_belief = gl_agent.self_dialog_model.data_model.data_beliefs[temp_digit_index_pointer]
+                data_value_tuple = digit_belief.getHighestConfidenceValue()      #returns a tuple e.g. ('one', .8)
+                correct_digit_value = data_value_tuple[0]
+                if partner_check_digit_value == correct_digit_value:
+                    temp_digit_index_pointer += 1
+                else:
+                    check_matches_last_chunk_p = False
+
+        #This applies to an isolated 'what?' which we intend to have substituted for a digit value so
+        #is indicative of confusion
+        #But the danger is that 'what' said with other words will be interpreted as confusion when it is not,
+        #and the system speaks 'I'll repeat that' when they really shouldn't.
+        elif str_da_inform_td == gl_str_da_what:
+            #partner indicates confusion so we surmise they have not advanced their index pointer with this data chunk.
+            #So reset the tentative_partner_index_pointer.
+            temp_digit_index_pointer = gl_agent.self_dialog_model.data_index_pointer.getDominantValue()
+            partner_expresses_confusion_p = True
+
+    if partner_expresses_confusion_p:
+
+        #since we haven't advanced the self data index pointer, then actually we are re-sending the 
+        #previous chunk.  We could adjust chunk size at this point also.
+        ret = [gl_da_inform_dm_repeat_intention]
+        ret.extend(prepareNextDataChunk(gl_agent))
+        return ret
+
+    elif check_matches_last_chunk_p == False:
+        possiblyAdjustChunkSize(len(partner_digit_word_sequence))
+        ret = [gl_da_correction_topic_info]
+        #Since there was no advance, this will send the last data chunk again.
+        ret.extend(prepareNextDataChunk(gl_agent))
+        return ret
+
+    #all good, we have received from the partner a correct check of the last chunk of digits sent
+    else:
+        possiblyAdjustChunkSize(len(partner_digit_word_sequence))
+        #1.0 is full confidence that the partner's data belief is as self heard it
+        pointer_advance_count = updateBeliefInPartnerDataStateForDigitValueList(partner_digit_word_sequence, 1.0) 
+        
+        #print 'after updateBeliefInPartnerDataState...'
+        #printAgentBeliefs()
+        middle_or_at_end = advanceSelfIndexPointer(gl_agent, pointer_advance_count)  
+        print 'after advanceSelfIndexPointer...'
+        printAgentBeliefs()
+        (self_belief_partner_is_wrong_digit_indices, self_belief_partner_registers_unknown_digit_indices) = compareDataModelBeliefs()
+        print 'self_belief_partner_is wrong...' + str(self_belief_partner_is_wrong_digit_indices) + ' self_belief unknown... ' +\
+            str(self_belief_partner_registers_unknown_digit_indices)
+
+        if middle_or_at_end == 'at-end' and len(self_belief_partner_is_wrong_digit_indices) == 0 and\
+                len(self_belief_partner_registers_unknown_digit_indices) == 0:
+            gl_agent.setRole('banter')
+            return [gl_da_all_done];
+
+        else:
+            return prepareAndSendNextDataChunkBasedOnDataBeliefComparisonAndIndexPointers()
+
+        #return prepareNextDataChunk(gl_agent)
+    

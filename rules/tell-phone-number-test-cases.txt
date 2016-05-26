@@ -15,3 +15,48 @@ six five oh
 I would like to tell you the phone number
 
 tell me the phone number
+
+
+--------------------
+
+A: three three two
+
+U: three
+
+A: three
+
+U: three
+
+A: two
+
+U: three two
+
+
+--------------------
+
+A: three three two
+
+U: three three two
+
+A: three three three
+
+U: three three three six three two three
+
+A: that's right
+
+
+--------------------
+
+A: three three two
+
+U: three three two
+
+A: three three three
+
+U: three three three six three four three
+
+A: no, six three two three
+
+
+
+

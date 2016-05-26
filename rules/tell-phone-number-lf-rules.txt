@@ -192,6 +192,8 @@ InformTopicInfo(SayItemType(line-number)) <-> the line number is
 
 
 
+
+
 #Indexical word categories
 IndexicalCat[first] <-> first
 IndexicalCat[second] <-> second
@@ -360,6 +362,14 @@ InformDialogManagement(repeat-intention) <-> I'll repeat that.
 
 CheckDialogManagement(other-readiness) <-> are you ready
 
+
+RequestDialogManagement(misalignment-start-again) <-> start from the top
+RequestDialogManagement(misalignment-start-again) <-> start from the beginning
+RequestDialogManagement(misalignment-start-again) <-> let's start again
+RequestDialogManagement(misalignment-start-again) <-> start over
+RequestDialogManagement(misalignment-start-again) <-> start over again
+RequestDialogManagement(misalignment-start-again) <-> start again
+RequestDialogManagement(misalignment-start-again) <-> let's start over
 
 #Very context dependent
 RequestDialogManagement(what) <-> como
