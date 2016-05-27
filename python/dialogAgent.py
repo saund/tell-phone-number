@@ -726,6 +726,7 @@ gl_str_da_say_item_type = 'InformTopicInfo(SayItemType($1))'
 
 
 gl_da_affirmation_okay = rp.parseDialogActFromString('ConfirmDialogManagement(affirmation-okay)')
+gl_str_da_affirmation_okay = 'ConfirmDialogManagement(affirmation-okay)'
 
 gl_da_affirmation_yes = rp.parseDialogActFromString('ConfirmDialogManagement(affirmation-yes)')
 gl_str_da_affirmation_yes = 'ConfirmDialogManagement(affirmation-yes)'
@@ -884,7 +885,7 @@ def handleInformTopicInfo_SendRole(da_list):
         #is indicative of confusion
         #But the danger is that 'what' said with other words will be interpreted as confusion when it is not,
         #and the system speaks 'I'll repeat that' when they really shouldn't.
-        elif str_da not in gl_digit_list:
+        elif str_da not in gl_digit_list and str_da.find('ConfirmDialogManagement') < 0:
             #partner indicates confusion so we surmise they have not advanced their index pointer with this data chunk.
             #So reset the tentative_partner_index_pointer.
             partner_expresses_confusion_p = True
@@ -940,8 +941,8 @@ def handleInformTopicInfo_SendRole(da_list):
         print 'after advanceSelfIndexPointer...'
         printAgentBeliefs()
         (self_belief_partner_is_wrong_digit_indices, self_belief_partner_registers_unknown_digit_indices) = compareDataModelBeliefs()
-        print 'self_belief_partner_is wrong...' + str(self_belief_partner_is_wrong_digit_indices) + ' self_belief unknown... ' +\
-            str(self_belief_partner_registers_unknown_digit_indices)
+        #print 'self_belief_partner_is wrong...' + str(self_belief_partner_is_wrong_digit_indices) + ' self_belief unknown... ' +\
+        #    str(self_belief_partner_registers_unknown_digit_indices)
 
         if middle_or_at_end == 'at-end' and len(self_belief_partner_is_wrong_digit_indices) == 0 and\
                 len(self_belief_partner_registers_unknown_digit_indices) == 0:
@@ -1385,6 +1386,10 @@ def handleConfirmDialogManagement(da_list):
         return [dealWithMisalignedRoles(), issueDialogInvitation()]
 
     if gl_agent.send_receive_role == 'send':
+
+        #$$ here we need to detect any number in the da_list
+        #if there is one, then strip off the initial confirm before it updateBeliefInPartnerDataState because
+        #the number overrides the general affirmation and gets specific about what is being confirmed
 
         #advances the partner's index pointer
         pointer_advance_count = updateBeliefInPartnerDataStateBasedOnLastDataSent(gl_confidence_for_confirm_affirmation_of_data_value)  
