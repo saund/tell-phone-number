@@ -361,6 +361,7 @@ InformDialogManagement(repeat-intention) <-> I'll repeat that.
 
 
 CheckDialogManagement(other-readiness) <-> are you ready
+CheckDialogManagement(other-readiness) <-> are you there
 
 
 RequestDialogManagement(misalignment-start-again) <-> start from the top

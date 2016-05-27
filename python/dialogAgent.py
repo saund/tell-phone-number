@@ -24,6 +24,8 @@ import copy
 import re
 import os
 import math
+import thread
+import time
 import ruleProcessing as rp
 
 
@@ -43,9 +45,14 @@ gl_agent = None
 def loopDialog():
     global gl_agent
     global gl_turn_history
+    global gl_turn_number
+    global gl_time_tick_ms
     gl_agent = createBasicAgent()
     gl_turn_history = []  
+    gl_turn_number = 0
+    gl_pending_question_list = []  
     rp.initLFRulesIfNecessary()
+    createAndStartWaitTimer(gl_time_tick_ms)
 
     #rp.setTell(True)
 
@@ -62,6 +69,10 @@ def loopDialog():
 def loopDialogMain():
     input_string = raw_input('Input: ')
     input_string = rp.removePunctuationAndLowerTextCasing(input_string)
+
+    if input_string == 'quit':
+        stopTimer()
+
     while input_string != 'stop' and input_string != 'quit':
         #print '\n' + input_string
         rule_match_list = rp.applyLFRulesToString(input_string)
@@ -71,6 +82,7 @@ def loopDialogMain():
             print 'MATCH: ' + str(rule_match_list);
         da_list = rp.parseDialogActsFromRuleMatches(rule_match_list)
 
+        gl_agent.setTurn('self')
         response_da_list = generateResponseToInputDialog(da_list)
 
         #print 'got ' + str(len(da_list)) + ' DialogActs'
@@ -100,7 +112,7 @@ def loopDialogMain():
 
 #self_or_partner is 'self' or 'partner'
 #Returns a tuple of the last turn on the part of self or partner:
-#  (speaker = 'self' or 'partner', DialogAct list, utterance word tuple)
+#  (turn_number, speaker = 'self' or 'partner', DialogAct list, utterance word tuple)
 #target_intent_list is a list of target intents that must be present in at least one 
 #utterance of the turn in order to return that turn, i.e. one of:
 # { InformTopicInfo, InformTopicManagement, RequestTopicInfo,RequestDialogManagement, 
@@ -110,10 +122,10 @@ def loopDialogMain():
 def fetchLastUtteranceFromTurnHistory(self_or_partner, target_intent_list='any'):
     global gl_turn_history
     for item_tup in gl_turn_history:
-        if item_tup[0] == self_or_partner:
+        if item_tup[1] == self_or_partner:
             if target_intent_list == 'any':
                 return item_tup
-            for da in item_tup[1]:
+            for da in item_tup[2]:
                 if da.intent in target_intent_list:
                     return item_tup
     return None
@@ -214,9 +226,10 @@ class DialogAgent():
         self.name = None
         self.partner_name = None
         #for now, role serves as goal/activity status
-        self.send_receive_role = 'banter'     #'send' or 'receive' or 'banter'
         self.self_dialog_model = None
         self.partner_dialog_model = None
+        self.setRole('banter')                 #initialize with 'banter' role
+
 
     #If the role is send, then the DialogAgent will be initialized with a send_phone_number which will
     #be stuffed into the self_dialog_model.  The DialogAgent will be initialized believing that the 
@@ -234,6 +247,15 @@ class DialogAgent():
         self.self_dialog_model = initSendReceiveDataDialogModel('self', send_or_receive, send_phone_number)
         self.partner_dialog_model = initSendReceiveDataDialogModel('partner', sendReceiveOpposite(send_or_receive))
         return None
+
+    #turn_value can be 'self', 'either', 'partner'
+    def setTurn(self, turn_value):
+        self.self_dialog_model.turn.setAllConfidenceInOne(turn_value)
+        self.partner_dialog_model.turn.setAllConfidenceInOne(turn_value)
+
+    def adjustTurnTowardSelf(self, delta):
+        self.self_dialog_model.adjustTurnTowardSelf(delta)
+        self.partner_dialog_model.adjustTurnTowardSelf(delta)   #toward absolute self, not toward partner to agent.self
 
     def printSelf(self):
         print self.getPrintString()
@@ -280,9 +302,23 @@ class DialogModel():
 
         #should be generic for all data communication applications
         self.readiness = None                    #A BooleanBelief: 1 = ready, 0 = not
-        self.turn = None                         #A BooleanBelief: 1 = self, 0 = other-speaker
+        self.turn = None                         #An OrderedMultinomialBelief: ['self', 'either', 'partner'] 
+                                                 # turn value is absolute not relative to the dialog model. 
+                                                 # So turn = 'self' always means the turn belongs to the agent.self speaker,
+                                                 # regardless of whether the dialog model is self_dialog_model or partner_dialog_model.
         self.protocol_chunck_size = None         #An OrderedMultinomialBelief: [1, 2, 3, 10]
         self.protocol_handshaking = None         #An OrderedMultinomialBelief: [1, 2, 3, 4, 5]  1 = never, 5 = every turn
+
+
+    #who is one of 'self', 'either', 'partner'
+    def getTurnConfidence(self, who):
+        return self.turn.getValueConfidence(who)
+
+    def adjustTurnTowardSelf(self, delta):
+        self_conf = self.turn.getValueConfidence('self')
+        new_self_conf = max(0.0, min(1.0, self_conf + delta))
+        self.turn.setValueConfidenceNormalizeOthers('self', new_self_conf)
+
 
     def printSelf(self):
         print self.getPrintString()
@@ -309,17 +345,16 @@ def initSendReceiveDataDialogModel(self_or_partner, send_or_receive, send_phone_
     dm.data_model = DataModel_USPhoneNumber()
     if send_or_receive == 'send' and send_phone_number != None:
         dm.data_model.setPhoneNumber(send_phone_number)
-    dm.data_index_pointer = OrderedMultinomialBelief()
-    dm.data_index_pointer.setAllConfidenceInOne(gl_10_digit_index_list, 0)   #initialize starting at the first digit
+    dm.data_index_pointer = OrderedMultinomialBelief(gl_10_digit_index_list)
+    dm.data_index_pointer.setAllConfidenceInOne(0)                      #initialize starting at the first digit
     dm.readiness = BooleanBelief()
     dm.readiness.setBeliefInTrue(0)                                     #initialize not being ready
-    dm.turn = OrderedMultinomialBelief()
-    dm.turn.setAllConfidenceInOne(gl_turn_mnb, 'either')                #will get overridden
-    dm.protocol_chunk_size = OrderedMultinomialBelief()
-    #dm.protocol_chunk_size.setAllConfidenceInOne([1, 2, 3, 4, 10], 3)     #initialize with chunk size 3/4 
-    dm.protocol_chunk_size.setAllConfidenceInTwo([1, 2, 3, 4, 10], 3, 4)     #initialize with chunk size 3/4 
-    dm.protocol_handshaking = OrderedMultinomialBelief()
-    dm.protocol_handshaking.setAllConfidenceInOne([1, 2, 3, 4, 5], 3)  #initialize with moderate handshaking
+    dm.turn = OrderedMultinomialBelief(gl_turn_mnb)
+    dm.turn.setAllConfidenceInOne('either')                             #will get overridden
+    dm.protocol_chunk_size = OrderedMultinomialBelief(gl_chunk_size_mnb)
+    dm.protocol_chunk_size.setAllConfidenceInTwo(3, 4)                  #initialize with chunk size 3/4 
+    dm.protocol_handshaking = OrderedMultinomialBelief(gl_handshake_level_mnb)
+    dm.protocol_handshaking.setAllConfidenceInOne(3)                    #initialize with moderate handshaking
     return dm
 
 
@@ -328,16 +363,16 @@ def initBanterDialogModel(self_or_partner):
     dm = DialogModel()
     dm.model_for = self_or_partner
     dm.data_model = DataModel_USPhoneNumber()
-    dm.data_index_pointer = OrderedMultinomialBelief()
-    dm.data_index_pointer.setEquallyDistributed(gl_10_digit_index_list)   #no index pointer
+    dm.data_index_pointer = OrderedMultinomialBelief(gl_10_digit_index_list)
+    dm.data_index_pointer.setEquallyDistributed()                       #no index pointer
     dm.readiness = BooleanBelief()
     dm.readiness.setBeliefInTrue(0)                                     #initialize not being ready
-    dm.turn = OrderedMultinomialBelief()
-    dm.turn.setAllConfidenceInOne(gl_turn_mnb, 'either')
-    dm.protocol_chunk_size = OrderedMultinomialBelief()
-    dm.protocol_chunk_size.setAllConfidenceInTwo([1, 2, 3, 4, 10], 3, 4)     #initialize with chunk size 3/4 
-    dm.protocol_handshaking = OrderedMultinomialBelief()
-    dm.protocol_handshaking.setAllConfidenceInOne([1, 2, 3, 4, 5], 3)  #initialize with moderate handshaking
+    dm.turn = OrderedMultinomialBelief(gl_turn_mnb)
+    dm.turn.setAllConfidenceInOne('either')
+    dm.protocol_chunk_size = OrderedMultinomialBelief(gl_chunk_size_mnb)
+    dm.protocol_chunk_size.setAllConfidenceInTwo(3, 4)                 #initialize with chunk size 3/4 
+    dm.protocol_handshaking = OrderedMultinomialBelief(gl_handshake_level_mnb)
+    dm.protocol_handshaking.setAllConfidenceInOne(3)                   #initialize with moderate handshaking
     return dm
 
 
@@ -535,46 +570,59 @@ class BooleanBelief():
 
 #An OrderedMultinomialBelief represents belief distributed between several ordered values.
 class OrderedMultinomialBelief():
-    def __init__(self):
-        self.value_name_confidence_list = None   #each element is a list [value, confidence]
+    def __init__(self, value_list):
+        #sets up:
+        #self.value_list
+        #self.confidence_list
+        #self.value_name_index_map
+        if len(value_list) == 0:
+            value_list = [None]
+        self.resetValueList(value_list)
 
-    def setEquallyDistributed(self, value_list):
-        self.value_name_confidence_list = []
+    def resetValueList(self, value_list):
+        self.value_list = value_list[:]
         conf = 1.0 / len(value_list)
+        self.confidence_list = len(value_list) * [ 1.0/len(value_list) ]
+        self.value_name_index_map = {}
         for i in range(0, len(value_list)):
-            self.value_name_confidence_list.append([value_list[i], conf])
+            self.value_name_index_map[value_list[i]] = i
 
-    def setAllConfidenceInOne(self, value_list, all_confidence_value):
-        self.value_name_confidence_list = []
-        for i in range(0, len(value_list)):
-            this_value = value_list[i]
-            if this_value == all_confidence_value:
-                conf = 1.0
-            else:
-                conf = 0.0
-            self.value_name_confidence_list.append([this_value, conf])
+    def setEquallyDistributed(self):
+        conf = 1.0 / len(self.value_list)
+        self.confidence_list = len(self.value_list) * [ 1.0/len(self.value_list) ]
 
-    def setAllConfidenceInTwo(self, value_list, half_confidence_value_1, half_confidence_value_2):
-        self.value_name_confidence_list = []
-        for i in range(0, len(value_list)):
-            this_value = value_list[i]
-            if this_value == half_confidence_value_1 or this_value == half_confidence_value_2:
-                conf = .5
-            else:
-                conf = 0.0
-            self.value_name_confidence_list.append([this_value, conf])
+    def setAllConfidenceInOne(self, all_confidence_value):
+        self.confidence_list = len(self.value_list) * [ 0.0 ]
+        index = self.value_name_index_map.get(all_confidence_value)
+        if index == None:
+            print 'setAllConfidenceInOne could not find index for all_confidence_value: ' + str(all_confidence_value)
+            return
+        self.confidence_list[index] = 1.0
+
+    def setAllConfidenceInTwo(self, half_confidence_value_1, half_confidence_value_2):
+        self.confidence_list = len(self.value_list) * [ 0.0 ]
+        index1 = self.value_name_index_map.get(half_confidence_value_1)
+        index2 = self.value_name_index_map.get(half_confidence_value_2)
+        if index1 == None:
+            print 'setAllConfidenceInTwo could not find index for all_confidence_value: ' + str(half_confidence_value_1)
+            return
+        if index2 == None:
+            print 'setAllConfidenceInTwo could not find index for all_confidence_value: ' + str(half_confidence_value_2)
+            return
+        self.confidence_list[index1] = .5
+        self.confidence_list[index2] = .5
 
 
     #returns -1 if the dominant value is out of range
+    # (maybe None would be better?)
     def getDominantValue(self):
         max_confidence = 0.0
         max_value = -1
-        for i in range(0, len(self.value_name_confidence_list)):
-            value_name_confidence = self.value_name_confidence_list[i]
-            confidence = value_name_confidence[1]
+        for i in range(0, len(self.value_list)):
+            confidence = self.confidence_list[i]
             if confidence > max_confidence:
                 max_confidence = confidence
-                max_value = value_name_confidence[0]
+                max_value = self.value_list[i]
         return max_value
 
     #returns a tuple of tuples ((max_value, max_conf), (second_max_value, second_max_conf))
@@ -583,10 +631,9 @@ class OrderedMultinomialBelief():
         max_value = -1
         second_max_conf = 0.0
         second_max_value = 0.0
-        for i in range(0, len(self.value_name_confidence_list)):
-            value_name_confidence = self.value_name_confidence_list[i]
-            value = value_name_confidence[0]
-            confidence = value_name_confidence[1]
+        for i in range(0, len(self.value_list)):
+            value = self.value_list[i]
+            confidence = self.confidence_list[i]
             if confidence > max_conf:
                 second_max_value = max_value
                 second_max_conf = max_conf
@@ -598,12 +645,52 @@ class OrderedMultinomialBelief():
         ret = ((max_value, max_conf), (second_max_value, second_max_conf))
         return ret
 
+    def getValueConfidence(self, item_value_name):
+        index = self.value_name_index_map.get(item_value_name)
+        if index == None:
+            print 'getValueConfidence could not find index for item_value_name: ' + str(item_value_name)
+            return None
+        return self.confidence_list[index]
+
+
+    #sets the confidence in item_name to new_item_confidence
+    #then adjusts the confidence in all other values to normalize to 1
+    def setValueConfidenceNormalizeOthers(self, item_name, new_item_confidence):
+        if new_item_confidence < 0 or new_item_confidence > 1:
+            print 'setValueConfidenceNormalizeOthers got new_item_confidence ' + str(new_item_confidence) + ' out of bounds for item_name: ' + str(item_name)
+            new_item_confidence = min(1, max(0, new_item_confidence))
+
+        item_index = self.value_name_index_map.get(item_name)
+        if item_index == None:
+            print 'setValueConfidenceNormalizeOthers could not find index for item_value_name: ' + str(item_value_name)
+            return
+        previous_conf = self.confidence_list[item_index]
+        delta = new_item_confidence - previous_conf
+        other_delta = -delta / (len(self.value_list) - 1)
+        self.confidence_list[item_index] = new_item_confidence
+        iter = 0
+        while abs(other_delta) > .001:
+            non_item_conf_sum = 0
+            for i in range(0, len(self.value_list)):
+                if i == item_index:
+                    continue
+                self.confidence_list[i] = max(0, min(1, self.confidence_list[i] + other_delta))
+                non_item_conf_sum += self.confidence_list[i]
+            #believe it or not I guessed right and got the signs correct on my first try
+            other_delta = ((1 - self.confidence_list[item_index]) - non_item_conf_sum) / (len(self.value_list) - 1)
+            #print str(iter) + ' conf_list: ' + str(self.confidence_list)
+            #print ' non_item_conf_sum: ' + str(non_item_conf_sum) + ' other_delta: ' + str(other_delta)
+            iter += 1
+        
+
     def printSelf(self):
         print self.getPrintString()
 
     def getPrintString(self):
         conf_threshold_to_print = .1     #only print confidences > threshold .1
-        temp_list = self.value_name_confidence_list[:]
+        temp_list = []
+        for i in range(0, len(self.value_list)):
+            temp_list.append((self.value_list[i], self.confidence_list[i]))
         temp_list.sort(key = lambda tup: tup[1])  # sorts in place
         temp_list.reverse()
         ret_str = '[ '
@@ -652,22 +739,36 @@ def printAgentBeliefs(abbrev_p = True):
 #
 #
 
-#each turn is a tuple: (speaker = 'self' or 'partner', DialogAct list, utterance word tuple)
+
+gl_turn_number = 0
+
+#each turn is a tuple: (turn_number, speaker = 'self' or 'partner', DialogAct list, utterance_word_tuple)
 #DialogAct list is a list of DialogAct instances, not their string versions
 #for now we may not be including the utterance word tuple because that has to be gotten from the ruleProcessing side
 #Each new turn is prepended to the front of the list so the most recent turn is [0]
 gl_turn_history = []
 
 
+#A list tuples for Request, Check, or possibly other DialogActs, that represent questions that are still pending.
+#(turn_number, speaker = 'self' or 'partner', DialogAct, utterance_word_tuple)
+#These are ordered by turn, most recent first.
+#Unlike gl_turn_history, there is only one DialogAct per tuple, so if a turn includes multiple
+#questions, these will be stacked up.
+#borrowed straight from Otto
+gl_pending_question_list = []  
+
+
 
 def generateResponseToInputDialog(user_da_list):
     global gl_turn_history
+    global gl_turn_number
 
     if len(user_da_list) == 0:
         print 'what? user_da_list length is 0'
         return user_da_list
 
-    gl_turn_history.insert(0, ('partner', user_da_list))
+    gl_turn_history.insert(0, (gl_turn_number, 'partner', user_da_list))
+    gl_turn_number += 1
     da_response = None
 
     if user_da_list[0].intent == 'InformTopicInfo':
@@ -693,18 +794,24 @@ def generateResponseToInputDialog(user_da_list):
 
     
     if da_response != None:
-        gl_turn_history.insert(0, ('self', da_response))
+        gl_turn_history.insert(0, (gl_turn_number, 'self', da_response))
+        gl_turn_number += 1
     else:
         print '!Did not generate a response to user input DialogActs:'
         for user_da in user_da_list:
             user_da.printSelf()
         da_response = []
         
+    gl_agent.setTurn('partner')
     return da_response
+
 
 
 gl_da_inform_dm_greeting = rp.parseDialogActFromString('InformDialogManagement(greeting)')
 gl_str_da_inform_dm_greeting = 'InformDialogManagement(greeting)'
+
+gl_da_check_readiness = rp.parseDialogActFromString('CheckDialogManagement(other-readiness)')
+gl_str_da_check_readiness = 'CheckDialogManagement(other-readiness)'
 
 gl_da_what_is_your_name = rp.parseDialogActFromString('RequestTopicInfo(SendReceive(tell-me), InfoTopic(agent-name))')
 gl_str_da_my_name_is = 'InformTopicInfo(self-name, Name($1))'
@@ -894,7 +1001,7 @@ def handleInformTopicInfo_SendRole(da_list):
             partner_digit_word_sequence.append('?')
 
     last_self_utterance_tup = fetchLastUtteranceFromTurnHistory('self', [ 'InformTopicInfo' ])
-    last_self_utterance_da_list = last_self_utterance_tup[1]
+    last_self_utterance_da_list = last_self_utterance_tup[2]
     last_sent_digit_value_list = collectDataValuesFromDialogActs(last_self_utterance_da_list)
     self_data_index_pointer = gl_agent.self_dialog_model.data_index_pointer.getDominantValue()
 
@@ -930,7 +1037,7 @@ def handleInformTopicInfo_SendRole(da_list):
             correct_digit_value = data_value_tuple[0]
             partner_dm.data_model.setNthPhoneNumberDigit(digit_i, correct_digit_value, 1.0)
             partner_index_pointer_value = partner_dm.data_index_pointer.getDominantValue()
-            partner_dm.data_index_pointer.setAllConfidenceInOne(gl_10_digit_index_list, digit_i+1)
+            partner_dm.data_index_pointer.setAllConfidenceInOne(digit_i+1)
 
         #pointer_advance_count = updateBeliefInPartnerDataStateForDigitValueList(partner_digit_word_sequence, 1.0) 
         
@@ -1133,32 +1240,32 @@ def handleRequestDialogManagement(da_list):
         #print ' fetch InformTopicInfo'
         last_self_utterance_tup = fetchLastUtteranceFromTurnHistory('self', [ 'InformTopicInfo' ])
         if last_self_utterance_tup != None:
-            return last_self_utterance_tup[1]
+            return last_self_utterance_tup[2]
 
     #handle   I did not get that
     if str_da_request_dm == gl_str_da_misalignment_self_hearing_or_understanding_pronoun_ref: 
         last_self_utterance_tup = fetchLastUtteranceFromTurnHistory('self', [ 'InformTopicInfo' ])
         if last_self_utterance_tup != None:
-            return last_self_utterance_tup[1]
+            return last_self_utterance_tup[2]
 
     #handle "repeat that"   no pronoun ref so repeat the last utterance
     if str_da_request_dm == gl_str_da_misalignment_request_repeat:
         last_self_utterance_tup = fetchLastUtteranceFromTurnHistory('self')
         if last_self_utterance_tup != None:
             #print 'last_self_utterance_tup: ' + str(last_self_utterance_tup)
-            return last_self_utterance_tup[1]
+            return last_self_utterance_tup[2]
 
     #handle what?      not a pronoun ref so just repeat the last utterance
     if str_da_request_dm == gl_str_da_what:
         last_self_utterance_tup = fetchLastUtteranceFromTurnHistory('self')
         if last_self_utterance_tup != None:
-            return last_self_utterance_tup[1]
+            return last_self_utterance_tup[2]
 
     #handle what did you say?  no pronoun ref, so just repeat the last utterance
     if str_da_request_dm == gl_str_da_misalignment_self_hearing_or_understanding:
         last_self_utterance_tup = fetchLastUtteranceFromTurnHistory('self')
         if last_self_utterance_tup != None:
-            return last_self_utterance_tup[1]
+            return last_self_utterance_tup[2]
 
 
     #print 'str_da_request_dm: ' + str_da_request_dm
@@ -1195,7 +1302,7 @@ def handleRequestDialogManagement(da_list):
     if mapping != None:
         clarification_item_type = mapping.get('1')
         last_self_utterance_tup = fetchLastUtteranceFromTurnHistory('self')
-        da_list = last_self_utterance_tup[1]
+        da_list = last_self_utterance_tup[2]
         segment_names = findSegmentNameForDialogActs(da_list)
         print 'segment_names: ' + str(segment_names)
 
@@ -1259,6 +1366,7 @@ def findSegmentNameForDialogActs(da_list):
 #Runs through a list of DialogActs that might include InformTopicInfo(ItemValue( Digit or DigitSequence.
 #Collects up all of the digits in order and returns them in a list.
 def collectDataValuesFromDialogActs(da_list):
+    print 'collectDataValues: ' + str(da_list)
     digit_value_list = []
     for da in da_list:
         da_print_string = da.getPrintString()
@@ -1294,8 +1402,8 @@ def handleSendSegmentChunkNameAndData(segment_chunk_name):
     #    gl_agent.partner_dialog_model.data_model.setNthPhoneNumberDigit(data_index_pointer, '?', 1.0)
 
     chunk_start_index = chunk_indices[0]
-    gl_agent.self_dialog_model.data_index_pointer.setAllConfidenceInOne(gl_10_digit_index_list, chunk_start_index)
-    gl_agent.partner_dialog_model.data_index_pointer.setAllConfidenceInOne(gl_10_digit_index_list, chunk_start_index)
+    gl_agent.self_dialog_model.data_index_pointer.setAllConfidenceInOne(chunk_start_index)
+    gl_agent.partner_dialog_model.data_index_pointer.setAllConfidenceInOne(chunk_start_index)
     str_da_say_item_type = gl_str_da_say_item_type.replace('$1', segment_chunk_name)
     da_say_item_type = rp.parseDialogActFromString(str_da_say_item_type)
     ret = [da_say_item_type]
@@ -1532,14 +1640,14 @@ def possiblyAdjustChunkSize(target_chunk_size):
     print str(((max_value, max_conf), (second_max_value, second_max_conf)))
     if target_chunk_size < max_value and target_chunk_size < second_max_value:
         print '...setting to ' + str(target_chunk_size)
-        gl_agent.partner_dialog_model.protocol_chunk_size.setAllConfidenceInOne([1, 2, 3, 4, 10], target_chunk_size)
-        gl_agent.self_dialog_model.protocol_chunk_size.setAllConfidenceInOne([1, 2, 3, 4, 10], target_chunk_size)
+        gl_agent.partner_dialog_model.protocol_chunk_size.setAllConfidenceInOne(target_chunk_size)
+        gl_agent.self_dialog_model.protocol_chunk_size.setAllConfidenceInOne(target_chunk_size)
         
     #hardcode phone number area code and exchange chunk size of 3
     elif target_chunk_size > max_value and max_value < 3:
         print '...setting to 3/4'
-        gl_agent.partner_dialog_model.protocol_chunk_size.setAllConfidenceInTwo([1, 2, 3, 4, 10], 3, 4)
-        gl_agent.self_dialog_model.protocol_chunk_size.setAllConfidenceInTwo([1, 2, 3, 4, 10], 3, 4)
+        gl_agent.partner_dialog_model.protocol_chunk_size.setAllConfidenceInTwo(3, 4)
+        gl_agent.self_dialog_model.protocol_chunk_size.setAllConfidenceInTwo(3, 4)
     else:
         print ' leaving as is'
 
@@ -1584,26 +1692,24 @@ def initializeStatesToSendPhoneNumberData(agent):
     agent.partner_dialog_model.readiness.setBeliefInTrue(1) 
 
     #agent believes it is his turn
-    agent.self_dialog_model.turn.setAllConfidenceInOne(gl_turn_mnb, 'self')
+    agent.self_dialog_model.turn.setAllConfidenceInOne('self')
     #agent believes partner believes it is the agent's turn
-    agent.partner_dialog_model.turn.setAllConfidenceInOne(gl_turn_mnb, 'self')
+    agent.partner_dialog_model.turn.setAllConfidenceInOne('self')
 
     #initialize agent starting at the first digit
-    agent.self_dialog_model.data_index_pointer.setAllConfidenceInOne(gl_10_digit_index_list, 0)   
+    agent.self_dialog_model.data_index_pointer.setAllConfidenceInOne(0)   
     #agent believes the partner is also starting at the first digit
-    agent.partner_dialog_model.data_index_pointer.setAllConfidenceInOne(gl_10_digit_index_list, 0)
+    agent.partner_dialog_model.data_index_pointer.setAllConfidenceInOne(0)
 
     #initialize with chunk size 3/4
-    #agent.self_dialog_model.protocol_chunk_size.setAllConfidenceInOne([1, 2, 3, 4, 10], 3)
-    agent.self_dialog_model.protocol_chunk_size.setAllConfidenceInTwo([1, 2, 3, 4, 10], 3, 4)     
+    agent.self_dialog_model.protocol_chunk_size.setAllConfidenceInTwo(3, 4)     
     #agent believes the partner is ready for chunk size 3/4
-    #agent.partner_dialog_model.protocol_chunk_size.setAllConfidenceInOne([1, 2, 3, 4, 10], 3) 
-    agent.partner_dialog_model.protocol_chunk_size.setAllConfidenceInTwo([1, 2, 3, 4, 10], 3, 4)     
+    agent.partner_dialog_model.protocol_chunk_size.setAllConfidenceInTwo(3, 4)     
 
     #initialize with moderate handshaking
-    agent.self_dialog_model.protocol_handshaking.setAllConfidenceInOne([1, 2, 3, 4, 5], 3)  
+    agent.self_dialog_model.protocol_handshaking.setAllConfidenceInOne(3)  
     #agent believes the partner is ready for moderate handshaking
-    agent.partner_dialog_model.protocol_handshaking.setAllConfidenceInOne([1, 2, 3, 4, 5], 3)  
+    agent.partner_dialog_model.protocol_handshaking.setAllConfidenceInOne(3)  
 
     agent.partner_dialog_model.data_model.resetUnknownDigitValues()
 
@@ -1739,8 +1845,8 @@ def advanceIndexPointerBeliefs(agent):
 
     next_data_index_pointer_loc = consensus_index_pointer + chunk_size
 
-    agent.self_dialog_model.data_index_pointer.setAllConfidenceInOne(gl_10_digit_index_list, next_data_index_pointer_loc)
-    agent.partner_dialog_model.data_index_pointer.setAllConfidenceInOne(gl_10_digit_index_list, next_data_index_pointer_loc)
+    agent.self_dialog_model.data_index_pointer.setAllConfidenceInOne(next_data_index_pointer_loc)
+    agent.partner_dialog_model.data_index_pointer.setAllConfidenceInOne(next_data_index_pointer_loc)
 
     print 'adancing index pointer by chunk_size: ' + str(chunk_size) + ' to ' + str(consensus_index_pointer)
 #
@@ -1755,6 +1861,11 @@ gl_10_digit_index_list = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
 #So gl_turn_mnb will be [0, 0, 1] if partner thinks it is their turn.
 gl_turn_mnb = ['self', 'either', 'partner']
 
+#Degrees of handshaking aggressiveness, least = 1, most = 5
+gl_handshake_level_mnb = [1, 2, 3, 4, 5]
+
+gl_chunk_size_mnb = [1, 2, 3, 4, 10]
+
 
 #return 'middle' or 'at-end'
 def advanceSelfIndexPointer(agent, pointer_advance_count):
@@ -1766,10 +1877,10 @@ def advanceSelfIndexPointer(agent, pointer_advance_count):
     
     next_data_index_pointer_loc = self_index_pointer + pointer_advance_count
     if next_data_index_pointer_loc >= len(gl_10_digit_index_list):
-        agent.self_dialog_model.data_index_pointer.setEquallyDistributed(gl_10_digit_index_list)
+        agent.self_dialog_model.data_index_pointer.setEquallyDistributed()
         return 'at-end'
         
-    agent.self_dialog_model.data_index_pointer.setAllConfidenceInOne(gl_10_digit_index_list, next_data_index_pointer_loc)
+    agent.self_dialog_model.data_index_pointer.setAllConfidenceInOne(next_data_index_pointer_loc)
     print 'advancing self index pointer by : ' + str(pointer_advance_count) + ' to ' + str(next_data_index_pointer_loc)
     return 'middle'
 
@@ -1793,9 +1904,9 @@ def updateBeliefInPartnerDataStateBasedOnLastDataSent(update_digit_prob):
     last_self_data_sent = None
     for turn_i in range(0, len(gl_turn_history)):
         turn_tup = gl_turn_history[turn_i]
-        if turn_tup[0] == 'partner':
+        if turn_tup[1] == 'partner':
             continue
-        turn_da_list = turn_tup[1]
+        turn_da_list = turn_tup[2]
         turn_includes_InformTopicInfoItemValue = False
         for da in turn_da_list:
             da_print_string = da.getPrintString()
@@ -1863,7 +1974,7 @@ def updateBeliefInPartnerDataStateForDigitValueList(str_digit_value_list, update
         partner_dm.data_model.setNthPhoneNumberDigit(partner_index_pointer_value, digit_value, update_digit_prob)
         partner_index_pointer_value += 1
         partner_index_pointer_advance_count += 1
-        partner_dm.data_index_pointer.setAllConfidenceInOne(gl_10_digit_index_list, partner_index_pointer_value)
+        partner_dm.data_index_pointer.setAllConfidenceInOne(partner_index_pointer_value)
 
     return partner_index_pointer_advance_count
 
@@ -2132,6 +2243,115 @@ def testDataAgreement(agent):
     
 
 
+#10 time ticks per second
+gl_time_tick_ms = 100
+
+#how much to adjust turn confidence toward self, per time tick
+#10 time ticks per second * .01 = 10 seconds to move turn all the way to self
+gl_time_tick_turn_delta = .01
+
+
+#If self's turn confidence gets to this value after waiting for partner's response,
+#then take the initiative and say something.
+#This is very crude, because the propensity to say something should depend on whether
+#self has something to say or not.
+gl_wait_turn_conf_threshold = .6
+
+def handleTimingTick():
+    global gl_agent
+    if gl_agent == None:
+        return
+    gl_agent.adjustTurnTowardSelf(gl_time_tick_turn_delta)
+    #print 'self turn confidence: ' + str(gl_agent.self_dialog_model.getTurnConfidence('self'))
+
+    if gl_agent.self_dialog_model.getTurnConfidence('self') > gl_wait_turn_conf_threshold:
+        issueOutputAfterWaitTimeout()
+
+
+
+#This gets triggered after self's turn confidence exceeds a threshold after waiting for partner to
+#execute their turn.
+def issueOutputAfterWaitTimeout():
+
+    last_self_utterance_tup = fetchLastUtteranceFromTurnHistory('self')
+    if last_self_utterance_tup == None:
+        return
+    da_list = last_self_utterance_tup[2]
+    last_self_utterance_contains_inform_digits_p = False
+    for da in da_list:
+        str_da = da.getPrintString()
+        if str_da.find('InformTopicInfo(ItemValue(Digit') == 0:
+            last_self_utterance_contains_inform_digits_p = True
+
+
+    #print 'last_self_utterance_contains_inform_digits_p: ' + str(last_self_utterance_contains_inform_digits_p)
+    output_da_list = None
+    synthesized_confirm_da_list = [gl_da_affirmation_okay]
+    if last_self_utterance_contains_inform_digits_p == True:
+        synthesized_confirm_da_list = [gl_da_affirmation_okay]
+        output_da_list = generateResponseToInputDialog(synthesized_confirm_da_list)
+    #else:
+        #output_da_list = [gl_da_check_readiness]
+
+    if output_da_list != None:
+        output_word_list = []
+        for da in output_da_list:
+            #print 'intent:' + da.intent
+            #print 'arg_list: ' + str(da.arg_list)
+            da.printSelf()
+            da_generated_word_list = rp.generateTextFromDialogAct(da)
+            if da_generated_word_list == None:
+                print 'could not generate a string from da'
+            else:
+                output_word_list.extend(da_generated_word_list)
+            #print 'lfs: ' + str(da.arg_list)
+            #for lf in da.arg_list:
+            #    lf.printSelf()
+
+        #printAgentBeliefs(False)
+        str_generated = ' '.join(output_word_list)
+        print 'gen: ' + str_generated
+
+        print '\nInput: '
+
+
+
+
+gl_wait_timer = None
+
+
+class WaitTimer():
+    def __init__(self, interval_msec, callout_function):
+        self.running_p = True
+        self.timer_thread_id = thread.start_new_thread(self.timer_thread_function, (interval_msec, callout_function))
+
+    def timer_thread_function(self, interval_msec, callout_function):
+        interval_sec = interval_msec/1000.0
+        while self.running_p:
+            #print 'tick'
+            callout_function()
+            time.sleep(interval_sec)
+
+    def stopTimer(self):
+        self.running_p = False
+        print ' timer should now be stopped'
+
+
+def createAndStartWaitTimer(interval_msec):
+    global gl_wait_timer
+    if gl_wait_timer == None:
+        gl_wait_timer = WaitTimer(interval_msec, handleTimingTick)
+
+def stopTimer():
+    global gl_wait_timer
+    if gl_wait_timer != None:
+        gl_wait_timer.stopTimer()
+        gl_wait_timer = None
+
+
+
+
+
 #
 #
 ###############################################################################
@@ -2350,3 +2570,107 @@ def nothingHereChief():
     ret = [gl_da_inform_dm_repeat_intention]
     ret.extend(prepareNextDataChunk(gl_agent))
     return ret
+
+
+
+
+#An OrderedMultinomialBelief represents belief distributed between several ordered values.
+class OrderedMultinomialBelief_Old():
+    def __init__(self):
+        self.value_name_confidence_list = None   #each element is a list [value, confidence]
+        #A better implementation is probably two lists, a value list and a confidence list,
+        #then a value to index map
+
+    def setEquallyDistributed(self, value_list):
+        self.value_name_confidence_list = []
+        conf = 1.0 / len(value_list)
+        for i in range(0, len(value_list)):
+            self.value_name_confidence_list.append([value_list[i], conf])
+
+    def setAllConfidenceInOne(self, value_list, all_confidence_value):
+        self.value_name_confidence_list = []
+        for i in range(0, len(value_list)):
+            this_value = value_list[i]
+            if this_value == all_confidence_value:
+                conf = 1.0
+            else:
+                conf = 0.0
+            self.value_name_confidence_list.append([this_value, conf])
+
+    def setAllConfidenceInTwo(self, value_list, half_confidence_value_1, half_confidence_value_2):
+        self.value_name_confidence_list = []
+        for i in range(0, len(value_list)):
+            this_value = value_list[i]
+            if this_value == half_confidence_value_1 or this_value == half_confidence_value_2:
+                conf = .5
+            else:
+                conf = 0.0
+            self.value_name_confidence_list.append([this_value, conf])
+
+
+    #returns -1 if the dominant value is out of range
+    def getDominantValue(self):
+        max_confidence = 0.0
+        max_value = -1
+        for i in range(0, len(self.value_name_confidence_list)):
+            value_name_confidence = self.value_name_confidence_list[i]
+            confidence = value_name_confidence[1]
+            if confidence > max_confidence:
+                max_confidence = confidence
+                max_value = value_name_confidence[0]
+        return max_value
+
+    #returns a tuple of tuples ((max_value, max_conf), (second_max_value, second_max_conf))
+    def getTwoMostDominantValues(self):
+        max_conf = 0.0
+        max_value = -1
+        second_max_conf = 0.0
+        second_max_value = 0.0
+        for i in range(0, len(self.value_name_confidence_list)):
+            value_name_confidence = self.value_name_confidence_list[i]
+            value = value_name_confidence[0]
+            confidence = value_name_confidence[1]
+            if confidence > max_conf:
+                second_max_value = max_value
+                second_max_conf = max_conf
+                max_conf = confidence
+                max_value = value
+            elif confidence > second_max_conf:
+                second_max_value = value
+                second_max_conf = confidence
+        ret = ((max_value, max_conf), (second_max_value, second_max_conf))
+        return ret
+
+#    def getValueConfidence(self, target_name):
+#        target_index
+#        return item for item in value_name_confidence if item[0] == target_name
+
+#    #sets the confidence in target_name to new_target_value
+#    #then adjusts the confidence in all other values to normalize to 1
+#    def setValueConfidenceNormalizeOthers(self, target_name, new_target_value):
+#        value_list = [ item[0] for item in value_name_confidence ]
+#        conf_list = [ item[1] for item in value_name_confidence ]
+#
+#        self_conf = self.turn.getValueConfidence('self')[1]
+#        new_self_conf = min(1, self_conf + delta)
+#        self.turn.setValueConfidenceNormalizeOthers('self', new_self_conf)
+
+
+
+    def printSelf(self):
+        print self.getPrintString()
+
+    def getPrintString(self):
+        conf_threshold_to_print = .1     #only print confidences > threshold .1
+        temp_list = self.value_name_confidence_list[:]
+        temp_list.sort(key = lambda tup: tup[1])  # sorts in place
+        temp_list.reverse()
+        ret_str = '[ '
+        ret_str += str(temp_list[0][0]) + ':' + format(temp_list[0][1], '.2f')
+        i = 1;
+        while i < 3:
+            if temp_list[i][1] > conf_threshold_to_print:
+                ret_str += ' / ' + str(temp_list[i][0]) + ':' + format(temp_list[i][1], '.2f')
+            i += 1
+        ret_str += ' ]'
+        return ret_str
