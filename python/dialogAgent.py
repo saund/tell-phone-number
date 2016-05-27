@@ -382,6 +382,10 @@ class DataModel_USPhoneNumber(DataModel):
         self.data_beliefs[nth].setValueProb(digit_value, prob)
         #self.data_beliefs[nth].setValueDefinite(digit_value)
 
+    def resetUnknownDigitValues(self):
+        for digit_i in range(0, 10):
+            self.data_beliefs[digit_i].setValueUnknown()
+
     def printSelf(self):
         print self.getPrintString()
 
@@ -803,7 +807,7 @@ gl_da_clarification_utterance_present = rp.parseDialogActFromString('RequestDial
 gl_str_da_clarification_utterance_present = 'RequestDialogManagement(clarification-utterance-present, ItemType($1))'
 
 
-
+gl_digit_list = ['zero', 'oh', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine']
 
 #gg
 
@@ -863,24 +867,24 @@ def handleInformTopicInfo_SendRole(da_list):
 
     #could be an interspersing of ItemValue(Digit( and ItemValue(DigitSequence
     for da in da_list:
-        str_da_inform_td = da.getPrintString()
-        if str_da_inform_td.find('InformTopicInfo(ItemValue(Digit(') == 0:
+        str_da = da.getPrintString()
+        if str_da.find('InformTopicInfo(ItemValue(Digit(') == 0:
             start_index = len('InformTopicInfo(ItemValue(Digit(')
-            rp_index = str_da_inform_td.find(')', start_index)
-            partner_check_digit_value = str_da_inform_td[start_index:rp_index]
+            rp_index = str_da.find(')', start_index)
+            partner_check_digit_value = str_da[start_index:rp_index]
             partner_digit_word_sequence.append(partner_check_digit_value)
 
-        elif str_da_inform_td.find('InformTopicInfo(ItemValue(DigitSequence(') == 0:
+        elif str_da.find('InformTopicInfo(ItemValue(DigitSequence(') == 0:
             start_index = len('InformTopicInfo(ItemValue(DigitSequence(')
-            rp_index = str_da_inform_td.find(')', start_index)
-            digit_value_list = extractItemsFromCommaSeparatedListString(str_da_inform_td[start_index:rp_index])
+            rp_index = str_da.find(')', start_index)
+            digit_value_list = extractItemsFromCommaSeparatedListString(str_da[start_index:rp_index])
             partner_digit_word_sequence.extend(digit_value_list)
 
-        #This applies to an isolated 'what?' which we intend to have substituted for a digit value so
+        #This applies to an isolated 'what?' or other non-digit which we intend to have substituted for a digit value so
         #is indicative of confusion
         #But the danger is that 'what' said with other words will be interpreted as confusion when it is not,
         #and the system speaks 'I'll repeat that' when they really shouldn't.
-        elif str_da_inform_td == gl_str_da_what:
+        elif str_da not in gl_digit_list:
             #partner indicates confusion so we surmise they have not advanced their index pointer with this data chunk.
             #So reset the tentative_partner_index_pointer.
             partner_expresses_confusion_p = True
@@ -907,23 +911,32 @@ def handleInformTopicInfo_SendRole(da_list):
         return ret
 
     print 'last_sent_digit_value_list: ' + str(last_sent_digit_value_list) + ' partner_digit_word_sequence: ' + str(partner_digit_word_sequence)
+    
+    check_match_tup = registerCheckDataWithLastSaidDataAndDataModel(partner_digit_word_sequence, last_sent_digit_value_list, self_data_index_pointer)
 
+    match_count = check_match_tup[0]
+    print 'match_count: ' + str(match_count)
+    
+    if match_count > 0:
 
-    #Pick off the most straightforward case, where partner echoes the last sent digits correctly
-
-    mismatch_p = False
-    for i in range(0, min(len(last_sent_digit_value_list), len(partner_digit_word_sequence))):
-        if last_sent_digit_value_list[i] != partner_digit_word_sequence[i]:
-            mismatch_p = True
-            
-    if mismatch_p == False:
         possiblyAdjustChunkSize(len(partner_digit_word_sequence))
         #1.0 is full confidence that the partner's data belief is as self heard it
-        pointer_advance_count = updateBeliefInPartnerDataStateForDigitValueList(partner_digit_word_sequence, 1.0) 
+        partner_dm = gl_agent.partner_dialog_model
+        newly_matched_digits = []
+        for digit_i in range(self_data_index_pointer, self_data_index_pointer + match_count):
+            digit_belief = gl_agent.self_dialog_model.data_model.data_beliefs[digit_i]
+            data_value_tuple = digit_belief.getHighestConfidenceValue()      #returns a tuple e.g. ('one', .8)
+            correct_digit_value = data_value_tuple[0]
+            partner_dm.data_model.setNthPhoneNumberDigit(digit_i, correct_digit_value, 1.0)
+            partner_index_pointer_value = partner_dm.data_index_pointer.getDominantValue()
+            partner_dm.data_index_pointer.setAllConfidenceInOne(gl_10_digit_index_list, digit_i+1)
+
+        #pointer_advance_count = updateBeliefInPartnerDataStateForDigitValueList(partner_digit_word_sequence, 1.0) 
         
         #print 'after updateBeliefInPartnerDataState...'
         #printAgentBeliefs()
-        middle_or_at_end = advanceSelfIndexPointer(gl_agent, pointer_advance_count)  
+        middle_or_at_end = advanceSelfIndexPointer(gl_agent, match_count)  
+        #middle_or_at_end = advanceSelfIndexPointer(gl_agent, pointer_advance_count)  
         print 'after advanceSelfIndexPointer...'
         printAgentBeliefs()
         (self_belief_partner_is_wrong_digit_indices, self_belief_partner_registers_unknown_digit_indices) = compareDataModelBeliefs()
@@ -1555,7 +1568,7 @@ def initializeStatesToSendPhoneNumberData(agent):
     #initialize agent starting at the first digit
     agent.self_dialog_model.data_index_pointer.setAllConfidenceInOne(gl_10_digit_index_list, 0)   
     #agent believes the partner is also starting at the first digit
-    agent.partner_dialog_model.data_index_pointer.setAllConfidenceInOne(gl_10_digit_index_list, 0)   
+    agent.partner_dialog_model.data_index_pointer.setAllConfidenceInOne(gl_10_digit_index_list, 0)
 
     #initialize with chunk size 3/4
     #agent.self_dialog_model.protocol_chunk_size.setAllConfidenceInOne([1, 2, 3, 4, 10], 3)
@@ -1568,6 +1581,8 @@ def initializeStatesToSendPhoneNumberData(agent):
     agent.self_dialog_model.protocol_handshaking.setAllConfidenceInOne([1, 2, 3, 4, 5], 3)  
     #agent believes the partner is ready for moderate handshaking
     agent.partner_dialog_model.protocol_handshaking.setAllConfidenceInOne([1, 2, 3, 4, 5], 3)  
+
+    agent.partner_dialog_model.data_model.resetUnknownDigitValues()
 
 
 
@@ -1867,6 +1882,203 @@ def compareDataModelBeliefs():
 
 
 
+#partner_digit_word_sequence is a sequence of data value words sent as check data by partner. These could include '?'
+#last_sent_digit_value_list is a sequence of data value words most recently sent by self.
+#This attempts to register the partner_digit_word_sequence with last_sent_digit_value_list, and also with 
+#the digit sequence in gl_agent.self_dialog_model.data_model.
+#Examples: 
+#       sent   six five zero
+#      check   six five zero
+#
+#       sent   six five zero
+#      check   six five
+#
+#       sent   six five zero
+#      check   six 
+#
+#       sent   six five zero
+#      check       five zero
+#
+#       sent   six five zero
+#      check       five
+#
+#       sent   six five zero
+#      check            zero
+#
+#       sent   six five zero
+#      check   six      zero
+#
+#       sent   six five zero
+#      check   eight
+#
+#       sent   six five zero
+#      check       four zero
+#
+#      model   six five zero  six three nine one two one two
+#       sent   six five zero
+#      check   six five zero  six three nine
+#
+#      model   six five zero  six three nine one two one two
+#       sent   six five zero
+#      check                  six three nine
+#
+#       sent   three three two
+#      check   three
+#
+#       sent   three three two
+#      check   three three
+#
+#       sent   three three two
+#      check         three two
+#
+#       sent   three three two
+#      check   three seven
+#
+#       sent   three three two
+#      check   three two   two
+#
+#       sent   three two three
+#      check   three 
+#
+#       sent   three three three
+#      check   three three
+#
+#       sent   three three three
+#      check   three 
+#
+#       sent   eight two seven
+#      check   four  two
+#
+#       sent   eight two seven
+#      check         two six
+#
+#       sent   eight two seven
+#      check   nine  one
+#
+#       sent   eight two seven
+#      check   eight ?
+#
+#       sent   eight two seven
+#      check   eight ?   seven
+#
+#       sent   eight two seven
+#      check             seven ?
+#
+#       sent   eight two seven
+#      check   nine 
+#
+#      model   six five zero  nine three nine one two one two
+#       sent   six five zero
+#      check   nine
+#
+#      model   six five zero  nine three nine one two one two
+#       sent   six five zero
+#      check   nine three
+#
+#
+#previously: 
+#       sent   six five
+#      check   six five
+#this turn:
+#       sent            zero
+#      check            zero
+#
+#      model   six five zero  six three nine one two one two
+#       sent            zero
+#      check   six five zero
+#
+#      model   six five zero  six three nine one two one two
+#       sent            zero
+#      check       five zero
+#
+#       sent            zero
+#      check       five eight
+#
+#       sent            zero
+#      check            eight
+#
+#      model   six five zero  six three nine one two one two
+#       sent            zero
+#      check       four zero
+#   
+#Cases:
+#-If len(partner_check_digit_sequence) <= len(last_said_digit_list), then
+# register first digit to first digit.
+# -If all digits match, then return the number of matching digits
+# -If any digits don't match, then return 0 for the number of successful matches.
+#
+#-If len(partner_check_digit_sequence) > len(last_said_digit_list), then
+# register last digit to last digit.
+# If all digits match, then check the remaining preceeding digits of partner_check_digit_sequence
+# with the correct data model.  If these all match, then return len(last_said_digit_list) to
+# to show that all digits just said were gotten correctly and put correctly in context.
+#
+#-If num matching return is 0, then finally check to see if the partner_check_digits match
+# the following data values.  If so, then in the second position of the tuple return the
+# name of the next segment
+#
+#Normally, self_data_index_pointer will point a the first last_said_digit
+#
+#Returns a tuple (num_digits_matched, name_of_next_segment_if_fully_matched)
+def registerCheckDataWithLastSaidDataAndDataModel(partner_check_digit_sequence, last_said_digit_list, self_data_index_pointer):
+    global gl_agent
+
+    print 'registerCheck... partner: ' + str(partner_check_digit_sequence) + ' last_said: ' + str(last_said_digit_list) + ' self_data_index_pointer: ' + str(self_data_index_pointer)
+    match_p = True
+    digit_match_count = 0
+    if len(partner_check_digit_sequence) <= len(last_said_digit_list):
+        i = 0
+        while i < len(partner_check_digit_sequence):
+            if partner_check_digit_sequence[i] != last_said_digit_list[i]:
+                match_p = False
+                break
+            i += 1
+        if match_p == True:
+            return (i, None)
+
+    elif len(partner_check_digit_sequence) > len(last_said_digit_list):
+        i_last_said = len(last_said_digit_list)-1
+        i_partner =  len(partner_check_digit_sequence)-1
+        while i_last_said >= 0:
+            print 'a1: i_last_said: ' + str(i_last_said) + ' i_partner: ' + str(i_partner)
+            if partner_check_digit_sequence[i_partner] != last_said_digit_list[i_last_said]:
+                print 'mismatch: ' + partner_check_digit_sequence[i_partner] + ' != ' + last_said_digit_list[i_last_said]
+                match_p = False
+                break
+            i_partner -= 1
+            i_last_said -= 1
+        if i_partner > self_data_index_pointer:
+            print 'b1 i_partner: ' + str(i_partner) + ' > self_data_index_pointer: ' + str(self_data_index_pointer)
+            match_p = False
+
+        sdip = self_data_index_pointer-1
+        print ' i_partner: ' + str(i_partner) + ' i_last_said: ' + str(i_last_said) + ' sdip: ' + str(sdip)
+        if match_p == True:
+            while i_partner >= 0:
+                self_digit_belief = gl_agent.self_dialog_model.data_model.data_beliefs[sdip]
+                self_data_value_tuple = self_digit_belief.getHighestConfidenceValue()      #returns a tuple e.g. ('one', .8)
+                self_data_value = self_data_value_tuple[0]
+                if partner_check_digit_sequence[i_partner] != self_data_value:
+                    print ' c1 partner_check_digit_sequence[i_partner]: ' + partner_check_digit_sequence[i_partner] + ' != self_data_value: ' + self_data_value
+                    match_p = False
+                    break
+                i_partner -= 1
+                sdip -= 1
+        if match_p == True:
+            return (len(last_said_digit_list), None)
+
+    #drop through to here if a match failure, check to see if the partner_check_digit_sequence matches
+    #another segment
+    #This not written yet
+    print 'dd drop through'
+    return (0, None)
+
+
+
+
+
+
+
 gl_da_misaligned_roles = rp.parseDialogActFromString('InformDialogManagement(misaligned-roles)')
 gl_da_dialog_invitation = rp.parseDialogActFromString('InformDialogManagement(dialog-invitation)')
 
@@ -2039,7 +2251,6 @@ def handleInformTopicInfo_SendRole_old(da_list):
             partner_expresses_confusion_p = True
 
     if partner_expresses_confusion_p:
-
         #since we haven't advanced the self data index pointer, then actually we are re-sending the 
         #previous chunk.  We could adjust chunk size at this point also.
         ret = [gl_da_inform_dm_repeat_intention]
@@ -2078,3 +2289,39 @@ def handleInformTopicInfo_SendRole_old(da_list):
 
         #return prepareNextDataChunk(gl_agent)
     
+
+
+
+def nothingHereChief():
+    #Pick off the most straightforward case, where partner echoes the last sent digits correctly
+    mismatch_p = False
+    for i in range(0, min(len(last_sent_digit_value_list), len(partner_digit_word_sequence))):
+        if last_sent_digit_value_list[i] != partner_digit_word_sequence[i]:
+            mismatch_p = True
+            
+    if mismatch_p == False:
+        possiblyAdjustChunkSize(len(partner_digit_word_sequence))
+        #1.0 is full confidence that the partner's data belief is as self heard it
+        pointer_advance_count = updateBeliefInPartnerDataStateForDigitValueList(partner_digit_word_sequence, 1.0) 
+        
+        #print 'after updateBeliefInPartnerDataState...'
+        #printAgentBeliefs()
+        middle_or_at_end = advanceSelfIndexPointer(gl_agent, pointer_advance_count)  
+        print 'after advanceSelfIndexPointer...'
+        printAgentBeliefs()
+        (self_belief_partner_is_wrong_digit_indices, self_belief_partner_registers_unknown_digit_indices) = compareDataModelBeliefs()
+        print 'self_belief_partner_is wrong...' + str(self_belief_partner_is_wrong_digit_indices) + ' self_belief unknown... ' +\
+            str(self_belief_partner_registers_unknown_digit_indices)
+
+        if middle_or_at_end == 'at-end' and len(self_belief_partner_is_wrong_digit_indices) == 0 and\
+                len(self_belief_partner_registers_unknown_digit_indices) == 0:
+            gl_agent.setRole('banter')
+            return [gl_da_all_done];
+
+        else:
+            return prepareAndSendNextDataChunkBasedOnDataBeliefComparisonAndIndexPointers()
+
+    #XX TODO: Here do the interesting alignment stuff
+    ret = [gl_da_inform_dm_repeat_intention]
+    ret.extend(prepareNextDataChunk(gl_agent))
+    return ret

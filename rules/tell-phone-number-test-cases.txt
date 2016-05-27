@@ -58,5 +58,38 @@ U: three three three six three four three
 A: no, six three two three
 
 
+--------------------
+A: six five zero
+
+U: six five one
+
+A: no six five zero
+
+U: six
+
+A: five
+
+U: zero
+
+
+
+--------------------
+A: six five three three
+
+U: six five three four
+
+A: no six five three three
+
+U: six five 
+
+A: three three
+
+U: three
+
+A: three three
+
+
+
+
 
 
