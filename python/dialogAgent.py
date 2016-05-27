@@ -1130,13 +1130,14 @@ def handleRequestDialogManagement(da_list):
 
     #handle what was it again?   pronoun_ref, repeat the last utterance containing topic info
     if str_da_request_dm == gl_str_da_misalignment_request_repeat_pronoun_ref:
-        print ' fetch InformTopicInfo'
+        #print ' fetch InformTopicInfo'
         last_self_utterance_tup = fetchLastUtteranceFromTurnHistory('self', [ 'InformTopicInfo' ])
         if last_self_utterance_tup != None:
             return last_self_utterance_tup[1]
 
     #handle   I did not get that
-    if str_da_request_dm == gl_str_da_misalignment_self_hearing_or_understanding_pronoun_ref:
+    if str_da_request_dm == gl_str_da_misalignment_self_hearing_or_understanding_pronoun_ref: 
+        last_self_utterance_tup = fetchLastUtteranceFromTurnHistory('self', [ 'InformTopicInfo' ])
         if last_self_utterance_tup != None:
             return last_self_utterance_tup[1]
 
@@ -1377,6 +1378,8 @@ gl_confidence_for_confirm_affirmation_of_data_value = .8
 def handleConfirmDialogManagement(da_list):
     da_confirm_dm = da_list[0]
 
+    
+
     #handle affirmation continuer: 'User: okay or User: yes
     mapping = rp.recursivelyMapDialogRule(gl_da_affirmation, da_confirm_dm)
     if mapping == None:
@@ -1387,9 +1390,24 @@ def handleConfirmDialogManagement(da_list):
 
     if gl_agent.send_receive_role == 'send':
 
-        #$$ here we need to detect any number in the da_list
+        # here we need to detect any number in the da_list
         #if there is one, then strip off the initial confirm before it updateBeliefInPartnerDataState because
         #the number overrides the general affirmation and gets specific about what is being confirmed
+        
+        #In case the ConfirmDialogManagement DialogAct is compounded with other DialogActs on this turn,
+        #strip out the ConfirmDialogManagement DialogActs and call generateResponseToInputDialog again recursively.
+        #Strip out all affirmations from the list of remaining DialogActs to avoid the mistake of calling
+        #updateBeliefInPartner...on this partner turn, when the turn also contains details like a digit
+        #being confirmed.
+        da_list_no_confirm = []
+        for da in da_list:
+            str_da = da.getPrintString();
+            if str_da.find('ConfirmDialogManagement') < 0:
+                da_list_no_confirm.append(da)
+        print 'len(da_list_no_confirm): ' + str(len(da_list_no_confirm)) + ' len(da_list): ' + str(len(da_list))
+        if len(da_list_no_confirm) > 0:
+            return generateResponseToInputDialog(da_list_no_confirm)
+                            
 
         #advances the partner's index pointer
         pointer_advance_count = updateBeliefInPartnerDataStateBasedOnLastDataSent(gl_confidence_for_confirm_affirmation_of_data_value)  
@@ -2025,6 +2043,8 @@ def compareDataModelBeliefs():
 #Normally, self_data_index_pointer will point a the first last_said_digit
 #
 #Returns a tuple (num_digits_matched, name_of_next_segment_if_fully_matched)
+#This is still lacking in that it does not detect a match to data not included in the last_said_digit_list.
+#
 def registerCheckDataWithLastSaidDataAndDataModel(partner_check_digit_sequence, last_said_digit_list, self_data_index_pointer):
     global gl_agent
 
