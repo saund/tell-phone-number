@@ -25,12 +25,55 @@ I can leverage my cdm rule parser from March.
 Initial checkin to repo saund/tell-phone-number
 
 
+-------------
+2016/05/27
+-A decent level 3 dialog manager is now working for self (computer) telling partner (user)
+a telephone number:
+dialogue/tell-phone-number/python/dialogAgent.py
+dialogue/tell-phone-number/python/ruleProcesing.py
+dialogue/tell-phone-number/rules/tell-phone-number-lf-rules.txt
+
+This includes some chunk size adjustment, and turn handling including wait.
+The program architecture is not entirely clean.  
+The good:
+-the architecture of agent, dialog-model, data-model
+-the architecture of converting between utterance text and Otto-style 
+ DialogActs with intents and LogicalForm arguments
+The bad:
+-Decisions about responses are too special-purpose procedurally coded.
+ The goal is to have all responses computed from first principles based on
+ dialog state, which includes dialog-model data state, dialog-model parameters,
+ and dialog history.
+
+ruleProcessing.py needs some reworking:
+-allow separation of interpretation and generation rules, <-, -> in addition to <->
+-needs to support full nesting of UtteranceCategories, to be faithful to
+ John's design that separates semantics from syntax.
 
 
+-looking at Python support for speech recognition and production ASR and TTS:
+Installing python SpeechRecognition from 
+pip install SpeechRecognition
+https://pypi.python.org/pypi/SpeechRecognition/
+Also 
+pip install PyAudio
 
 
+-I horsed around with Python27/Lib/site-packages/speech_recognition/
+__init__   and 
+__main__
+
+to take control of the parameters, 
+
+r.dynamic_energy_threshold = False
+r.energy_threshold = val  (100 is good for this with the logitech mic on jarmela)
+r.pause_threshold = .3
+r.non_speaking_duration = min(r.non_speaking_duration, r.pause_threshold)
+
+This is not too too bad about printing out a speech recognition result fairly promptly.
 
 
-
-
+For TTS:
+https://pypi.python.org/pypi/gTTS
+pip install gTTS
 
