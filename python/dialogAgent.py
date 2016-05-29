@@ -1360,6 +1360,7 @@ def handleRequestTopicInfo_RequestConfirmation(da_list):
          partner_digit_word_sequence) = comparePartnerReportedDataAgainstSelfData(da_list)
 
     self_data_index_pointer = gl_agent.self_dialog_model.data_index_pointer.getDominantValue()
+    print 'after compare... self_data_index_pointer: ' + str(self_data_index_pointer)
 
     #This is an easy out, to be made more sophisticated later
     if partner_expresses_confusion_p:
@@ -1386,23 +1387,24 @@ def handleRequestTopicInfo_RequestConfirmation(da_list):
             partner_dm.data_index_pointer.setAllConfidenceInOne(digit_i+1)
 
         #printAgentBeliefs()
-        middle_or_at_end = advanceSelfIndexPointer(gl_agent, match_count)  
-        print 'after advanceSelfIndexPointer...'
+        #since this was a request about data but has not been confirmed, don't advance self index pointer
+        #middle_or_at_end = advanceSelfIndexPointer(gl_agent, match_count)  
+        #print 'after advanceSelfIndexPointer...'
+        print 'not adancing self index pointer which is:' + str(gl_agent.self_dialog_model.data_index_pointer.getDominantValue())
         printAgentBeliefs()
         (self_belief_partner_is_wrong_digit_indices, self_belief_partner_registers_unknown_digit_indices) = compareDataModelBeliefs()
-        #print 'self_belief_partner_is wrong...' + str(self_belief_partner_is_wrong_digit_indices) + ' self_belief unknown... ' +\
-        #    str(self_belief_partner_registers_unknown_digit_indices)
 
-        if middle_or_at_end == 'at-end' and len(self_belief_partner_is_wrong_digit_indices) == 0 and\
-                len(self_belief_partner_registers_unknown_digit_indices) == 0:
-            gl_agent.setRole('banter')
-            return [gl_da_all_done];
-
-        else:
-            #since this was a request, don't move on with the next chunk, just issue confirmation
-            #and a reiteration of what data was confirmed
-            ret = [gl_da_affirmation_yes]
-            ret.extend(gl_most_recent_data_topic_da_list)
+        #since this was a request, don't move on with the next chunk, just issue confirmation
+        #and a reiteration of what data was confirmed
+        ret = [gl_da_affirmation_yes]
+        #substitute InformTopicInfo for RequestTopicInfo of the gl_most_recent_data_topic_list
+        data_value_list = collectDataValuesFromDialogActs(gl_most_recent_data_topic_da_list)
+        print 'data_value_list: ' + str(data_value_list)
+            
+        if len(data_value_list) >= 1:
+            inform_digits_da = synthesizeLogicalFormForDigitOrDigitSequence(data_value_list)
+            ret.append(inform_digits_da)
+            #ret.extend(gl_most_recent_data_topic_da_list)
             return ret
 
     #since we haven't advanced the self data index pointer, then actually we are re-sending the 
@@ -1457,7 +1459,49 @@ def handleRequestTopicInfo_BanterRole(da_list):
         initializeStatesToSendPhoneNumberData(gl_agent)
         return prepareNextDataChunk(gl_agent)
 
+
+    #handle 'User: tell me the X?
+    mapping_tell_me = rp.recursivelyMapDialogRule(gl_da_tell_me_topic_info, da_request_topic_info)
+    #handle 'User: what is the X?
+    mapping_what_is = rp.recursivelyMapDialogRule(gl_da_request_topic_info, da_request_topic_info)
+    if mapping_tell_me != None:
+        mapping = mapping_tell_me
+    if mapping_what_is != None:
+        mapping = mapping_what_is
+
+    if mapping != None:
+        print 'mapping: ' + str(mapping)
+        if mapping.get('1') == 'telephone-number':
+            gl_agent.setRole('send', gl_default_phone_number)
+            initializeStatesToSendPhoneNumberData(gl_agent)
+            return prepareNextDataChunk(gl_agent)
+        #handle 'User: what is the area code', etc.
+        elif mapping.get('1') in gl_agent.self_dialog_model.data_model.data_indices.keys():
+            segment_chunk_name = mapping.get('1')
+            if gl_agent.send_receive_role == 'send':
+                #If partner is asking for a chunk, reset belief in partner data_model for this segment as unknown
+                chunk_indices = gl_agent.self_dialog_model.data_model.data_indices.get(segment_chunk_name)
+                for i in range(chunk_indices[0], chunk_indices[1] + 1):
+                    data_index_pointer = gl_10_digit_index_list[i]
+                    gl_agent.partner_dialog_model.data_model.setNthPhoneNumberDigit(data_index_pointer, '?', 1.0)
+                return handleSendSegmentChunkNameAndData(segment_chunk_name)
+
+    #handle 'User: take this phone number'
+    mapping = rp.recursivelyMapDialogRule(gl_da_tell_you_phone_number, da_request_topic_info)
+    if mapping != None:
+        gl_agent.setRole('receive')
+        return [gl_da_affirmation_okay, gl_da_self_ready]
+
+    #handle "User: was that seven two six"
+    #very similar to how we handle InformTopicInfo of one or more data items
+    str_da_rti = da_request_topic_info.getPrintString()
+    if str_da_rti.find(gl_str_da_request_confirmation_) == 0:
+        return handleRequestTopicInfo_RequestConfirmation(da_list)
+
+    print 'handleRequestTopicInfo has no handler for request ' + da_request_topic_info.getPrintString()
     return None
+
+
 
 
 
@@ -1483,9 +1527,9 @@ def handleRequestDialogManagement(da_list):
     if response_to_become_most_recent_data_topic_p == True:
         gl_most_recent_data_topic_da_list = da_list[:]
 
-    #print 'handleRequestDialogManagement()'
-    #for da in da_list:
-      #da.printSelf()
+    print 'handleRequestDialogManagement()'
+    for da in da_list:
+        da.printSelf()
 
     #handle "i didn't get that"
     #print 'str_da_request_dm: ' + str_da_request_dm
@@ -1645,15 +1689,15 @@ def collectDataValuesFromDialogActs(da_list):
     digit_value_list = []
     for da in da_list:
         da_print_string = da.getPrintString()
-        ds_index = da_print_string.find('InformTopicInfo(ItemValue(DigitSequence(')
-        if ds_index == 0:
-            start_index = len('InformTopicInfo(ItemValue(DigitSequence(')
+        ds_index = da_print_string.find('ItemValue(DigitSequence(')
+        if ds_index >= 0:
+            start_index = ds_index + len('ItemValue(DigitSequence(')
             rp_index = da_print_string.find(')', start_index)
             digit_value_list.extend(extractItemsFromCommaSeparatedListString(da_print_string[start_index:rp_index]))
             continue
-        d_index = da_print_string.find('InformTopicInfo(ItemValue(Digit(')
-        if d_index == 0:
-            start_index = len('InformTopicInfo(ItemValue(Digit(')
+        d_index = da_print_string.find('ItemValue(Digit(')
+        if d_index >= 0:
+            start_index = d_index + len('ItemValue(Digit(')
             rp_index = da_print_string.find(')', start_index)
             digit_value_list.append(da_print_string[start_index:rp_index])
             continue
@@ -1761,6 +1805,12 @@ gl_confidence_for_confirm_affirmation_of_data_value = .8
 def handleConfirmDialogManagement(da_list):
     da_confirm_dm = da_list[0]
 
+    print 'handleConfirmDialogManagement'
+    for da in da_list:
+        print '   ' + da.getPrintString()
+
+    printAgentBeliefs(False)
+
     #handle affirmation continuer: 'User: okay or User: yes
     mapping = rp.recursivelyMapDialogRule(gl_da_affirmation, da_confirm_dm)
     if mapping == None:
@@ -1789,8 +1839,8 @@ def handleConfirmDialogManagement(da_list):
         if len(da_list_no_confirm) > 0:
             return generateResponseToInputDialog(da_list_no_confirm)
 
-
         #advances the partner's index pointer
+        print ' AB'
         pointer_advance_count = updateBeliefInPartnerDataStateBasedOnMostRecentTopicData(gl_confidence_for_confirm_affirmation_of_data_value) 
         print 'after updateBeliefIn... pointer_advance_count is ' + str(pointer_advance_count)
         #this causes an error on RequestTopicInfo(request-confirmation) if partner asks about 
@@ -2216,6 +2266,11 @@ def updateBeliefInPartnerDataStateBasedOnLastDataSent(update_digit_prob):
 def updateBeliefInPartnerDataStateBasedOnMostRecentTopicData(update_digit_prob):
     global gl_most_recent_data_topic_da_list
 
+    print 'updateBeliefInPartnerDataStateBasedOnMostRecentTopicData()'
+    print str(len(gl_most_recent_data_topic_da_list)) + ' das in gl_most_recent_data_topic_da_list: '
+    for da in gl_most_recent_data_topic_da_list:
+        print '  ' + da.getPrintString()
+
     if len(gl_most_recent_data_topic_da_list) == 0:
         return 0
     return updateBeliefInPartnerDataStateBasedOnDataValues(gl_most_recent_data_topic_da_list, update_digit_prob)
@@ -2235,23 +2290,21 @@ def updateBeliefInPartnerDataStateBasedOnDataValues(da_list, update_digit_prob):
     #print 'updateBeliefInPartnerDataStateBasedOnDataValues(da_list)'
     for da in da_list:
         da_print_string = da.getPrintString()
-        #print 'da: ' + da_print_string
-        
-        ds_index = da_print_string.find('InformTopicInfo(ItemValue(DigitSequence(')
-        if ds_index == 0:
-            start_index = len('InformTopicInfo(ItemValue(DigitSequence(')
+    #    print 'da: ' + da_print_string
+        ds_index = da_print_string.find('ItemValue(DigitSequence(')
+        if ds_index >= 0:
+            start_index = ds_index + len('ItemValue(DigitSequence(')
             rp_index = da_print_string.find(')', start_index)
             digit_value_list = extractItemsFromCommaSeparatedListString(da_print_string[start_index:rp_index])
             print 'digit_value_list: ' + str(digit_value_list)
             return updateBeliefInPartnerDataStateForDigitValueList(digit_value_list, update_digit_prob)
-        d_index = da_print_string.find('InformTopicInfo(ItemValue(Digit(')
+        d_index = da_print_string.find('ItemValue(Digit(')
         if d_index == 0:
-            start_index = len('InformTopicInfo(ItemValue(Digit(')
+            start_index = d_index + len('ItemValue(Digit(')
             rp_index = da_print_string.find(')', start_index)
             digit_value = da_print_string[start_index:rp_index]
             return updateBeliefInPartnerDataStateForDigitValueList([digit_value], update_digit_prob)
-        print 'error updateBeliefInPartnerDataStateBasedOnLastDataSent() was unable to identify digits to update'
-        
+        print 'updateBeliefInPartnerDataStateBasedOnDataValues() identified no digits to update for da: ' + da_print_string
     return 0
     
 
@@ -2306,7 +2359,7 @@ def compareDataModelBeliefs():
             digits_self_believes_partner_registers_unknown.append(i)
             continue
         if partner_belief_tup[1] > gl_threshold_on_belief_partner_has_wrong_value:
-            print 'compareDataModelBeliefs: self: ' + str(self_belief_tup) + ' partner: ' + str(partner_belief_tup)
+            print 'compareDataModelBeliefs: ' + str(i) + ' self: ' + str(self_belief_tup) + ' partner: ' + str(partner_belief_tup)
             digits_out_of_agreement.append(i)
 
     return (digits_out_of_agreement, digits_self_believes_partner_registers_unknown)

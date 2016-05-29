@@ -491,8 +491,6 @@ GrammaticalUtteranceConfirmationCat[self] <-> did i say
 
 #did you say six
 
-RequestDialogManagement(clarification-utterance-past, ItemType($1)) <-> {InfoTypeCat[$1]}
-
 RequestDialogManagement(clarification-utterance-past, ItemValue(Digit($1))) <-> \
 {GrammaticalUtteranceConfirmationCat[$100]} {DigitCat[$1]}\
 
