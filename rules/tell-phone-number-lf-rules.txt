@@ -263,6 +263,54 @@ RequestTopicInfo(tell-me) <-> {CommandCat[tell-me]}
 
 
 
+#Request confirmation of digit values as RequestTopicData DialogActs
+#These mirror InformTopicInfo above
+#Unfortunate that we have to spell out each digit argument in a digit sequence. 
+#There should be a more concise way to do this.
+#was that six / is that six
+
+RequestTopicInfo(request-confirmation, ItemValue(Digit($1))) <-> \
+{GrammaticalBeIndicativeCat[$100]} {DigitCat[$1]}\
+
+
+RequestTopicInfo(request-confirmation, ItemValue(DigitSequence($1, $2))) <-> \
+{GrammaticalBeIndicativeCat[$100]}{DigitCat[$1]} {DigitCat[$2]} 
+
+RequestTopicInfo(request-confirmation, ItemValue(DigitSequence($1, $2, $3))) <-> \
+{GrammaticalBeIndicativeCat[$100]}{DigitCat[$1]} {DigitCat[$2]} {DigitCat[$3]} 
+
+RequestTopicInfo(request-confirmation, ItemValue(DigitSequence($1, $2, $3, $4))) <-> \
+{GrammaticalBeIndicativeCat[$100]}{DigitCat[$1]} {DigitCat[$2]} {DigitCat[$3]} \
+{DigitCat[$4]}
+
+RequestTopicInfo(request-confirmation, ItemValue(DigitSequence($1, $2, $3, $4, $5))) <-> \
+{GrammaticalBeIndicativeCat[$100]}{DigitCat[$1]} {DigitCat[$2]} {DigitCat[$3]} \
+{DigitCat[$4]} {DigitCat[$5]}
+
+RequestTopicInfo(request-confirmation, ItemValue(DigitSequence($1, $2, $3, $4, $5, $6))) <-> \
+{GrammaticalBeIndicativeCat[$100]}{DigitCat[$1]} {DigitCat[$2]} {DigitCat[$3]} \
+{DigitCat[$4]} {DigitCat[$5]} {DigitCat[$6]}
+
+RequestTopicInfo(request-confirmation, ItemValue(DigitSequence($1, $2, $3, $4, $5, $6, $7))) <-> \
+{GrammaticalBeIndicativeCat[$100]}{DigitCat[$1]} {DigitCat[$2]} {DigitCat[$3]} \
+{DigitCat[$4]} {DigitCat[$5]} {DigitCat[$6]} {DigitCat[$7]}
+
+RequestTopicInfo(request-confirmation, ItemValue(DigitSequence($1, $2, $3, $4, $5, $6, $7, $8))) <-> \
+{GrammaticalBeIndicativeCat[$100]}{DigitCat[$1]} {DigitCat[$2]} {DigitCat[$3]} \
+{DigitCat[$4]} {DigitCat[$5]} {DigitCat[$6]} {DigitCat[$7]} {DigitCat[$8]}
+
+RequestTopicInfo(request-confirmation, ItemValue(DigitSequence($1, $2, $3, $4, $5, $6, $7, $8, $9))) <-> \
+{GrammaticalBeIndicativeCat[$100]}{DigitCat[$1]} {DigitCat[$2]} {DigitCat[$3]} \
+{DigitCat[$4]} {DigitCat[$5]} {DigitCat[$6]} {DigitCat[$7]} {DigitCat[$8]} {DigitCat[$9]}
+
+RequestTopicInfo(request-confirmation, ItemValue(DigitSequence($1, $2, $3, $4, $5, $6, $7, $8, $9, $10))) <-> \
+{GrammaticalBeIndicativeCat[$100]}{DigitCat[$1]} {DigitCat[$2]} {DigitCat[$3]} \
+{DigitCat[$4]} {DigitCat[$5]} {DigitCat[$6]} {DigitCat[$7]} {DigitCat[$8]} {DigitCat[$9]} {DigitCat[$10]}
+
+
+
+
+
 
 
 
@@ -320,13 +368,21 @@ InformDialogManagement(self-correction) <-> sorry
 CorrectionDialogManagement(negation) <-> no
 CorrectionDialogManagement(negation) <-> sorry no
 CorrectionDialogManagement(negation) <-> no sorry
-CorrectionTopicInfo(partner-correction) <-> no 
-CorrectionTopicInfo(partner-correction) <-> sorry no
-CorrectionTopicInfo(partner-correction) <-> no sorry
+
+#CorrectionTopicInfo(partner-correction) <-> no 
+#CorrectionTopicInfo(partner-correction) <-> sorry no
+#CorrectionTopicInfo(partner-correction) <-> no sorry
+
+CorrectionTopicInfo(negation) <-> no
+CorrectionTopicInfo(negation) <-> sorry no
+CorrectionTopicInfo(negation) <-> no sorry
+CorrectionTopicInfo(negation-polite) <-> sorry no
+CorrectionTopicInfo(negation-polite) <-> no sorry
 
 CorrectionTopicInfo(partner-correction) <-> no that's
 CorrectionTopicInfo(partner-correction) <-> no that is
 CorrectionTopicInfo(partner-correction) <-> no it's
+CorrectionTopicInfo(negation-polite-partner-correction) <-> sorry no it's
 CorrectionTopicInfo(partner-correction) <-> no it is
 CorrectionTopicInfo(partner-correction) <-> no it was
 CorrectionTopicInfo(partner-correction) <-> wrong that's
@@ -422,6 +478,67 @@ RequestDialogManagement(clarification-utterance-present, ItemType($1)) <-> is th
 RequestDialogManagement(clarification-utterance-present, ItemType($1)) <-> are those the {InfoTypeCat[$1]}
 
 
+GrammaticalUtteranceConfirmationCat[partner] <-> did you say
+GrammaticalUtteranceConfirmationCat[self] <-> did i say
+
+
+
+
+#Request clarification of what was said about digit values as RequestTopicData DialogActs
+#These mirror RequestTopicInfo(request-confirmation... above
+#Unfortunate that we have to spell out each digit argument in a digit sequence. 
+#There should be a more concise way to do this.
+
+#did you say six
+
+RequestDialogManagement(clarification-utterance-past, ItemType($1)) <-> {InfoTypeCat[$1]}
+
+RequestDialogManagement(clarification-utterance-past, ItemValue(Digit($1))) <-> \
+{GrammaticalUtteranceConfirmationCat[$100]} {DigitCat[$1]}\
+
+
+RequestDialogManagement(clarification-utterance-past, ItemValue(DigitSequence($1, $2))) <-> \
+{GrammaticalUtteranceConfirmationCat[$100]}{DigitCat[$1]} {DigitCat[$2]} 
+
+RequestDialogManagement(clarification-utterance-past, ItemValue(DigitSequence($1, $2, $3))) <-> \
+{GrammaticalUtteranceConfirmationCat[$100]}{DigitCat[$1]} {DigitCat[$2]} {DigitCat[$3]} 
+
+RequestDialogManagement(clarification-utterance-past, ItemValue(DigitSequence($1, $2, $3, $4))) <-> \
+{GrammaticalUtteranceConfirmationCat[$100]}{DigitCat[$1]} {DigitCat[$2]} {DigitCat[$3]} \
+{DigitCat[$4]}
+
+RequestDialogManagement(clarification-utterance-past, ItemValue(DigitSequence($1, $2, $3, $4, $5))) <-> \
+{GrammaticalUtteranceConfirmationCat[$100]}{DigitCat[$1]} {DigitCat[$2]} {DigitCat[$3]} \
+{DigitCat[$4]} {DigitCat[$5]}
+
+RequestDialogManagement(clarification-utterance-past, ItemValue(DigitSequence($1, $2, $3, $4, $5, $6))) <-> \
+{GrammaticalUtteranceConfirmationCat[$100]}{DigitCat[$1]} {DigitCat[$2]} {DigitCat[$3]} \
+{DigitCat[$4]} {DigitCat[$5]} {DigitCat[$6]}
+
+RequestDialogManagement(clarification-utterance-past, ItemValue(DigitSequence($1, $2, $3, $4, $5, $6, $7))) <-> \
+{GrammaticalUtteranceConfirmationCat[$100]}{DigitCat[$1]} {DigitCat[$2]} {DigitCat[$3]} \
+{DigitCat[$4]} {DigitCat[$5]} {DigitCat[$6]} {DigitCat[$7]}
+
+RequestDialogManagement(clarification-utterance-past, ItemValue(DigitSequence($1, $2, $3, $4, $5, $6, $7, $8))) <-> \
+{GrammaticalUtteranceConfirmationCat[$100]}{DigitCat[$1]} {DigitCat[$2]} {DigitCat[$3]} \
+{DigitCat[$4]} {DigitCat[$5]} {DigitCat[$6]} {DigitCat[$7]} {DigitCat[$8]}
+
+RequestDialogManagement(clarification-utterance-past, ItemValue(DigitSequence($1, $2, $3, $4, $5, $6, $7, $8, $9))) <-> \
+{GrammaticalUtteranceConfirmationCat[$100]}{DigitCat[$1]} {DigitCat[$2]} {DigitCat[$3]} \
+{DigitCat[$4]} {DigitCat[$5]} {DigitCat[$6]} {DigitCat[$7]} {DigitCat[$8]} {DigitCat[$9]}
+
+RequestDialogManagement(clarification-utterance-past, ItemValue(DigitSequence($1, $2, $3, $4, $5, $6, $7, $8, $9, $10))) <-> \
+{GrammaticalUtteranceConfirmationCat[$100]}{DigitCat[$1]} {DigitCat[$2]} {DigitCat[$3]} \
+{DigitCat[$4]} {DigitCat[$5]} {DigitCat[$6]} {DigitCat[$7]} {DigitCat[$8]} {DigitCat[$9]} {DigitCat[$10]}
+
+
+
+
+
+
+
+
+
 #what is/was the/that digit/area-code/exchange/line-number/ telephone number
 #does not come under DM misalignment repair.  but RequestTopicInfo 
 #RequestDialogManagement(misalignment-request-repeat, $1) <-> what {GrammaticalBeCat[$2]}{GrammaticalIndicativeCat[$3]}{InfoTypeCat[$1]}
@@ -470,6 +587,9 @@ GrammaticalIndicativeCat[definite] <-> the
 GrammaticalIndicativeCat[definite-far] <-> that
 GrammaticalIndicativeCat[indefinite] <-> a
 
+GrammaticalBeIndicativeCat[present-singular-definite-far] <-> is that
+GrammaticalBeIndicativeCat[past-singular-definite-far] <-> was that
+
 
 ActionCat[receive-info] <-> hear
 ActionCat[receive-info] <-> get
@@ -478,6 +598,7 @@ ActionCat[receive-info] <-> receive
 ActionCat[receive-info] <-> understand
 
 
+#These should be fleshed out with arguments for checking different kinds of things
 CheckTopicInfo(request-confirmation) <-> is that
 CheckTopicInfo(request-affirmation) <-> is that right
 CheckTopicInfo(request-affirmation) <-> is that correct

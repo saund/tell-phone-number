@@ -38,6 +38,14 @@ def loopDialogTest():
 
 gl_agent = None
 #gl_turn_history = []   defined below
+
+gl_use_wait_timer_p = False
+
+def setUseWaitTimer(val):
+    global gl_use_wait_timer_p
+    gl_use_wait_timer_p = val
+
+
     
 #Reset state by creating a new agent and clearing the turn history.
 #Test the rules in gl_default_lf_rule_filename.
@@ -47,12 +55,14 @@ def loopDialog():
     global gl_turn_history
     global gl_turn_number
     global gl_time_tick_ms
+    global gl_use_wait_timer_p
     gl_agent = createBasicAgent()
     gl_turn_history = []  
     gl_turn_number = 0
     gl_pending_question_list = []  
     rp.initLFRulesIfNecessary()
-    createAndStartWaitTimer(gl_time_tick_ms)
+    if gl_use_wait_timer_p:
+        createAndStartWaitTimer(gl_time_tick_ms)
 
     #rp.setTell(True)
 
@@ -69,9 +79,6 @@ def loopDialog():
 def loopDialogMain():
     input_string = raw_input('Input: ')
     input_string = rp.removePunctuationAndLowerTextCasing(input_string)
-
-    if input_string == 'quit':
-        stopTimer()
 
     while input_string != 'stop' and input_string != 'quit':
         #print '\n' + input_string
@@ -107,6 +114,11 @@ def loopDialogMain():
 
         input_string = raw_input('\nInput: ')
         input_string = rp.removePunctuationAndLowerTextCasing(input_string)
+
+    if input_string == 'quit':
+        stopTimer()
+
+
 
 
 
@@ -758,10 +770,16 @@ gl_turn_history = []
 gl_pending_question_list = []  
 
 
+#A list of DialogActs that represent the most recently immediate topical data objects.
+#For example, the most recently discussed digit sequence.
+gl_most_recent_data_topic_da_list = []
+
+
 
 def generateResponseToInputDialog(user_da_list):
     global gl_turn_history
     global gl_turn_number
+    global gl_most_recent_data_topic_da_list
 
     if len(user_da_list) == 0:
         print 'what? user_da_list length is 0'
@@ -801,6 +819,21 @@ def generateResponseToInputDialog(user_da_list):
         for user_da in user_da_list:
             user_da.printSelf()
         da_response = []
+
+    #Determine if this response merits becoming the most recent data topic of discussion
+    response_to_become_most_recent_data_topic_p = False
+    for da in da_response:
+        if da.getPrintString().find('ItemValue') >= 0:
+            response_to_become_most_recent_data_topic_p = True
+            break
+    if response_to_become_most_recent_data_topic_p == True:
+        gl_most_recent_data_topic_da_list = da_response[:]
+
+    print ' Updating gl_most_recent_data_topic_da_list:'
+    for da in gl_most_recent_data_topic_da_list:
+        print da.getPrintString()
+    print ' ..'
+
         
     gl_agent.setTurn('partner')
     return da_response
@@ -828,6 +861,25 @@ gl_da_tell_you_topic_info = rp.parseDialogActFromString('RequestTopicInfo(SendRe
 gl_da_request_topic_info = rp.parseDialogActFromString('RequestTopicInfo(ItemType($1))')
 gl_str_da_request_topic_info = 'RequestTopicInfo(ItemType($1))'
 
+
+#This is the initial parts of a DialogAct,
+#RequestTopicInfo(request-confirmation, ItemValue(Digit($1))) or 
+#RequestTopicInfo(request-confirmation, ItemValue(DigitSequence($1, $2, ...)))
+#Instead of listing out all of the argugment variations, we simply detect the initial part
+#and parse out the arguments in the functions that handle this.
+#The same applies for InformTopicInfo with one or more data item values.
+#The following underscore _ indicates an incomplete LogicalForm.
+gl_str_da_request_confirmation_ = 'RequestTopicInfo(request-confirmation'
+
+#Similar to above for 
+#RequestDialogManagement(clarification-utterance-past, ItemValue(Digit($1))) 
+#RequestDialogManagement(clarification-utterance-past, ItemValue(DigitSequence($1, $2, ...)))
+gl_str_da_request_dm_clarification_utterance_ = 'RequestDialogManagement(clarification-utterance'
+
+
+
+
+
 gl_da_say_item_type = rp.parseDialogActFromString('InformTopicInfo(SayItemType($1))')
 gl_str_da_say_item_type = 'InformTopicInfo(SayItemType($1))'
 
@@ -837,6 +889,7 @@ gl_str_da_affirmation_okay = 'ConfirmDialogManagement(affirmation-okay)'
 
 gl_da_affirmation_yes = rp.parseDialogActFromString('ConfirmDialogManagement(affirmation-yes)')
 gl_str_da_affirmation_yes = 'ConfirmDialogManagement(affirmation-yes)'
+
 
 gl_da_affirmation = rp.parseDialogActFromString('ConfirmDialogManagement($1)')
 
@@ -890,6 +943,8 @@ gl_str_da_misalignment_self_hearing_or_understanding_item_type = 'RequestDialogM
 gl_da_misalignment_request_repeat = rp.parseDialogActFromString('RequestDialogManagement(misalignment-request-repeat)')
 gl_str_da_misalignment_request_repeat = 'RequestDialogManagement(misalignment-request-repeat)'
 
+
+
 gl_da_misalignment_request_repeat_pronoun_ref = rp.parseDialogActFromString('RequestDialogManagement(misalignment-request-repeat, pronoun-ref)')
 gl_str_da_misalignment_request_repeat_pronoun_ref = 'RequestDialogManagement(misalignment-request-repeat, pronoun-ref)'
 
@@ -908,6 +963,15 @@ gl_str_da_misalignment_start_again = 'RequestDialogManagement(misalignment-start
 gl_da_correction_topic_info = rp.parseDialogActFromString('CorrectionTopicInfo(partner-correction)')
 gl_str_da_correction_topic_info = 'CorrectionTopicInfo(partner-correction)'
 
+
+gl_da_correction_topic_info_negation_polite = rp.parseDialogActFromString('CorrectionTopicInfo(negation-polite)')
+gl_str_da_correction_topic_info_negation_polite = 'CorrectionTopicInfo(negation-polite)'
+
+gl_da_correction_topic_info_negation_polite_partner_correction = rp.parseDialogActFromString('CorrectionTopicInfo(negation-polite-partner-correction)')
+gl_str_da_correction_topic_info_negation_polite_partner_correction = 'CorrectionTopicInfo(negation-polite-partner-correction)'
+
+
+
 gl_da_clarification_utterance_past = rp.parseDialogActFromString('RequestDialogManagement(clarification-utterance-past, ItemType($1))')
 gl_str_da_clarification_utterance_past = 'RequestDialogManagement(clarification-utterance-past, ItemType($1))'
 
@@ -916,6 +980,9 @@ gl_str_da_clarification_utterance_present = 'RequestDialogManagement(clarificati
 
 
 gl_digit_list = ['zero', 'oh', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine']
+
+
+
 
 #gg
 
@@ -966,49 +1033,13 @@ def handleInformTopicInfo(da_list):
 def handleInformTopicInfo_SendRole(da_list):
     global gl_agent
 
-    partner_digit_word_sequence = []
-
-    partner_expresses_confusion_p = False
-
     print 'handleInformTopicInfo '
     printAgentBeliefs()
 
-    #could be an interspersing of ItemValue(Digit( and ItemValue(DigitSequence
-    for da in da_list:
-        str_da = da.getPrintString()
-        if str_da.find('InformTopicInfo(ItemValue(Digit(') == 0:
-            start_index = len('InformTopicInfo(ItemValue(Digit(')
-            rp_index = str_da.find(')', start_index)
-            partner_check_digit_value = str_da[start_index:rp_index]
-            partner_digit_word_sequence.append(partner_check_digit_value)
+    (partner_expresses_confusion_p, match_count, check_match_segment_name,\
+         partner_digit_word_sequence) = comparePartnerReportedDataAgainstSelfData(da_list)
 
-        elif str_da.find('InformTopicInfo(ItemValue(DigitSequence(') == 0:
-            start_index = len('InformTopicInfo(ItemValue(DigitSequence(')
-            rp_index = str_da.find(')', start_index)
-            digit_value_list = extractItemsFromCommaSeparatedListString(str_da[start_index:rp_index])
-            partner_digit_word_sequence.extend(digit_value_list)
-
-        #This applies to an isolated 'what?' or other non-digit which we intend to have substituted for a digit value so
-        #is indicative of confusion
-        #But the danger is that 'what' said with other words will be interpreted as confusion when it is not,
-        #and the system speaks 'I'll repeat that' when they really shouldn't.
-        elif str_da not in gl_digit_list and str_da.find('ConfirmDialogManagement') < 0:
-            #partner indicates confusion so we surmise they have not advanced their index pointer with this data chunk.
-            #So reset the tentative_partner_index_pointer.
-            partner_expresses_confusion_p = True
-            #Add ? partner utterance explicitly into the list of digits we heard them say, in order to
-            #pinpoint the index pointer for their indicated check-confusion
-            partner_digit_word_sequence.append('?')
-
-    last_self_utterance_tup = fetchLastUtteranceFromTurnHistory('self', [ 'InformTopicInfo' ])
-    last_self_utterance_da_list = last_self_utterance_tup[2]
-    last_sent_digit_value_list = collectDataValuesFromDialogActs(last_self_utterance_da_list)
     self_data_index_pointer = gl_agent.self_dialog_model.data_index_pointer.getDominantValue()
-
-    #Here try to align partner's check digit sequence with what self has just provided as a partial digit sequence,
-    #or else with the context of previously provided values, or even with correct data that has not been provided
-    #in this conversation (i.e. if partner knows the phone number already)
-
 
     #This is an easy out, to be made more sophisticated later
     if partner_expresses_confusion_p:
@@ -1017,15 +1048,10 @@ def handleInformTopicInfo_SendRole(da_list):
         ret = [gl_da_inform_dm_repeat_intention]
         ret.extend(prepareNextDataChunk(gl_agent))
         return ret
-
-    print 'last_sent_digit_value_list: ' + str(last_sent_digit_value_list) + ' partner_digit_word_sequence: ' + str(partner_digit_word_sequence)
     
-    check_match_tup = registerCheckDataWithLastSaidDataAndDataModel(partner_digit_word_sequence, last_sent_digit_value_list, self_data_index_pointer)
-
-    match_count = check_match_tup[0]
-    print 'match_count: ' + str(match_count)
-    
-    if match_count > 0:
+    #Only if check-confirm match was validated against self's belief model, update self's model
+    #for what partner believes about the data.
+    if match_count > 0:       
 
         possiblyAdjustChunkSize(len(partner_digit_word_sequence))
         #1.0 is full confidence that the partner's data belief is as self heard it
@@ -1039,12 +1065,8 @@ def handleInformTopicInfo_SendRole(da_list):
             partner_index_pointer_value = partner_dm.data_index_pointer.getDominantValue()
             partner_dm.data_index_pointer.setAllConfidenceInOne(digit_i+1)
 
-        #pointer_advance_count = updateBeliefInPartnerDataStateForDigitValueList(partner_digit_word_sequence, 1.0) 
-        
-        #print 'after updateBeliefInPartnerDataState...'
         #printAgentBeliefs()
         middle_or_at_end = advanceSelfIndexPointer(gl_agent, match_count)  
-        #middle_or_at_end = advanceSelfIndexPointer(gl_agent, pointer_advance_count)  
         print 'after advanceSelfIndexPointer...'
         printAgentBeliefs()
         (self_belief_partner_is_wrong_digit_indices, self_belief_partner_registers_unknown_digit_indices) = compareDataModelBeliefs()
@@ -1059,10 +1081,82 @@ def handleInformTopicInfo_SendRole(da_list):
         else:
             return prepareAndSendNextDataChunkBasedOnDataBeliefComparisonAndIndexPointers()
 
-    #XX TODO: Here do the interesting alignment stuff
     ret = [gl_da_inform_dm_repeat_intention]
     ret.extend(prepareNextDataChunk(gl_agent))
     return ret
+
+
+#This was lifted from handleInformTopicData_Send in order to use it also
+#in RequestTopicInfo(request-confirmation)
+#The partner is providing a list of DialogActs that include information about digit data.
+#(The DialogActs are strung together from a single utterance.)
+#The DialogActs might also include indicators of confusion, such as what?
+#These DialogActs need to be compared with correct digit data, partly though alignment search.
+#This returns a tuple: 
+# (partner_expresses_confusion_p, match_count, check_match_segment_name, partner_digit_word_sequence)
+#
+def comparePartnerReportedDataAgainstSelfData(da_list):
+    print 'comparePartnerReportedDataAgainstSelfData(da_list)'
+    for da in da_list:
+        print da.getPrintString()
+
+    partner_digit_word_sequence = []
+    partner_expresses_confusion_p = False
+
+    #could be an interspersing of ItemValue(Digit( and ItemValue(DigitSequence
+    for da in da_list:
+        str_da = da.getPrintString()
+        print str_da
+        d_index = str_da.find('ItemValue(Digit(')
+        ds_index = str_da.find('ItemValue(DigitSequence(')
+        if d_index >= 0:
+            start_index = d_index + len('ItemValue(Digit(')
+            rp_index = str_da.find(')', start_index)
+            partner_check_digit_value = str_da[start_index:rp_index]
+            partner_digit_word_sequence.append(partner_check_digit_value)
+
+        elif ds_index >= 0:
+            start_index = ds_index + len('ItemValue(DigitSequence(')
+            rp_index = str_da.find(')', start_index)
+            digit_value_list = extractItemsFromCommaSeparatedListString(str_da[start_index:rp_index])
+            partner_digit_word_sequence.extend(digit_value_list)
+
+        #Commenting this out because it inserts '?' for things like "was that six five zero" 
+        ##This applies to an isolated 'what?' or other non-digit which we intend to have substituted for a digit value so
+        ##is indicative of confusion
+        ##But the danger is that 'what' said with other words will be interpreted as confusion when it is not,
+        ##and the system speaks 'I'll repeat that' when they really shouldn't.
+        #elif str_da not in gl_digit_list and str_da.find('ConfirmDialogManagement') < 0:
+        #    #partner indicates confusion so we surmise they have not advanced their index pointer with this data chunk.
+        #    #So reset the tentative_partner_index_pointer.
+        #    partner_expresses_confusion_p = True
+        #    #Add ? partner utterance explicitly into the list of digits we heard them say, in order to
+        #    #pinpoint the index pointer for their indicated check-confusion
+        #    partner_digit_word_sequence.append('?')
+
+    last_self_utterance_tup = fetchLastUtteranceFromTurnHistory('self', [ 'InformTopicInfo' ])
+    last_self_utterance_da_list = last_self_utterance_tup[2]
+    last_sent_digit_value_list = collectDataValuesFromDialogActs(last_self_utterance_da_list)
+    self_data_index_pointer = gl_agent.self_dialog_model.data_index_pointer.getDominantValue()
+
+    print 'last_sent_digit_value_list: ' + str(last_sent_digit_value_list) + ' partner_digit_word_sequence: ' + str(partner_digit_word_sequence)
+
+    #Here try to align partner's check digit sequence with what self has just provided as a partial digit sequence,
+    #or else with the context of previously provided values, or even with correct data that has not been provided
+    #in this conversation (i.e. if partner knows the phone number already)
+    
+    #This returns match_count = 0 if the partner_digit_word_sequence contains any errors or an 
+    #alignment match to self's data model cannot be found.
+    check_match_tup = registerCheckDataWithLastSaidDataAndDataModel(partner_digit_word_sequence, last_sent_digit_value_list, self_data_index_pointer)
+
+    match_count = check_match_tup[0]
+    print 'match_count: ' + str(match_count)
+
+    return (partner_expresses_confusion_p, match_count, check_match_tup[1], partner_digit_word_sequence)
+
+
+
+
         
 
 
@@ -1083,12 +1177,10 @@ def handleInformTopicInfo_BanterRole(da_list):
 #Proffer information about dialog management
 #
 def handleInformDialogManagement(da_list):
-
-
     if gl_agent.send_receive_role == 'send':
-        return handleInformTopicInfo_SendRole(da_list)
+        return handleInformDialogManagement_SendRole(da_list)
     elif gl_agent.send_receive_role == 'receive':
-        return handleInformTopicInfo_ReceiveRole(da_list)
+        return handleInformDialogManagement_ReceiveRole(da_list)
     elif gl_agent.send_receive_role == 'banter':
         da0 = da_list[0]
         str_da0 = da0.getPrintString()
@@ -1096,6 +1188,22 @@ def handleInformDialogManagement(da_list):
         if str_da0 == gl_str_da_inform_dm_greeting:
             return [gl_da_inform_dm_greeting, gl_da_dialog_invitation]
     
+
+
+
+def handleInformDialogManagement_SendRole(da_list):
+    print 'handleInformDialogManagement_SendRole not written yet'
+    return None
+
+
+def handleInformDialogManagement_ReceiveRole(da_list):
+    print 'handleInformDialogManagement_ReceiveRole not written yet'
+    return None
+
+
+def handleInformDialogManagement_BanterRole(da_list):
+    print 'handleInformDialogManagement_BanterRole not written yet'
+    return None
 
 
 
@@ -1114,11 +1222,31 @@ def handleInformDialogManagement(da_list):
 #Assumption that the speaker's belief confidence is low.
 #
 
+def handleRequestTopicInfo(da_list):
+    global gl_most_recent_data_topic_da_list
+
+    #Determine if the utterance from partner merits becoming the most recent data topic of discussion
+    response_to_become_most_recent_data_topic_p = False
+    for da in da_list:
+        if da.getPrintString().find('ItemValue') >= 0:
+            response_to_become_most_recent_data_topic_p = True
+            break
+    if response_to_become_most_recent_data_topic_p == True:
+        gl_most_recent_data_topic_da_list = da_list[:]
+
+    if gl_agent.send_receive_role == 'send':
+        return handleRequestTopicInfo_SendRole(da_list)
+    elif gl_agent.send_receive_role == 'receive':
+        return handleRequestTopicInfo_ReceiveRole(da_list)
+    elif gl_agent.send_receive_role == 'banter':
+        return handleRequestTopicInfo_BanterRole(da_list)
+
+
 
 #RequestTopicInfo
 #Request information about topic
 #
-def handleRequestTopicInfo(da_list):
+def handleRequestTopicInfo_SendRole(da_list):
     da_request_topic_info = da_list[0]
 
     print 'handleRequestTopicInfo da_list: '
@@ -1159,7 +1287,6 @@ def handleRequestTopicInfo(da_list):
     mapping_tell_me = rp.recursivelyMapDialogRule(gl_da_tell_me_topic_info, da_request_topic_info)
     #handle 'User: what is the X?
     mapping_what_is = rp.recursivelyMapDialogRule(gl_da_request_topic_info, da_request_topic_info)
-
     if mapping_tell_me != None:
         mapping = mapping_tell_me
     if mapping_what_is != None:
@@ -1204,9 +1331,137 @@ def handleRequestTopicInfo(da_list):
         gl_agent.setRole('receive')
         return [gl_da_affirmation_okay, gl_da_self_ready]
 
+    #handle "User: was that seven two six"
+    #very similar to how we handle InformTopicInfo of one or more data items
+    str_da_rti = da_request_topic_info.getPrintString()
+    if str_da_rti.find(gl_str_da_request_confirmation_) == 0:
+        return handleRequestTopicInfo_RequestConfirmation(da_list)
 
     print 'handleRequestTopicInfo has no handler for request ' + da_request_topic_info.getPrintString()
     return da_list;
+
+
+
+
+#handle info receiver:  "was that seven two six?"
+#borrows from handleInformTopicInfo_SendRole which covers for handleCheckTopicInfo_SendRole
+#The main difference here is that the reply assumes the speaker requesting confirmation has
+#low confidence in the information, so this gives the Topic Info Receiver a chance to 
+#confirm or ask further questions. So, this increases confidence that the TIR has the
+#correct data, but does not move on to the next segment.
+def handleRequestTopicInfo_RequestConfirmation(da_list):
+    global gl_agent
+    global gl_most_recent_data_topic_da_list
+
+    print 'handleRequestTopicInfo_RequestConfirmation '
+    printAgentBeliefs()
+
+    (partner_expresses_confusion_p, match_count, check_match_segment_name,\
+         partner_digit_word_sequence) = comparePartnerReportedDataAgainstSelfData(da_list)
+
+    self_data_index_pointer = gl_agent.self_dialog_model.data_index_pointer.getDominantValue()
+
+    #This is an easy out, to be made more sophisticated later
+    if partner_expresses_confusion_p:
+        #since we haven't advanced the self data index pointer, then actually we are re-sending the 
+        #previous chunk.  We could adjust chunk size at this point also.
+        ret = [gl_da_inform_dm_repeat_intention]
+        ret.extend(prepareNextDataChunk(gl_agent))
+        return ret
+    
+    #Only if check-confirm match was validated against self's belief model, update self's model
+    #for what partner believes about the data.
+    if match_count > 0:       
+
+        possiblyAdjustChunkSize(len(partner_digit_word_sequence))
+        #1.0 is full confidence that the partner's data belief is as self heard it
+        partner_dm = gl_agent.partner_dialog_model
+        newly_matched_digits = []
+        for digit_i in range(self_data_index_pointer, self_data_index_pointer + match_count):
+            digit_belief = gl_agent.self_dialog_model.data_model.data_beliefs[digit_i]
+            data_value_tuple = digit_belief.getHighestConfidenceValue()      #returns a tuple e.g. ('one', .8)
+            correct_digit_value = data_value_tuple[0]
+            partner_dm.data_model.setNthPhoneNumberDigit(digit_i, correct_digit_value, 1.0)
+            partner_index_pointer_value = partner_dm.data_index_pointer.getDominantValue()
+            partner_dm.data_index_pointer.setAllConfidenceInOne(digit_i+1)
+
+        #printAgentBeliefs()
+        middle_or_at_end = advanceSelfIndexPointer(gl_agent, match_count)  
+        print 'after advanceSelfIndexPointer...'
+        printAgentBeliefs()
+        (self_belief_partner_is_wrong_digit_indices, self_belief_partner_registers_unknown_digit_indices) = compareDataModelBeliefs()
+        #print 'self_belief_partner_is wrong...' + str(self_belief_partner_is_wrong_digit_indices) + ' self_belief unknown... ' +\
+        #    str(self_belief_partner_registers_unknown_digit_indices)
+
+        if middle_or_at_end == 'at-end' and len(self_belief_partner_is_wrong_digit_indices) == 0 and\
+                len(self_belief_partner_registers_unknown_digit_indices) == 0:
+            gl_agent.setRole('banter')
+            return [gl_da_all_done];
+
+        else:
+            #since this was a request, don't move on with the next chunk, just issue confirmation
+            #and a reiteration of what data was confirmed
+            ret = [gl_da_affirmation_yes]
+            ret.extend(gl_most_recent_data_topic_da_list)
+            return ret
+
+    #since we haven't advanced the self data index pointer, then actually we are re-sending the 
+    #previous chunk. 
+    #Issue polite correction to the request: "sorry no it's"
+    ret = [ gl_da_correction_topic_info_negation_polite_partner_correction ]
+    ret.extend(prepareNextDataChunk(gl_agent))
+    return ret
+
+
+
+
+
+def handleRequestTopicInfo_ReceiveRole(da_list):
+    print 'handleRequestTopicInfo_ReceiveRole not written yet'
+    return None
+
+
+def handleRequestTopicInfo_BanterRole(da_list):
+    print 'handleRequestTopicInfo_BanterRole da_list: '
+    for da in da_list:
+        da.printSelf()
+
+    da_request_topic_info = da_list[0]
+
+    #handle 'User: what is your name'
+    #rp.setTellMap(True)
+    mapping = rp.recursivelyMapDialogRule(gl_da_what_is_your_name, da_request_topic_info)
+    #print 'mapping: ' + str(mapping)
+    if mapping != None:
+        str_da_my_name_is = gl_str_da_my_name_is.replace('$1', gl_agent.name)
+        da_my_name_is = rp.parseDialogActFromString(str_da_my_name_is)
+        return [da_my_name_is]
+
+    #handle 'User: what is my name'
+    mapping = rp.recursivelyMapDialogRule(gl_da_what_is_my_name, da_request_topic_info)
+    if mapping != None:
+        str_da_your_name_is = gl_str_da_your_name_is.replace('$1', gl_agent.partner_name)
+        da_your_name_is = rp.parseDialogActFromString(str_da_your_name_is)
+        return [da_your_name_is]
+
+    #This is probably superfluous, covered by the tell me the X? below.
+    #handle 'User: send me the phone number'
+    #rp.setTellMap(True)
+    mapping = rp.recursivelyMapDialogRule(gl_da_tell_me_phone_number, da_request_topic_info)
+    #print 'mapping: ' + str(mapping)
+    if mapping != None:
+        gl_agent.setRole('send', gl_default_phone_number)
+        #it would be best to spawn another thread to wait a beat then start the
+        #data transmission process, but return okay immediately.
+        #do that later
+        initializeStatesToSendPhoneNumberData(gl_agent)
+        return prepareNextDataChunk(gl_agent)
+
+    return None
+
+
+
+
 
 
 
@@ -1215,12 +1470,23 @@ def handleRequestTopicInfo(da_list):
 #
 def handleRequestDialogManagement(da_list):
     global gl_agent
+    global gl_most_recent_data_topic_da_list
     da_request_dm = da_list[0] 
     str_da_request_dm = da_request_dm.getPrintString()
 
+    #Determine if the utterance from partner merits becoming the most recent data topic of discussion
+    response_to_become_most_recent_data_topic_p = False
+    for da in da_list:
+        if da.getPrintString().find('ItemValue') >= 0:
+            response_to_become_most_recent_data_topic_p = True
+            break
+    if response_to_become_most_recent_data_topic_p == True:
+        gl_most_recent_data_topic_da_list = da_list[:]
+
     #print 'handleRequestDialogManagement()'
     #for da in da_list:
-    #    da.printSelf()
+      #da.printSelf()
+
     #handle "i didn't get that"
     #print 'str_da_request_dm: ' + str_da_request_dm
     #print 'gl_str_da_misalignment_self_hearing_or_understanding_pronoun_ref: ' + gl_str_da_misalignment_self_hearing_or_understanding_pronoun_ref
@@ -1266,6 +1532,13 @@ def handleRequestDialogManagement(da_list):
         last_self_utterance_tup = fetchLastUtteranceFromTurnHistory('self')
         if last_self_utterance_tup != None:
             return last_self_utterance_tup[2]
+
+    #handle "User: did you say seven two six"
+    #very similar to how we handle InformTopicInfo of one or more data items
+    if str_da_request_dm.find(gl_str_da_request_dm_clarification_utterance_) == 0:
+        #Even though this is a slightly different utterance, 'did you say $1' instead of 
+        #'was that $1', we can handle it in the same way as a request for confirmation of data.
+        return handleRequestTopicInfo_RequestConfirmation(da_list)
 
 
     #print 'str_da_request_dm: ' + str_da_request_dm
@@ -1367,6 +1640,8 @@ def findSegmentNameForDialogActs(da_list):
 #Collects up all of the digits in order and returns them in a list.
 def collectDataValuesFromDialogActs(da_list):
     print 'collectDataValues: ' + str(da_list)
+    for da in da_list:
+        print da.getPrintString()
     digit_value_list = []
     for da in da_list:
         da_print_string = da.getPrintString()
@@ -1486,8 +1761,6 @@ gl_confidence_for_confirm_affirmation_of_data_value = .8
 def handleConfirmDialogManagement(da_list):
     da_confirm_dm = da_list[0]
 
-    
-
     #handle affirmation continuer: 'User: okay or User: yes
     mapping = rp.recursivelyMapDialogRule(gl_da_affirmation, da_confirm_dm)
     if mapping == None:
@@ -1515,10 +1788,14 @@ def handleConfirmDialogManagement(da_list):
         print 'len(da_list_no_confirm): ' + str(len(da_list_no_confirm)) + ' len(da_list): ' + str(len(da_list))
         if len(da_list_no_confirm) > 0:
             return generateResponseToInputDialog(da_list_no_confirm)
-                            
+
 
         #advances the partner's index pointer
-        pointer_advance_count = updateBeliefInPartnerDataStateBasedOnLastDataSent(gl_confidence_for_confirm_affirmation_of_data_value)  
+        pointer_advance_count = updateBeliefInPartnerDataStateBasedOnMostRecentTopicData(gl_confidence_for_confirm_affirmation_of_data_value) 
+        print 'after updateBeliefIn... pointer_advance_count is ' + str(pointer_advance_count)
+        #this causes an error on RequestTopicInfo(request-confirmation) if partner asks about 
+        #e.g. one digit when self said three
+        #pointer_advance_count = updateBeliefInPartnerDataStateBasedOnLastDataSent(gl_confidence_for_confirm_affirmation_of_data_value)  
 
         middle_or_at_end = advanceSelfIndexPointer(gl_agent, pointer_advance_count)  
         (self_belief_partner_is_wrong_digit_indices, self_belief_partner_registers_unknown_digit_indices) = compareDataModelBeliefs()
@@ -1924,6 +2201,27 @@ def updateBeliefInPartnerDataStateBasedOnLastDataSent(update_digit_prob):
         return updateBeliefInPartnerDataStateBasedOnDataValues(last_self_data_sent, update_digit_prob)
     else:
         return 0
+
+
+
+
+
+#retrieve data values last discussed and stored as DialogActs in gl_most_recent_data_topic_da_list
+#iterate update belief in partner data values at belief in their index pointer loc, 
+#        then advance belief in their index pointer loc
+#A more advanced version will consider the belief in the partner's expected chunk size, and 
+#account for the fact that the partner may be confused if the number of digits sent does not
+#match their expected chunk size.
+#Returns the number of digits by which the partner's index pointer was advanced
+def updateBeliefInPartnerDataStateBasedOnMostRecentTopicData(update_digit_prob):
+    global gl_most_recent_data_topic_da_list
+
+    if len(gl_most_recent_data_topic_da_list) == 0:
+        return 0
+    return updateBeliefInPartnerDataStateBasedOnDataValues(gl_most_recent_data_topic_da_list, update_digit_prob)
+
+
+
     
 
 #da_list probably consists of a single DialogAct, either 
@@ -2147,13 +2445,16 @@ def compareDataModelBeliefs():
 # with the correct data model.  If these all match, then return len(last_said_digit_list) to
 # to show that all digits just said were gotten correctly and put correctly in context.
 #
+#(This not implemented yet:
 #-If num matching return is 0, then finally check to see if the partner_check_digits match
 # the following data values.  If so, then in the second position of the tuple return the
-# name of the next segment
+# name of the next segment.)
 #
 #Normally, self_data_index_pointer will point a the first last_said_digit
 #
 #Returns a tuple (num_digits_matched, name_of_next_segment_if_fully_matched)
+#If a full match of partner_check_digit_sequence is not achieved, then this returns 
+#(0, None).   
 #This is still lacking in that it does not detect a match to data not included in the last_said_digit_list.
 #
 def registerCheckDataWithLastSaidDataAndDataModel(partner_check_digit_sequence, last_said_digit_list, self_data_index_pointer):
@@ -2161,7 +2462,6 @@ def registerCheckDataWithLastSaidDataAndDataModel(partner_check_digit_sequence, 
 
     print 'registerCheck... partner: ' + str(partner_check_digit_sequence) + ' last_said: ' + str(last_said_digit_list) + ' self_data_index_pointer: ' + str(self_data_index_pointer)
     match_p = True
-    digit_match_count = 0
     if len(partner_check_digit_sequence) <= len(last_said_digit_list):
         i = 0
         while i < len(partner_check_digit_sequence):
@@ -2344,10 +2644,11 @@ def createAndStartWaitTimer(interval_msec):
 
 def stopTimer():
     global gl_wait_timer
-    if gl_wait_timer != None:
-        gl_wait_timer.stopTimer()
-        gl_wait_timer = None
-
+    if gl_wait_timer == None:
+        print 'no timer to stop'
+        return
+    gl_wait_timer.stopTimer()
+    gl_wait_timer = None
 
 
 
@@ -2674,3 +2975,122 @@ class OrderedMultinomialBelief_Old():
             i += 1
         ret_str += ' ]'
         return ret_str
+
+
+
+#For agent send role, handle InformTopicInfo of the following kinds
+#(DialogActs coming from information recipient partner):
+#  - partner check-confirming digit values only (CheckTopicInfo)
+#    In this case, try to align the partner's stated check digits with the self data model
+#    in order to infer what digits the partner is checking, some of which they might have
+#    checked before.  If alignment is successful and unambiguous, then it allows us to advance
+#    the partner index pointer, and set self data index pointer accordingly.
+#  - partner check-confirming digit values mixed with an indication of misunderstanding, e.g. what?
+#    In this case, place the partner data_index_pointer at the first what?, but send
+#    context digits mirroring the sender's
+#
+#These are InformTopicInfo because we are not currently able to parse input as multiple
+#candidate DialogActs with different intents.
+#This old before the first section was lifted and renamed, 
+#comparePartnerReportedDataAgainstSelfData(da_list),
+#so it could be used with handleInformTopicInfo and handleRequestTopicInfo
+#
+def handleInformTopicInfo_SendRole_Old(da_list):
+    global gl_agent
+
+    partner_digit_word_sequence = []
+
+    partner_expresses_confusion_p = False
+
+    print 'handleInformTopicInfo '
+    printAgentBeliefs()
+
+    #could be an interspersing of ItemValue(Digit( and ItemValue(DigitSequence
+    for da in da_list:
+        str_da = da.getPrintString()
+        if str_da.find('InformTopicInfo(ItemValue(Digit(') == 0:
+            start_index = len('InformTopicInfo(ItemValue(Digit(')
+            rp_index = str_da.find(')', start_index)
+            partner_check_digit_value = str_da[start_index:rp_index]
+            partner_digit_word_sequence.append(partner_check_digit_value)
+
+        elif str_da.find('InformTopicInfo(ItemValue(DigitSequence(') == 0:
+            start_index = len('InformTopicInfo(ItemValue(DigitSequence(')
+            rp_index = str_da.find(')', start_index)
+            digit_value_list = extractItemsFromCommaSeparatedListString(str_da[start_index:rp_index])
+            partner_digit_word_sequence.extend(digit_value_list)
+
+        #This applies to an isolated 'what?' or other non-digit which we intend to have substituted for a digit value so
+        #is indicative of confusion
+        #But the danger is that 'what' said with other words will be interpreted as confusion when it is not,
+        #and the system speaks 'I'll repeat that' when they really shouldn't.
+        elif str_da not in gl_digit_list and str_da.find('ConfirmDialogManagement') < 0:
+            #partner indicates confusion so we surmise they have not advanced their index pointer with this data chunk.
+            #So reset the tentative_partner_index_pointer.
+            partner_expresses_confusion_p = True
+            #Add ? partner utterance explicitly into the list of digits we heard them say, in order to
+            #pinpoint the index pointer for their indicated check-confusion
+            partner_digit_word_sequence.append('?')
+
+    last_self_utterance_tup = fetchLastUtteranceFromTurnHistory('self', [ 'InformTopicInfo' ])
+    last_self_utterance_da_list = last_self_utterance_tup[2]
+    last_sent_digit_value_list = collectDataValuesFromDialogActs(last_self_utterance_da_list)
+    self_data_index_pointer = gl_agent.self_dialog_model.data_index_pointer.getDominantValue()
+
+    #This is an easy out, to be made more sophisticated later
+    if partner_expresses_confusion_p:
+        #since we haven't advanced the self data index pointer, then actually we are re-sending the 
+        #previous chunk.  We could adjust chunk size at this point also.
+        ret = [gl_da_inform_dm_repeat_intention]
+        ret.extend(prepareNextDataChunk(gl_agent))
+        return ret
+
+    print 'last_sent_digit_value_list: ' + str(last_sent_digit_value_list) + ' partner_digit_word_sequence: ' + str(partner_digit_word_sequence)
+
+    #Here try to align partner's check digit sequence with what self has just provided as a partial digit sequence,
+    #or else with the context of previously provided values, or even with correct data that has not been provided
+    #in this conversation (i.e. if partner knows the phone number already)
+    
+    #This returns match_count = 0 if the partner_digit_word_sequence contains any errors or an 
+    #alignment match to self's data model cannot be found.
+    check_match_tup = registerCheckDataWithLastSaidDataAndDataModel(partner_digit_word_sequence, last_sent_digit_value_list, self_data_index_pointer)
+
+    match_count = check_match_tup[0]
+    print 'match_count: ' + str(match_count)
+    
+    #Only if check-confirm match was validated against self's belief model, update self's model
+    #for what partner believes about the data.
+    if match_count > 0:       
+
+        possiblyAdjustChunkSize(len(partner_digit_word_sequence))
+        #1.0 is full confidence that the partner's data belief is as self heard it
+        partner_dm = gl_agent.partner_dialog_model
+        newly_matched_digits = []
+        for digit_i in range(self_data_index_pointer, self_data_index_pointer + match_count):
+            digit_belief = gl_agent.self_dialog_model.data_model.data_beliefs[digit_i]
+            data_value_tuple = digit_belief.getHighestConfidenceValue()      #returns a tuple e.g. ('one', .8)
+            correct_digit_value = data_value_tuple[0]
+            partner_dm.data_model.setNthPhoneNumberDigit(digit_i, correct_digit_value, 1.0)
+            partner_index_pointer_value = partner_dm.data_index_pointer.getDominantValue()
+            partner_dm.data_index_pointer.setAllConfidenceInOne(digit_i+1)
+
+        #printAgentBeliefs()
+        middle_or_at_end = advanceSelfIndexPointer(gl_agent, match_count)  
+        print 'after advanceSelfIndexPointer...'
+        printAgentBeliefs()
+        (self_belief_partner_is_wrong_digit_indices, self_belief_partner_registers_unknown_digit_indices) = compareDataModelBeliefs()
+        #print 'self_belief_partner_is wrong...' + str(self_belief_partner_is_wrong_digit_indices) + ' self_belief unknown... ' +\
+        #    str(self_belief_partner_registers_unknown_digit_indices)
+
+        if middle_or_at_end == 'at-end' and len(self_belief_partner_is_wrong_digit_indices) == 0 and\
+                len(self_belief_partner_registers_unknown_digit_indices) == 0:
+            gl_agent.setRole('banter')
+            return [gl_da_all_done];
+
+        else:
+            return prepareAndSendNextDataChunkBasedOnDataBeliefComparisonAndIndexPointers()
+
+    ret = [gl_da_inform_dm_repeat_intention]
+    ret.extend(prepareNextDataChunk(gl_agent))
+    return ret
+
