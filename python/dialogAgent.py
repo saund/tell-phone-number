@@ -1383,14 +1383,16 @@ def handleRequestTopicInfo_RequestConfirmation(da_list):
             data_value_tuple = digit_belief.getHighestConfidenceValue()      #returns a tuple e.g. ('one', .8)
             correct_digit_value = data_value_tuple[0]
             partner_dm.data_model.setNthPhoneNumberDigit(digit_i, correct_digit_value, 1.0)
-            partner_index_pointer_value = partner_dm.data_index_pointer.getDominantValue()
-            partner_dm.data_index_pointer.setAllConfidenceInOne(digit_i+1)
+
+            #since this was a request about data but has not been confirmed, don't advance partnre index pointer
+            #because partner has not confirmed that they have accepted this data
+            #partner_dm.data_index_pointer.setAllConfidenceInOne(digit_i+1)
 
         #printAgentBeliefs()
         #since this was a request about data but has not been confirmed, don't advance self index pointer
         #middle_or_at_end = advanceSelfIndexPointer(gl_agent, match_count)  
         #print 'after advanceSelfIndexPointer...'
-        print 'not adancing self index pointer which is:' + str(gl_agent.self_dialog_model.data_index_pointer.getDominantValue())
+        print 'not advancing self index pointer which is:' + str(gl_agent.self_dialog_model.data_index_pointer.getDominantValue())
         printAgentBeliefs()
         (self_belief_partner_is_wrong_digit_indices, self_belief_partner_registers_unknown_digit_indices) = compareDataModelBeliefs()
 
@@ -2299,7 +2301,7 @@ def updateBeliefInPartnerDataStateBasedOnDataValues(da_list, update_digit_prob):
             print 'digit_value_list: ' + str(digit_value_list)
             return updateBeliefInPartnerDataStateForDigitValueList(digit_value_list, update_digit_prob)
         d_index = da_print_string.find('ItemValue(Digit(')
-        if d_index == 0:
+        if d_index >= 0:
             start_index = d_index + len('ItemValue(Digit(')
             rp_index = da_print_string.find(')', start_index)
             digit_value = da_print_string[start_index:rp_index]

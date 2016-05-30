@@ -587,6 +587,8 @@ GrammaticalIndicativeCat[indefinite] <-> a
 
 GrammaticalBeIndicativeCat[present-singular-definite-far] <-> is that
 GrammaticalBeIndicativeCat[past-singular-definite-far] <-> was that
+GrammaticalBeIndicativeCat[present-singular-definite-far] <-> so that was
+GrammaticalBeIndicativeCat[present-singular-definite-far] <-> so that's
 
 
 ActionCat[receive-info] <-> hear
@@ -598,6 +600,7 @@ ActionCat[receive-info] <-> understand
 
 #These should be fleshed out with arguments for checking different kinds of things
 CheckTopicInfo(request-confirmation) <-> is that
+CheckTopicInfo(request-confirmation) <-> right
 CheckTopicInfo(request-affirmation) <-> is that right
 CheckTopicInfo(request-affirmation) <-> is that correct
 
