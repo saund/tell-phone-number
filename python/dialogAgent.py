@@ -27,6 +27,15 @@ import math
 import thread
 import time
 import ruleProcessing as rp
+from gtts import gTTS
+
+#for playing a wav file
+import pyaudio
+import wave
+
+import speech_recognition as sr
+
+
 
 
 
@@ -46,6 +55,15 @@ def setUseWaitTimer(val):
     gl_use_wait_timer_p = val
 
 
+gl_use_speech_p = True
+
+def setUseSpeech(val):
+    global gl_use_speech_p
+    gl_use_speech_p = val
+
+
+
+
     
 #Reset state by creating a new agent and clearing the turn history.
 #Test the rules in gl_default_lf_rule_filename.
@@ -56,6 +74,7 @@ def loopDialog():
     global gl_turn_number
     global gl_time_tick_ms
     global gl_use_wait_timer_p
+    global gl_use_speech_p
     gl_agent = createBasicAgent()
     gl_turn_history = []  
     gl_turn_number = 0
@@ -63,6 +82,9 @@ def loopDialog():
     rp.initLFRulesIfNecessary()
     if gl_use_wait_timer_p:
         createAndStartWaitTimer(gl_time_tick_ms)
+    if gl_use_speech_p:
+        initializeASR(gl_energy_threshold)
+        startSpeechRunner()
 
     #rp.setTell(True)
 
@@ -72,11 +94,16 @@ def loopDialog():
     if da_generated_word_list != None:
         str_generated = ' '.join(da_generated_word_list)
         print 'gen: ' + str_generated
+
+        if gl_use_speech_p and len(str_generated) > 0:
+            ttsSpeakText(str_generated)
     
     loopDialogMain()
 
 
 def loopDialogMain():
+    global gl_agent
+    global gl_use_speech_p
     input_string = raw_input('Input: ')
     input_string = rp.removePunctuationAndLowerTextCasing(input_string)
 
@@ -112,11 +139,56 @@ def loopDialogMain():
         str_generated = ' '.join(output_word_list)
         print 'gen: ' + str_generated
 
+        if gl_use_speech_p and len(str_generated) > 0:
+            ttsSpeakText(str_generated)
+        
         input_string = raw_input('\nInput: ')
         input_string = rp.removePunctuationAndLowerTextCasing(input_string)
 
     if input_string == 'quit':
         stopTimer()
+        stopSpeechRunner()
+
+
+#Treat speech input the same as typed input
+def handleSpeechInput(input_string):
+    global gl_agent
+
+    print 'handleSpeechInput: ' + str(input_string)
+
+    rule_match_list = rp.applyLFRulesToString(input_string)
+    if rule_match_list == False:
+        print 'no DialogRule matches found'
+    else:
+        print 'MATCH: ' + str(rule_match_list);
+    da_list = rp.parseDialogActsFromRuleMatches(rule_match_list)
+
+    gl_agent.setTurn('self')
+    response_da_list = generateResponseToInputDialog(da_list)
+
+    #print 'got ' + str(len(da_list)) + ' DialogActs'
+    #print 'raw: ' + str(da_list)
+    output_word_list = []
+    for da in response_da_list:
+        #print 'intent:' + da.intent
+        #print 'arg_list: ' + str(da.arg_list)
+        da.printSelf()
+        da_generated_word_list = rp.generateTextFromDialogAct(da)
+        if da_generated_word_list == None:
+            print 'could not generate a string from da'
+        else:
+            output_word_list.extend(da_generated_word_list)
+        #print 'lfs: ' + str(da.arg_list)
+        #for lf in da.arg_list:
+        #    lf.printSelf()
+
+    #printAgentBeliefs(False)
+    str_generated = ' '.join(output_word_list)
+    print 'gen: ' + str_generated
+    if len(str_generated) > 0:
+        ttsSpeakText(str_generated)
+
+
 
 
 
@@ -809,6 +881,8 @@ def generateResponseToInputDialog(user_da_list):
         da_response = handleCorrectionTopicInfo(user_da_list)
     elif user_da_list[0].intent == 'CorrectionDialogManagement':
         da_response = handleCorrectionDialogManagement(user_da_list)
+    elif user_da_list[0].intent == 'RequestAction':
+        da_response = handleRequestAction(user_da_list)
 
     
     if da_response != None:
@@ -982,6 +1056,9 @@ gl_str_da_clarification_utterance_present = 'RequestDialogManagement(clarificati
 gl_digit_list = ['zero', 'oh', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine']
 
 
+gl_da_request_action_echo = rp.parseDialogActFromString('RequestAction(speak)')
+gl_str_da_request_action_echo = 'RequestAction(speak)'
+
 
 
 #gg
@@ -1034,7 +1111,7 @@ def handleInformTopicInfo_SendRole(da_list):
     global gl_agent
 
     print 'handleInformTopicInfo '
-    printAgentBeliefs()
+    #printAgentBeliefs()
 
     (partner_expresses_confusion_p, match_count, check_match_segment_name,\
          partner_digit_word_sequence) = comparePartnerReportedDataAgainstSelfData(da_list)
@@ -1068,7 +1145,7 @@ def handleInformTopicInfo_SendRole(da_list):
         #printAgentBeliefs()
         middle_or_at_end = advanceSelfIndexPointer(gl_agent, match_count)  
         print 'after advanceSelfIndexPointer...'
-        printAgentBeliefs()
+        #printAgentBeliefs()
         (self_belief_partner_is_wrong_digit_indices, self_belief_partner_registers_unknown_digit_indices) = compareDataModelBeliefs()
         #print 'self_belief_partner_is wrong...' + str(self_belief_partner_is_wrong_digit_indices) + ' self_belief unknown... ' +\
         #    str(self_belief_partner_registers_unknown_digit_indices)
@@ -1354,7 +1431,7 @@ def handleRequestTopicInfo_RequestConfirmation(da_list):
     global gl_most_recent_data_topic_da_list
 
     print 'handleRequestTopicInfo_RequestConfirmation '
-    printAgentBeliefs()
+    #printAgentBeliefs()
 
     (partner_expresses_confusion_p, match_count, check_match_segment_name,\
          partner_digit_word_sequence) = comparePartnerReportedDataAgainstSelfData(da_list)
@@ -1393,7 +1470,7 @@ def handleRequestTopicInfo_RequestConfirmation(da_list):
         #middle_or_at_end = advanceSelfIndexPointer(gl_agent, match_count)  
         #print 'after advanceSelfIndexPointer...'
         print 'not advancing self index pointer which is:' + str(gl_agent.self_dialog_model.data_index_pointer.getDominantValue())
-        printAgentBeliefs()
+        #printAgentBeliefs()
         (self_belief_partner_is_wrong_digit_indices, self_belief_partner_registers_unknown_digit_indices) = compareDataModelBeliefs()
 
         #since this was a request, don't move on with the next chunk, just issue confirmation
@@ -1811,7 +1888,7 @@ def handleConfirmDialogManagement(da_list):
     for da in da_list:
         print '   ' + da.getPrintString()
 
-    printAgentBeliefs(False)
+    #printAgentBeliefs(False)
 
     #handle affirmation continuer: 'User: okay or User: yes
     mapping = rp.recursivelyMapDialogRule(gl_da_affirmation, da_confirm_dm)
@@ -1819,6 +1896,7 @@ def handleConfirmDialogManagement(da_list):
         return
 
     if gl_agent.send_receive_role == 'banter':
+        #$$ here deal with yes, tell me a phone number, etc. expand banter capability
         return [dealWithMisalignedRoles(), issueDialogInvitation()]
 
     if gl_agent.send_receive_role == 'send':
@@ -1993,17 +2071,50 @@ def possiblyAdjustChunkSize(target_chunk_size):
 #Used if sender believes the recipient's information is incorrect.
 #
 
-#CorectionTopicInfo
+#CorrectionTopicInfo
 #Reiterate or affirm/disaffirm topic information.
 #
 def handleCorrectionTopicInfo(da_list):
     print 'handleCorrectionTopicInfo not written yet'
 
-#CorectionDialogManagement
+#CorrectionDialogManagement
 #Reiterate or affirm/disaffirm topic information.
 #
 def handleCorrectionDialogManagement(da_list):
     print 'handleCorrectionDialogManagement not written yet'
+
+
+
+
+####
+#
+#RequestAction
+#
+#Request robot action or speech
+#Used for testing TTS
+#
+
+#gl_tts_temp_file = 'C:/tmp/audio/gtts-out.wav'
+gl_tts_temp_file = 'C:/tmp/audio/gtts-out.mp3'
+
+#RequestAction
+#Reiterate or affirm/disaffirm topic information.
+#
+def handleRequestAction(da_list):
+    da0 = da_list[0]
+    print 'handleRequestAction'
+    for da in da_list:
+        print '    ' + da.getPrintString()
+
+    if da0.getPrintString() == gl_str_da_request_action_echo:
+        data_list = collectDataValuesFromDialogActs(da_list)
+        
+        tts_string = ' '.join(data_list)
+        print 'tts_string: ' + tts_string
+        ttsSpeakText(tts_string)
+
+
+
 
 
 #
@@ -2715,6 +2826,272 @@ def stopTimer():
 
 ###############################################################################
 #
+#ASR and TTS
+#
+
+
+######################################
+#
+#ASR Automatic Speech Recognition
+#
+#Using the SpeechRecognition package
+#https://pypi.python.org/pypi/SpeechRecognition/
+#
+
+#This borrows from 
+#Python/Lib/site-packages/speech_recognition/__main__
+
+gl_speech_recognizer = None
+gl_microphone = None
+
+gl_energy_threshold = 100
+
+def setSpeechEnergyThreshold(val):
+    gl_energy_threshold = val
+
+
+#The speech_recognizer sample demo uses dynamic adjustment of mic energy threshold.
+#I found this not to work very well, so we pass in an energy threshold
+def initializeASR(energy_threshold):
+    global gl_speech_recognizer
+    global gl_microphone
+    global gl_energy_threshold
+
+    gl_speech_recognizer = sr.Recognizer()
+    gl_microphone = sr.Microphone()
+
+    #The speech_recognizer sample demo uses dynamic adjustment of mic energy threshold.
+    #I found this not to work very well.
+    print("Calibrating background mic energy, a moment of silence please for this")
+    with gl_microphone as source: gl_speech_recognizer.adjust_for_ambient_noise(source)
+    print("possibly recommending an energy_threshold of {}".format(gl_speech_recognizer.energy_threshold))
+
+    gl_speech_recognizer.dynamic_energy_threshold = False
+    gl_speech_recognizer.energy_threshold = gl_energy_threshold
+    gl_speech_recognizer.pause_threshold = .3
+    gl_speech_recognizer.non_speaking_duration = min(gl_speech_recognizer.non_speaking_duration,\
+                                                         gl_speech_recognizer.pause_threshold)
+    print("Recognizer pause_threhsold is now " + str(gl_speech_recognizer.pause_threshold))
+
+
+
+
+#When speech is detected and recognized, callback_function is called with the recognized text 
+#string is sent as the function argument.
+class SpeechRunner():
+    def __init__(self, callback_function):
+        self.running_p = True
+        self.speechrunner_thread_id = thread.start_new_thread(self.speech_runner_thread_function, (callback_function,))
+
+    def speech_runner_thread_function(self, callback_function):
+        global gl_microphone
+        global gl_speech_recognizer
+        global gl_speech_runner_paused_p
+        while self.running_p:
+            print("Say something!")
+            with gl_microphone as source: audio = gl_speech_recognizer.listen(source)
+            print("Got it! Now to recognize it...")
+            try:
+                # recognize speech using Google Speech Recognition
+                value = gl_speech_recognizer.recognize_google(audio)
+
+                # we need some special handling here to correctly print unicode characters to standard output
+                if str is bytes: # this version of Python uses bytes for strings (Python 2)
+                    the_text = u"{}".format(value).encode("utf-8")
+                    #print(u"You said {}".format(value).encode("utf-8"))
+                else: # this version of Python uses unicode for strings (Python 3+)
+                    the_text = "{}".format(value)
+                    #print("You said {}".format(value))
+                print 'You said ' + the_text
+                the_text = spellOutDigits(the_text)
+
+                #The speech might have been picked up while pause was set
+                if gl_speech_runner_paused_p == True:
+                    print 'something was recognized while we speech recognition was supposed to be paused: '
+                    print 'the_text: ' + the_text
+                else:
+                    print 'the_text: ' + the_text
+                    callback_function(the_text)
+
+            except sr.UnknownValueError:
+                print("Oops! Didn't catch that")
+            except sr.RequestError as e:
+                print("Uh oh! Couldn't request results from Google Speech Recognition service; {0}".format(e))
+    
+    def stop(self):
+        self.running_p = False
+        print ' speech_runner should now be stopped'
+
+    def start(self):
+        self.running_p = True
+        print ' speech_runner should now be started'
+
+
+gl_speech_runner = None
+gl_speech_runner_paused_p = False
+
+def startSpeechRunner():
+    global gl_speech_runner
+    global gl_speech_runner_paused_p
+    if gl_speech_runner == None:
+        gl_speech_runner = SpeechRunner(handleSpeechInput)
+        gl_speech_runner_paused_p = False
+
+
+def stopSpeechRunner():
+    global gl_speech_runner
+    global gl_speech_runner_paused_p
+    if gl_speech_runner == None:
+        print 'no speech_runner to stop'
+        return
+    gl_speech_runner.stop()
+    gl_speech_runner = None
+
+
+def pauseSpeechRunner():
+    global gl_speech_runner
+    global gl_speech_runner_paused_p
+    if gl_speech_runner == None:
+        print 'no speech_runner to pause'
+        return
+    gl_speech_runner.stop()
+    gl_speech_runner_paused_p = True
+
+
+def resumeSpeechRunner():
+    global gl_speech_runner
+    global gl_speech_runner_paused_p
+    if gl_speech_runner == None:
+        print 'no speech_runner to resume'
+        return
+    gl_speech_runner.start()
+    gl_speech_runner_paused_p = False
+
+
+
+
+#ASR normally returns numerals for digits, we spell them out.
+#An isolated "two" is sometimes recognized as 'too'.
+#And what else...?
+def spellOutDigits(text_string):
+    text_string = text_string.replace('0', ' zero ')
+    text_string = text_string.replace('1', ' one ')
+    text_string = text_string.replace('2', ' two ')
+    text_string = text_string.replace('too', ' two ')
+    text_string = text_string.replace('3', ' three ')
+    text_string = text_string.replace('4', ' four ')
+    text_string = text_string.replace('5', ' five ')
+    text_string = text_string.replace('6', ' six ')
+    text_string = text_string.replace('7', ' seven ')
+    text_string = text_string.replace('8', ' eight ')
+    text_string = text_string.replace('9', ' nine ')
+    return text_string
+
+
+
+
+
+
+
+
+#
+#
+######################################
+
+######################################
+#
+#TTS Text to Speech
+#
+#Using the gTTS package 
+#https://pypi.python.org/pypi/gTTS
+#
+
+
+def ttsSpeakText(tts_string):
+    global gl_tts_temp_file
+
+    tts = gTTS(text=tts_string, lang='en')
+    tts.save(gl_tts_temp_file)
+
+    pauseSpeechRunner()
+    playMP3(gl_tts_temp_file)
+    resumeSpeechRunner()
+
+
+
+#This is to play an mp3 file.
+#It only works on Windows.  We'll have to figure out something else
+#for other platforms.
+#
+#https://lawlessguy.wordpress.com/2016/02/10/play-mp3-files-with-python-windows/
+# Copyright (c) 2011 by James K. Lawless
+# jimbo@radiks.net http://www.mailsend-online.com
+# License: MIT / X11
+# See: http://www.mailsend-online.com/license.php
+# for full license details.
+ 
+from ctypes import *;
+ 
+winmm = windll.winmm
+ 
+def mciSend(s):
+   i=winmm.mciSendStringA(s,0,0,0)
+   if i<>0:
+      print "Error %d in mciSendString %s" % ( i, s )
+ 
+def playMP3(mp3Name):
+   mciSend("Close All")
+   mciSend("Open \"%s\" Type MPEGVideo Alias theMP3" % mp3Name)
+   mciSend("Play theMP3 Wait")
+   mciSend("Close theMP3")
+ 
+
+
+#But guess what, google tts apparenly only outputs an mp3 file, not a wav file.
+#http://stackoverflow.com/questions/6951046/pyaudio-help-play-a-file
+def playWavFile(wav_filepath):
+
+    # length of data to read.
+    play_chunk_size = 1024
+    
+
+    # open the file for reading.
+    wf = wave.open(wav_filepath, 'rb')
+
+    # create an audio object
+    p = pyaudio.PyAudio()
+
+    # open stream based on the wave object which has been input.
+    stream = p.open(format =
+                    p.get_format_from_width(wf.getsampwidth()),
+                    channels = wf.getnchannels(),
+                    rate = wf.getframerate(),
+                    output = True)
+
+    # read data (based on the play_chunk_size)
+    data = wf.readframes(play_chunk_size)
+
+    # play stream (looping from beginning of file to the end)
+    while data != '':
+        # writing to the stream is what *actually* plays the sound.
+        stream.write(data)
+        data = wf.readframes(play_chunk_size)
+
+    # cleanup stuff.
+    stream.close()    
+    p.terminate()
+
+
+#
+#
+######################################
+#
+###############################################################################
+
+
+
+###############################################################################
+#
 #Utils
 #
 
@@ -2875,7 +3252,7 @@ def handleInformTopicInfo_SendRole_old(da_list):
         #printAgentBeliefs()
         middle_or_at_end = advanceSelfIndexPointer(gl_agent, pointer_advance_count)  
         print 'after advanceSelfIndexPointer...'
-        printAgentBeliefs()
+        #printAgentBeliefs()
         (self_belief_partner_is_wrong_digit_indices, self_belief_partner_registers_unknown_digit_indices) = compareDataModelBeliefs()
         print 'self_belief_partner_is wrong...' + str(self_belief_partner_is_wrong_digit_indices) + ' self_belief unknown... ' +\
             str(self_belief_partner_registers_unknown_digit_indices)
@@ -2892,7 +3269,7 @@ def handleInformTopicInfo_SendRole_old(da_list):
     
 
 
-
+#Seems to be leftover from development
 def nothingHereChief():
     #Pick off the most straightforward case, where partner echoes the last sent digits correctly
     mismatch_p = False
@@ -2909,7 +3286,7 @@ def nothingHereChief():
         #printAgentBeliefs()
         middle_or_at_end = advanceSelfIndexPointer(gl_agent, pointer_advance_count)  
         print 'after advanceSelfIndexPointer...'
-        printAgentBeliefs()
+        #printAgentBeliefs()
         (self_belief_partner_is_wrong_digit_indices, self_belief_partner_registers_unknown_digit_indices) = compareDataModelBeliefs()
         print 'self_belief_partner_is wrong...' + str(self_belief_partner_is_wrong_digit_indices) + ' self_belief unknown... ' +\
             str(self_belief_partner_registers_unknown_digit_indices)
@@ -3058,7 +3435,7 @@ def handleInformTopicInfo_SendRole_Old(da_list):
     partner_expresses_confusion_p = False
 
     print 'handleInformTopicInfo '
-    printAgentBeliefs()
+    #printAgentBeliefs()
 
     #could be an interspersing of ItemValue(Digit( and ItemValue(DigitSequence
     for da in da_list:
@@ -3132,7 +3509,7 @@ def handleInformTopicInfo_SendRole_Old(da_list):
         #printAgentBeliefs()
         middle_or_at_end = advanceSelfIndexPointer(gl_agent, match_count)  
         print 'after advanceSelfIndexPointer...'
-        printAgentBeliefs()
+        #printAgentBeliefs()
         (self_belief_partner_is_wrong_digit_indices, self_belief_partner_registers_unknown_digit_indices) = compareDataModelBeliefs()
         #print 'self_belief_partner_is wrong...' + str(self_belief_partner_is_wrong_digit_indices) + ' self_belief unknown... ' +\
         #    str(self_belief_partner_registers_unknown_digit_indices)

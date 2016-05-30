@@ -607,6 +607,10 @@ CheckTopicInfo(request-affirmation) <-> is that correct
 
 
 
+#Beyond the five basic DialogActs required for data communication,
+#RequestAction is for robot interaction, and also testing TTS.
+RequestAction(speak) <-> echo
+
 
 
 
