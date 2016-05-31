@@ -110,7 +110,7 @@ def loopDialog(use_debug_mode=False):
 
         if gl_use_speech_p and len(str_generated) > 0:
             ttsSpeakText(str_generated)
-            resetNextTurnBeliefs()
+            resetCurrentTurnBeliefs()
 
         writeToTranscriptFile('Output: ' + str_generated)
     
@@ -187,7 +187,7 @@ def loopDialogMain():
 
             if gl_use_speech_p and len(str_generated) > 0:
                 ttsSpeakText(str_generated)
-                resetNextTurnBeliefs()
+                resetCurrentTurnBeliefs()
 
             writeToTranscriptFile('Output: ' + str_generated)
 
@@ -292,15 +292,15 @@ def fetchLastUtteranceFromTurnHistory(self_or_partner, target_intent_list='any')
 
 
 
-#Remember who the next turn belongs to so that the turn beliefs may be reset after
-#TTS output has finished speaking.  This essentially resets the wait timer for when 
-#self decides that their turn belief exceeds threshold because they thought it was
-#partner's turn but partner hasn't taken it.
-gl_next_turn_holder = 'either'
+#Remember who the current turn belongs to so that the turn beliefs may be reset after
+#TTS output has finished speaking or while ASR is collecting ongoing speech.
+#This essentially resets the wait timer for when self decides that their turn belief 
+#exceeds threshold because they thought it was partner's turn but partner hasn't taken it.
+gl_current_turn_holder = 'either'
 
-def resetNextTurnBeliefs():
+def resetCurrentTurnBeliefs():
     global gl_agent
-    gl_agent.setTurn(gl_next_turn_holder)
+    gl_agent.setTurn(gl_current_turn_holder)
 
 
 
@@ -424,8 +424,8 @@ class DialogAgent():
 
     #turn_value can be 'self', 'either', 'partner'
     def setTurn(self, turn_value):
-        global gl_next_turn_holder
-        gl_next_turn_holder = turn_value
+        global gl_current_turn_holder
+        gl_current_turn_holder = turn_value
         self.self_dialog_model.turn.setAllConfidenceInOne(turn_value)
         self.partner_dialog_model.turn.setAllConfidenceInOne(turn_value)
 
@@ -2023,11 +2023,13 @@ def handleConfirmDialogManagement_SendRole(da_list):
 
     #advances the partner's index pointer
     print ' AB'
+    printAgentBeliefs(False)
     pointer_advance_count = updateBeliefInPartnerDataStateBasedOnMostRecentTopicData(gl_confidence_for_confirm_affirmation_of_data_value) 
     print 'after updateBeliefIn... pointer_advance_count is ' + str(pointer_advance_count)
     #this causes an error on RequestTopicInfo(request-confirmation) if partner asks about 
     #e.g. one digit when self said three
     #pointer_advance_count = updateBeliefInPartnerDataStateBasedOnLastDataSent(gl_confidence_for_confirm_affirmation_of_data_value)  
+    printAgentBeliefs(False)
 
     middle_or_at_end = advanceSelfIndexPointer(gl_agent, pointer_advance_count)  
     (self_belief_partner_is_wrong_digit_indices, self_belief_partner_registers_unknown_digit_indices) = compareDataModelBeliefs()
@@ -2291,24 +2293,7 @@ def prepareNextDataChunk(agent):
     if consensus_index_pointer >= 10:
         return [gl_da_all_done];
 
-
-#    chunk_size = -1
-#    #try to choose chunk size 3 for area code, 3, for exchange
-#    pref_chunk_size_options = agent.self_dialog_model.protocol_chunk_size.getTwoMostDominantValues()
-#    if consensus_index_pointer == 0 or consensus_index_pointer == 3:
-#        if pref_chunk_size_options[0][1] > .4 and pref_chunk_size_options[0][0] == 3 or\
-#           pref_chunk_size_options[1][1] > .4 and pref_chunk_size_options[1][0] == 3:
-#            chunk_size = 3
-#    #try to choose chunk size 4 for last four digits
-#    if consensus_index_pointer == 6:
-#        if pref_chunk_size_options[0][1] > .4 and pref_chunk_size_options[0][0] == 4 or\
-#           pref_chunk_size_options[1][1] > .4 and pref_chunk_size_options[1][0] == 4:
-#            chunk_size = 4
-#    if chunk_size == -1:
-#        chunk_size = agent.self_dialog_model.protocol_chunk_size.getDominantValue()
-
     #choose chunk size to advance to the next segment boundary (area-code, exchange, line-number)
-
     for segment_name in agent.self_dialog_model.data_model.data_indices.keys():
         segment_indices = agent.self_dialog_model.data_model.data_indices[segment_name]
         segment_start_index = segment_indices[0]
@@ -2843,13 +2828,27 @@ gl_time_tick_turn_delta = .01
 #self has something to say or not.
 gl_wait_turn_conf_threshold = .6
 
-###                                                                  ###
-### NOTE: This is called in a different thread from the main thread! ###
-###                                                                  ###
+
+
+### NOTE: This is called in a different thread from the main thread.
+#
 def handleTimingTick():
     global gl_agent
+    global gl_use_speech_p
+    global gl_speech_recognizer
     if gl_agent == None:
         return
+
+    #if partner is speaking then return the turn to them
+    if gl_use_speech_p:        
+        # phase0 is not listening, but could be processing
+        # phase1 is listening for speech to start
+        # phase2 is listening for speech to stop
+        speech_phase = gl_speech_recognizer.getListenState()
+        #print 'speech_phase: ' + speech_phase
+        if speech_phase == 'phase2' or speech_phase == 'phase0':
+            resetCurrentTurnBeliefs()
+
     gl_agent.adjustTurnTowardSelf(gl_time_tick_turn_delta)
     #print 'self turn confidence: ' + str(gl_agent.self_dialog_model.getTurnConfidence('self'))
 
@@ -3008,7 +3007,7 @@ class SpeechRunner():
             #    print 'got audio but this SpeechRecognizer is terminated'
             #    return
 
-            print("Got it! Now to recognize it..." + str(self.stop_p))
+            print("Got it! Now to recognize it...")
             try:
                 if self.stop_p:
                     print 'Quitting out of speech_runner_thread_function'
@@ -3127,7 +3126,9 @@ def stopSpeechRunner():
 #An isolated "two" is sometimes recognized as 'too'.
 #And what else...?
 def spellOutDigits(text_string):
+    #print 'spell out digits input: ' + text_string
     text_string = text_string.replace('0', ' zero ')
+    text_string = text_string.replace('to one', ' two one') #'one to one'
     text_string = text_string.replace('1', ' one ')
     text_string = text_string.replace('2', ' two ')
     text_string = text_string.replace('too', ' two ')
@@ -3138,6 +3139,7 @@ def spellOutDigits(text_string):
     text_string = text_string.replace('7', ' seven ')
     text_string = text_string.replace('8', ' eight ')
     text_string = text_string.replace('9', ' nine ')
+    #print 'spell out digits output: ' + text_string
     return text_string
 
 
@@ -3744,7 +3746,7 @@ def loopDialogMain_Old():
 
         if gl_use_speech_p and len(str_generated) > 0:
             ttsSpeakText(str_generated)
-            resetNextTurnBeliefs()
+            resetCurrentTurnBeliefs()
 
         writeToTranscriptFile('Output: ' + str_generated)
         
@@ -3851,7 +3853,7 @@ def handleSpeechInput_Old(input_string):
     print 'gen: ' + str_generated
     if len(str_generated) > 0:
         ttsSpeakText(str_generated)
-        resetNextTurnBeliefs()
+        resetCurrentTurnBeliefs()
 
     writeToTranscriptFile('Output: ' + str_generated)
 

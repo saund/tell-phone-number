@@ -401,12 +401,21 @@ class Recognizer(AudioSource):
         self.pause_threshold = 0.8 # seconds of non-speaking audio before a phrase is considered complete
         self.phrase_threshold = 0.3 # minimum seconds of speaking audio before we consider the speaking audio a phrase - values below this are ignored (for filtering out clicks and pops)
         self.non_speaking_duration = 0.5 # seconds of non-speaking audio to keep on both sides of the recording
+        
+        #-ES
         self.quit_p = False
+        self.listen_state = 'phase0'  # phase0 is not listening
+                                      # phase1 is listening for speech to start
+                                      # phase2 is listening for speech to stop
 
     #-ES 2016/05/30
     def stopListening(self):
         print 'speech recognizer stopListening received'
         self.quit_p = True
+
+    #-ES 2016/05/31
+    def getListenState(self):
+        return self.listen_state
 
     def record(self, source, duration = None, offset = None):
         """
@@ -468,6 +477,10 @@ class Recognizer(AudioSource):
             target_energy = energy * self.dynamic_energy_ratio
             self.energy_threshold = self.energy_threshold * damping + target_energy * (1 - damping)
 
+    #modified to allow quit abort of listening for when TTS is speaking
+    #modified to allow query of whether speech has been detected, so we don't timeout and reply while 
+    #the partner is speaking
+    #-ES 
     def listen(self, source, timeout = None):
         #-ES 2016/05/30
         self.quit_p = False
@@ -491,7 +504,7 @@ class Recognizer(AudioSource):
         # read audio input for phrases until there is a phrase that is long enough
         elapsed_time = 0 # number of seconds of audio read
         while True:
-
+            self.listen_state = 'phase1'
             #-ES 2015/05/30
             if self.quit_p:
                 print 'speech_recognizer_tpn quitting 1'
@@ -501,6 +514,7 @@ class Recognizer(AudioSource):
 
             # store audio input until the phrase starts
             while True:
+                self.listen_state = 'phase1'
                 #-ES 2015/05/30
                 if self.quit_p:
                     print 'speech_recognizer_tpn quitting 2'
@@ -528,9 +542,11 @@ class Recognizer(AudioSource):
                     self.energy_threshold = self.energy_threshold * damping + target_energy * (1 - damping)
 
             print 'speech start'
+
             # read audio input until the phrase ends
             pause_count, phrase_count = 0, 0
             while True:
+                self.listen_state = 'phase2'
                 
                 #-ES 2015/05/30
                 if self.quit_p:
@@ -558,9 +574,11 @@ class Recognizer(AudioSource):
             if phrase_count >= phrase_buffer_count: break # phrase is long enough, stop listening
 
         # obtain frame data
+        self.listen_state = 'phase3'
         for i in range(pause_count - non_speaking_buffer_count): frames.pop() # remove extra non-speaking frames at the end
         frame_data = b"".join(list(frames))
         print 'speech end'
+        self.listen_state = 'phase0'
 
         return AudioData(frame_data, source.SAMPLE_RATE, source.SAMPLE_WIDTH)
 
