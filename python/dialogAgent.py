@@ -33,7 +33,11 @@ from gtts import gTTS
 import pyaudio
 import wave
 
-import speech_recognition as sr
+#import speech_recognition as sr
+#Using a modified version of the speech_recognition library __init__.py file
+#to give us the ability to abort out of listening.
+import speech_recognition_tpn as sr
+
 
 
 
@@ -48,13 +52,15 @@ def loopDialogTest():
 gl_agent = None
 #gl_turn_history = []   defined below
 
-gl_use_wait_timer_p = False
+#This is set by use_debug_mode of loopDialog function
+gl_use_wait_timer_p = True
 
 def setUseWaitTimer(val):
     global gl_use_wait_timer_p
     gl_use_wait_timer_p = val
 
 
+#This is set by use_debug_mode of loopDialog function
 gl_use_speech_p = True
 
 def setUseSpeech(val):
@@ -63,18 +69,24 @@ def setUseSpeech(val):
 
 
 
-
     
 #Reset state by creating a new agent and clearing the turn history.
 #Test the rules in gl_default_lf_rule_filename.
 #Loop one input and print out the set of DialogActs interpreted
-def loopDialog():
+def loopDialog(use_debug_mode=False):
     global gl_agent
     global gl_turn_history
     global gl_turn_number
     global gl_time_tick_ms
     global gl_use_wait_timer_p
     global gl_use_speech_p
+    if use_debug_mode:
+        gl_use_speech_p = False
+        gl_use_wait_timer_p = False  
+    else:
+        gl_use_speech_p = True
+        gl_use_wait_timer_p = True
+
     gl_agent = createBasicAgent()
     gl_turn_history = []  
     gl_turn_number = 0
@@ -84,9 +96,10 @@ def loopDialog():
         createAndStartWaitTimer(gl_time_tick_ms)
     if gl_use_speech_p:
         initializeASR(gl_energy_threshold)
-        startSpeechRunner()
+        startNewSpeechRunner()
 
     #rp.setTell(True)
+    openTranscriptFile()
 
     da_issue_dialog_invitation = issueDialogInvitation()
     da_generated_word_list = rp.generateTextFromDialogAct(da_issue_dialog_invitation)
@@ -97,63 +110,150 @@ def loopDialog():
 
         if gl_use_speech_p and len(str_generated) > 0:
             ttsSpeakText(str_generated)
+            resetNextTurnBeliefs()
+
+        writeToTranscriptFile('Output: ' + str_generated)
     
     loopDialogMain()
 
 
-def loopDialogMain():
-    global gl_agent
-    global gl_use_speech_p
-    input_string = raw_input('Input: ')
-    input_string = rp.removePunctuationAndLowerTextCasing(input_string)
+#a list of tuples of Dialog Acts.  Each tuple is of the form,
+#  (originator, dialog_act_list)
+#Most of the time this will be empty.  The keyboard input, wait timeout,
+#and ASR threads all place things on the end.  The loop takes things off the front
+gl_dialog_act_queue = []
 
-    while input_string != 'stop' and input_string != 'quit':
-        #print '\n' + input_string
+gl_stop_main_loop = False
+
+def stopMainLoop():
+    global gl_stop_main_loop
+    print 'stopMainLoop setting gl_stop_main_loop to True'
+    gl_stop_main_loop = True
+
+
+#To deal with the multiple input modalities, this uses a polling strategy.
+#The first version had a while loop that blocked on keyboard input.
+#Then, wait timeout and ASR ran on separate threads.  But wait timeout has
+#to be reset after TTS, and TTS has to shut off ASR so the ASR doesn't respond
+#to TTS utterances.  This all got very complicated and the different threads were 
+#tripping over themselves.
+#
+#So the new strategy is that the main loop takes things off an input queue.  The various
+#threads are able to add to the queue independently.
+#Not sure if thread locks will be necessary.  Probably the queue should be locked
+#by anyone modifying it.
+def loopDialogMain():
+    global gl_dialog_act_queue
+    global gl_stop_main_loop
+    global gl_agent
+
+    gl_stop_main_loop = False
+    startKeyboardInputThread()
+    gl_dialog_act_queue = []
+
+    while gl_stop_main_loop == False:
+        time.sleep(.01)     #run at 100Hz
+        #time.sleep(2.0)     #run at 100Hz
+        #print ' in main loop, gl_stop_main_loop: ' + str(gl_stop_main_loop)
+
+        if len(gl_dialog_act_queue) > 0:
+            
+            da_item = gl_dialog_act_queue[0]
+            gl_dialog_act_queue = gl_dialog_act_queue[1:]
+
+            print '\nhandling input from ' + da_item[0]
+            da_list = da_item[1]
+            response_da_list = generateResponseToInputDialog(da_list)
+
+            #print 'got ' + str(len(da_list)) + ' DialogActs'
+            #print 'raw: ' + str(da_list)
+            output_word_list = []
+            for da in response_da_list:
+                #print 'intent:' + da.intent
+                #print 'arg_list: ' + str(da.arg_list)
+                da.printSelf()
+                da_generated_word_list = rp.generateTextFromDialogAct(da)
+                if da_generated_word_list == None:
+                    print 'could not generate a string from da'
+                else:
+                    output_word_list.extend(da_generated_word_list)
+                #print 'lfs: ' + str(da.arg_list)
+                #for lf in da.arg_list:
+                #    lf.printSelf()
+
+            #printAgentBeliefs(False)
+            str_generated = ' '.join(output_word_list)
+            print 'gen: ' + str_generated
+
+            if gl_use_speech_p and len(str_generated) > 0:
+                ttsSpeakText(str_generated)
+                resetNextTurnBeliefs()
+
+            writeToTranscriptFile('Output: ' + str_generated)
+
+            #print '\nInput:'
+            sys.stdout.write('Input: ')
+            sys.stdout.flush()
+        
+    stopKeyboardInputThread()
+    stopTimer()
+    stopSpeechRunner()
+    closeTranscriptFile()
+
+
+
+def startKeyboardInputThread():
+    thread.start_new_thread(keyboardInputThreadFunction, (keyboard_input_callback_function,))
+
+keyboard_input_running_p = False
+
+def stopKeyboardInputThread():
+    global keyboard_input_running_p
+    print 'stopKeyboardInputThread()'
+    keyboard_input_running_p = False
+
+def keyboardInputThreadFunction(keyboard_input_callback_function):
+    global keyboard_input_running_p
+    keyboard_input_running_p = True
+
+    print 'keyboard input started'
+    while keyboard_input_running_p:
+        input_string = raw_input('\nKInput: ')
+        input_string = rp.removePunctuationAndLowerTextCasing(input_string)
+
+        print 'keyboard sees: ' + input_string
+        if input_string == 'quit':
+            print 'quit seen, calling stopMainLoop()'
+            stopMainLoop()
+            keyboard_input_running_p = False
+
         rule_match_list = rp.applyLFRulesToString(input_string)
         if rule_match_list == False:
             print 'no DialogRule matches found'
         else:
             print 'MATCH: ' + str(rule_match_list);
-        da_list = rp.parseDialogActsFromRuleMatches(rule_match_list)
+            da_list = rp.parseDialogActsFromRuleMatches(rule_match_list)
+        keyboard_input_callback_function(da_list)
 
-        gl_agent.setTurn('self')
-        response_da_list = generateResponseToInputDialog(da_list)
+    print 'keyboard input stopped'
 
-        #print 'got ' + str(len(da_list)) + ' DialogActs'
-        #print 'raw: ' + str(da_list)
-        output_word_list = []
-        for da in response_da_list:
-            #print 'intent:' + da.intent
-            #print 'arg_list: ' + str(da.arg_list)
-            da.printSelf()
-            da_generated_word_list = rp.generateTextFromDialogAct(da)
-            if da_generated_word_list == None:
-                print 'could not generate a string from da'
-            else:
-                output_word_list.extend(da_generated_word_list)
-            #print 'lfs: ' + str(da.arg_list)
-            #for lf in da.arg_list:
-            #    lf.printSelf()
 
-        #printAgentBeliefs(False)
-        str_generated = ' '.join(output_word_list)
-        print 'gen: ' + str_generated
+def keyboard_input_callback_function(da_list):
+    global gl_dialog_act_queue
+    gl_dialog_act_queue.append(('Keyboard', da_list))
 
-        if gl_use_speech_p and len(str_generated) > 0:
-            ttsSpeakText(str_generated)
-        
-        input_string = raw_input('\nInput: ')
-        input_string = rp.removePunctuationAndLowerTextCasing(input_string)
+    
 
-    if input_string == 'quit':
-        stopTimer()
-        stopSpeechRunner()
+
+
+
 
 
 #Treat speech input the same as typed input
 def handleSpeechInput(input_string):
-    global gl_agent
+    global gl_dialog_act_queue
 
+    writeToTranscriptFile('Input: ' + input_string)
     print 'handleSpeechInput: ' + str(input_string)
 
     rule_match_list = rp.applyLFRulesToString(input_string)
@@ -163,33 +263,8 @@ def handleSpeechInput(input_string):
         print 'MATCH: ' + str(rule_match_list);
     da_list = rp.parseDialogActsFromRuleMatches(rule_match_list)
 
-    gl_agent.setTurn('self')
-    response_da_list = generateResponseToInputDialog(da_list)
-
-    #print 'got ' + str(len(da_list)) + ' DialogActs'
-    #print 'raw: ' + str(da_list)
-    output_word_list = []
-    for da in response_da_list:
-        #print 'intent:' + da.intent
-        #print 'arg_list: ' + str(da.arg_list)
-        da.printSelf()
-        da_generated_word_list = rp.generateTextFromDialogAct(da)
-        if da_generated_word_list == None:
-            print 'could not generate a string from da'
-        else:
-            output_word_list.extend(da_generated_word_list)
-        #print 'lfs: ' + str(da.arg_list)
-        #for lf in da.arg_list:
-        #    lf.printSelf()
-
-    #printAgentBeliefs(False)
-    str_generated = ' '.join(output_word_list)
-    print 'gen: ' + str_generated
-    if len(str_generated) > 0:
-        ttsSpeakText(str_generated)
-
-
-
+    if len(da_list) > 0:
+        gl_dialog_act_queue.append(('Speech', da_list))
 
 
 
@@ -213,6 +288,21 @@ def fetchLastUtteranceFromTurnHistory(self_or_partner, target_intent_list='any')
                 if da.intent in target_intent_list:
                     return item_tup
     return None
+
+
+
+
+#Remember who the next turn belongs to so that the turn beliefs may be reset after
+#TTS output has finished speaking.  This essentially resets the wait timer for when 
+#self decides that their turn belief exceeds threshold because they thought it was
+#partner's turn but partner hasn't taken it.
+gl_next_turn_holder = 'either'
+
+def resetNextTurnBeliefs():
+    global gl_agent
+    gl_agent.setTurn(gl_next_turn_holder)
+
+
 
 
 
@@ -334,8 +424,12 @@ class DialogAgent():
 
     #turn_value can be 'self', 'either', 'partner'
     def setTurn(self, turn_value):
+        global gl_next_turn_holder
+        gl_next_turn_holder = turn_value
         self.self_dialog_model.turn.setAllConfidenceInOne(turn_value)
         self.partner_dialog_model.turn.setAllConfidenceInOne(turn_value)
+
+
 
     def adjustTurnTowardSelf(self, delta):
         self.self_dialog_model.adjustTurnTowardSelf(delta)
@@ -907,7 +1001,6 @@ def generateResponseToInputDialog(user_da_list):
     for da in gl_most_recent_data_topic_da_list:
         print da.getPrintString()
     print ' ..'
-
         
     gl_agent.setTurn('partner')
     return da_response
@@ -1059,6 +1152,12 @@ gl_digit_list = ['zero', 'oh', 'one', 'two', 'three', 'four', 'five', 'six', 'se
 gl_da_request_action_echo = rp.parseDialogActFromString('RequestAction(speak)')
 gl_str_da_request_action_echo = 'RequestAction(speak)'
 
+
+gl_da_misaligned_roles = rp.parseDialogActFromString('InformDialogManagement(misaligned-roles)')
+gl_da_dialog_invitation = rp.parseDialogActFromString('InformDialogManagement(dialog-invitation)')
+
+gl_da_misaligned_index_pointer = rp.parseDialogActFromString('InformDialogManagement(misaligned-index-pointer)')
+gl_da_misaligned_digit_values = rp.parseDialogActFromString('InformDialogManagement(misaligned-digit-values)')
 
 
 #gg
@@ -1876,87 +1975,113 @@ gl_confidence_for_confirm_affirmation_of_data_value = .8
 #ConfirmDialogManagement
 #Reiterate or affirm/disaffirm dialog management protocol state.
 #
-#This needs to take into account self role
-#Now written only for 'send' (or when the data sender receive a ConfirmDialogManagement 
-#DialogAct from the data recipient).
-#Also used if the speaker is the information recipient but is taking authoritative
-#stance about and responsibility for their topic belief.
+#[Also used if the speaker is the information recipient but is taking authoritative
+# stance about and responsibility for their topic belief.]
 def handleConfirmDialogManagement(da_list):
     da_confirm_dm = da_list[0]
-
-    print 'handleConfirmDialogManagement'
-    for da in da_list:
-        print '   ' + da.getPrintString()
 
     #printAgentBeliefs(False)
 
     #handle affirmation continuer: 'User: okay or User: yes
+    #right now, we don't have any other kind of ConfirmDialogManagement
     mapping = rp.recursivelyMapDialogRule(gl_da_affirmation, da_confirm_dm)
     if mapping == None:
         return
-
     if gl_agent.send_receive_role == 'banter':
-        #$$ here deal with yes, tell me a phone number, etc. expand banter capability
-        return [dealWithMisalignedRoles(), issueDialogInvitation()]
+        return handleConfirmDialogManagement_BanterRole(da_list)
 
     if gl_agent.send_receive_role == 'send':
+        return handleConfirmDialogManagement_SendRole(da_list)
 
-        # here we need to detect any number in the da_list
-        #if there is one, then strip off the initial confirm before it updateBeliefInPartnerDataState because
-        #the number overrides the general affirmation and gets specific about what is being confirmed
+    if gl_agent.send_receive_role == 'receive':
+        return handleConfirmDialogManagement_ReceiveRole(da_list)
+
+
+#When the data topic info sender receive a ConfirmDialogManagement DialogAct from the topic info recipient.
+def handleConfirmDialogManagement_SendRole(da_list):
+    print 'handleConfirmDialogManagement_SendRole'
+    for da in da_list:
+        print '   ' + da.getPrintString()
+
+    # here we need to detect any number in the da_list
+    #if there is one, then strip off the initial confirm before it updateBeliefInPartnerDataState because
+    #the number overrides the general affirmation and gets specific about what is being confirmed
         
-        #In case the ConfirmDialogManagement DialogAct is compounded with other DialogActs on this turn,
-        #strip out the ConfirmDialogManagement DialogActs and call generateResponseToInputDialog again recursively.
-        #Strip out all affirmations from the list of remaining DialogActs to avoid the mistake of calling
-        #updateBeliefInPartner...on this partner turn, when the turn also contains details like a digit
-        #being confirmed.
-        da_list_no_confirm = []
-        for da in da_list:
-            str_da = da.getPrintString();
-            if str_da.find('ConfirmDialogManagement') < 0:
-                da_list_no_confirm.append(da)
-        print 'len(da_list_no_confirm): ' + str(len(da_list_no_confirm)) + ' len(da_list): ' + str(len(da_list))
-        if len(da_list_no_confirm) > 0:
-            return generateResponseToInputDialog(da_list_no_confirm)
+    #In case the ConfirmDialogManagement DialogAct is compounded with other DialogActs on this turn,
+    #strip out the ConfirmDialogManagement DialogActs and call generateResponseToInputDialog again recursively.
+    #Strip out all affirmations from the list of remaining DialogActs to avoid the mistake of calling
+    #updateBeliefInPartner...on this partner turn, when the turn also contains details like a digit
+    #being confirmed.
+    da_list_no_confirm = []
+    for da in da_list:
+        str_da = da.getPrintString();
+        if str_da.find('ConfirmDialogManagement') < 0:
+            da_list_no_confirm.append(da)
+    print 'len(da_list_no_confirm): ' + str(len(da_list_no_confirm)) + ' len(da_list): ' + str(len(da_list))
+    if len(da_list_no_confirm) > 0:
+        return generateResponseToInputDialog(da_list_no_confirm)
 
-        #advances the partner's index pointer
-        print ' AB'
-        pointer_advance_count = updateBeliefInPartnerDataStateBasedOnMostRecentTopicData(gl_confidence_for_confirm_affirmation_of_data_value) 
-        print 'after updateBeliefIn... pointer_advance_count is ' + str(pointer_advance_count)
-        #this causes an error on RequestTopicInfo(request-confirmation) if partner asks about 
-        #e.g. one digit when self said three
-        #pointer_advance_count = updateBeliefInPartnerDataStateBasedOnLastDataSent(gl_confidence_for_confirm_affirmation_of_data_value)  
+    #advances the partner's index pointer
+    print ' AB'
+    pointer_advance_count = updateBeliefInPartnerDataStateBasedOnMostRecentTopicData(gl_confidence_for_confirm_affirmation_of_data_value) 
+    print 'after updateBeliefIn... pointer_advance_count is ' + str(pointer_advance_count)
+    #this causes an error on RequestTopicInfo(request-confirmation) if partner asks about 
+    #e.g. one digit when self said three
+    #pointer_advance_count = updateBeliefInPartnerDataStateBasedOnLastDataSent(gl_confidence_for_confirm_affirmation_of_data_value)  
 
-        middle_or_at_end = advanceSelfIndexPointer(gl_agent, pointer_advance_count)  
-        (self_belief_partner_is_wrong_digit_indices, self_belief_partner_registers_unknown_digit_indices) = compareDataModelBeliefs()
+    middle_or_at_end = advanceSelfIndexPointer(gl_agent, pointer_advance_count)  
+    (self_belief_partner_is_wrong_digit_indices, self_belief_partner_registers_unknown_digit_indices) = compareDataModelBeliefs()
 
-        if middle_or_at_end == 'at-end' and len(self_belief_partner_is_wrong_digit_indices) == 0 and\
-                len(self_belief_partner_registers_unknown_digit_indices) == 0:
-            gl_agent.setRole('banter')
-            return [gl_da_all_done];
+    if middle_or_at_end == 'at-end' and len(self_belief_partner_is_wrong_digit_indices) == 0 and\
+            len(self_belief_partner_registers_unknown_digit_indices) == 0:
+        gl_agent.setRole('banter')
+        return [gl_da_all_done];
+    
+    #In case the ConfirmDialogManagement DialogAct is compounded with other DialogActs on this turn,
+    #call generateResponseToInputDialog again recursively.
+    #Strip out all affirmations from the list of remaining DialogActs to avoid the mistake of calling
+    #updateBeliefInPartner... above again on this partner turn.
+    #This is not really the right way to handle multiple affirmations in an utterance.
+    #Really, additional confirmations within the utterance should be doing reinforcement 
+    #of the interpretation, not tacking on one after another.
+    da_list_remainder = []
+    for da in da_list:
+        if da.intent != 'ConfirmDialogManagement':
+            da_list_remainder.append(da)
+    if len(da_list_remainder) > 0:
+        return generateResponseToInputDialog(da_list_remainder)
 
-        #If it's just an affirmation but there is more content to the partner's dialog act,
-        #Then strip off the affirmation and recurse with the rest of the content
-        #if len(da_list) > 1:
-        #    da_list_remainder = da_list[1:]
-        #    return generateResponseToInputDialog(da_list_remainder)
+    return prepareAndSendNextDataChunkBasedOnDataBeliefComparisonAndIndexPointers()
 
-        #In case the ConfirmDialogManagement DialogAct is compounded with other DialogActs on this turn,
-        #call generateResponseToInputDialog again recursively.
-        #Strip out all affirmations from the list of remaining DialogActs to avoid the mistake of calling
-        #updateBeliefInPartner... above again on this partner turn.
-        #This is not really the right way to handle multiple affirmations in an utterance.
-        #Really, additional confirmations within the utterance should be doing reinforcement 
-        #of the interpretation, not tacking on one after another.
-        da_list_remainder = []
-        for da in da_list:
-            if da.intent != 'ConfirmDialogManagement':
-                da_list_remainder.append(da)
-        if len(da_list_remainder) > 0:
-            return generateResponseToInputDialog(da_list_remainder)
 
-        return prepareAndSendNextDataChunkBasedOnDataBeliefComparisonAndIndexPointers()
 
+
+def handleConfirmDialogManagement_ReceiveRole(da_list):
+    print 'handleConfirmDialogManagement_ReceiveRole'
+    for da in da_list:
+        print '   ' + da.getPrintString()
+    return []
+
+
+
+def handleConfirmDialogManagement_BanterRole(da_list):
+    for da in da_list:
+        print '   ' + da.getPrintString()
+
+    #strip out any confirm DialogActs and pass on the rest to the top level handler
+    da_list_no_confirm = []
+    for da in da_list:
+        str_da = da.getPrintString();
+        if str_da.find('ConfirmDialogManagement') < 0:
+            da_list_no_confirm.append(da)
+    print 'len(da_list_no_confirm): ' + str(len(da_list_no_confirm)) + ' len(da_list): ' + str(len(da_list))
+    if len(da_list_no_confirm) > 0:
+        return generateResponseToInputDialog(da_list_no_confirm)
+
+    #da_list contained only confirmations, no instructions.
+    return [gl_da_misaligned_roles, gl_da_dialog_invitation]
+
+    return None
 
 
 
@@ -2409,13 +2534,14 @@ def updateBeliefInPartnerDataStateBasedOnDataValues(da_list, update_digit_prob):
             start_index = ds_index + len('ItemValue(DigitSequence(')
             rp_index = da_print_string.find(')', start_index)
             digit_value_list = extractItemsFromCommaSeparatedListString(da_print_string[start_index:rp_index])
-            print 'digit_value_list: ' + str(digit_value_list)
+            print 'updateBelief...digit_value_list: ' + str(digit_value_list)
             return updateBeliefInPartnerDataStateForDigitValueList(digit_value_list, update_digit_prob)
         d_index = da_print_string.find('ItemValue(Digit(')
         if d_index >= 0:
             start_index = d_index + len('ItemValue(Digit(')
             rp_index = da_print_string.find(')', start_index)
             digit_value = da_print_string[start_index:rp_index]
+            print 'updateBelief...digit_value: ' + str(digit_value)
             return updateBeliefInPartnerDataStateForDigitValueList([digit_value], update_digit_prob)
         print 'updateBeliefInPartnerDataStateBasedOnDataValues() identified no digits to update for da: ' + da_print_string
     return 0
@@ -2681,12 +2807,6 @@ def registerCheckDataWithLastSaidDataAndDataModel(partner_check_digit_sequence, 
 
 
 
-gl_da_misaligned_roles = rp.parseDialogActFromString('InformDialogManagement(misaligned-roles)')
-gl_da_dialog_invitation = rp.parseDialogActFromString('InformDialogManagement(dialog-invitation)')
-
-gl_da_misaligned_index_pointer = rp.parseDialogActFromString('InformDialogManagement(misaligned-index-pointer)')
-gl_da_misaligned_digit_values = rp.parseDialogActFromString('InformDialogManagement(misaligned-digit-values)')
-
 
 def dealWithMisalignedRoles():
     return gl_da_misaligned_roles
@@ -2723,6 +2843,9 @@ gl_time_tick_turn_delta = .01
 #self has something to say or not.
 gl_wait_turn_conf_threshold = .6
 
+###                                                                  ###
+### NOTE: This is called in a different thread from the main thread! ###
+###                                                                  ###
 def handleTimingTick():
     global gl_agent
     if gl_agent == None:
@@ -2737,7 +2860,10 @@ def handleTimingTick():
 
 #This gets triggered after self's turn confidence exceeds a threshold after waiting for partner to
 #execute their turn.
+#This will be called on a different thread from the main thread, so beware simultaneous
+#access of the data values.
 def issueOutputAfterWaitTimeout():
+    global gl_dialog_act_queue
 
     last_self_utterance_tup = fetchLastUtteranceFromTurnHistory('self')
     if last_self_utterance_tup == None:
@@ -2754,31 +2880,9 @@ def issueOutputAfterWaitTimeout():
     output_da_list = None
     synthesized_confirm_da_list = [gl_da_affirmation_okay]
     if last_self_utterance_contains_inform_digits_p == True:
-        synthesized_confirm_da_list = [gl_da_affirmation_okay]
-        output_da_list = generateResponseToInputDialog(synthesized_confirm_da_list)
-    #else:
-        #output_da_list = [gl_da_check_readiness]
-
-    if output_da_list != None:
-        output_word_list = []
-        for da in output_da_list:
-            #print 'intent:' + da.intent
-            #print 'arg_list: ' + str(da.arg_list)
-            da.printSelf()
-            da_generated_word_list = rp.generateTextFromDialogAct(da)
-            if da_generated_word_list == None:
-                print 'could not generate a string from da'
-            else:
-                output_word_list.extend(da_generated_word_list)
-            #print 'lfs: ' + str(da.arg_list)
-            #for lf in da.arg_list:
-            #    lf.printSelf()
-
-        #printAgentBeliefs(False)
-        str_generated = ' '.join(output_word_list)
-        print 'gen: ' + str_generated
-
-        print '\nInput: '
+        gl_dialog_act_queue.append(('Timeout', synthesized_confirm_da_list))
+        
+        
 
 
 
@@ -2880,20 +2984,46 @@ def initializeASR(energy_threshold):
 #string is sent as the function argument.
 class SpeechRunner():
     def __init__(self, callback_function):
-        self.running_p = True
+        self.stop_p = False
         self.speechrunner_thread_id = thread.start_new_thread(self.speech_runner_thread_function, (callback_function,))
 
     def speech_runner_thread_function(self, callback_function):
         global gl_microphone
         global gl_speech_recognizer
-        global gl_speech_runner_paused_p
-        while self.running_p:
+        global gl_speech_runner_running_p
+        global gl_speech_runner
+
+        print 'Entering speech_runner_thread_function'
+
+        while True and gl_speech_runner != None:
             print("Say something!")
+            #this will block while it waits for input
+            #http://stackoverflow.com/questions/11195140/python-break-or-exit-out-of-with-statement
             with gl_microphone as source: audio = gl_speech_recognizer.listen(source)
-            print("Got it! Now to recognize it...")
+
+            #In case this SpeechRecognizer has been terminated while listening
+
+
+            #if self.running_p == False:
+            #    print 'got audio but this SpeechRecognizer is terminated'
+            #    return
+
+            print("Got it! Now to recognize it..." + str(self.stop_p))
             try:
+                if self.stop_p:
+                    print 'Quitting out of speech_runner_thread_function'
+                    gl_speech_runner = None
+                    return
+
+                if audio == None:
+                    print 'audio is None but we didnt quit out?'
+                    gl_speech_runner = None
+                    return
+
                 # recognize speech using Google Speech Recognition
                 value = gl_speech_recognizer.recognize_google(audio)
+
+
 
                 # we need some special handling here to correctly print unicode characters to standard output
                 if str is bytes: # this version of Python uses bytes for strings (Python 2)
@@ -2906,66 +3036,89 @@ class SpeechRunner():
                 the_text = spellOutDigits(the_text)
 
                 #The speech might have been picked up while pause was set
-                if gl_speech_runner_paused_p == True:
-                    print 'something was recognized while we speech recognition was supposed to be paused: '
-                    print 'the_text: ' + the_text
-                else:
-                    print 'the_text: ' + the_text
-                    callback_function(the_text)
+                #if gl_speech_runner_paused_p == True:
+                #    print 'something was recognized while we speech recognition was supposed to be paused: '
+                #    print 'the_text: ' + the_text
+                #else:
+                #    print 'the_text: ' + the_text
+                #    callback_function(the_text)
+                callback_function(the_text)
 
             except sr.UnknownValueError:
                 print("Oops! Didn't catch that")
             except sr.RequestError as e:
                 print("Uh oh! Couldn't request results from Google Speech Recognition service; {0}".format(e))
+
+        print 'Exiting speech_runner_thread_function'
+        gl_speech_runner = None
     
     def stop(self):
-        self.running_p = False
-        print ' speech_runner should now be stopped'
+        global gl_speech_recognizer
+        self.stop_p = True
+        gl_speech_recognizer.stopListening()
+        print ' speech_runner stop issued'
 
-    def start(self):
-        self.running_p = True
-        print ' speech_runner should now be started'
+#    def start(self):
+#        self.running_p = True
+#        print ' speech_runner should now be started'
 
 
 gl_speech_runner = None
-gl_speech_runner_paused_p = False
 
-def startSpeechRunner():
+def startNewSpeechRunner():
+    print 'startNewSpeechRunner'
     global gl_speech_runner
-    global gl_speech_runner_paused_p
-    if gl_speech_runner == None:
-        gl_speech_runner = SpeechRunner(handleSpeechInput)
-        gl_speech_runner_paused_p = False
+    if gl_speech_runner != None:
+        print '  calling gl_speech_runner.stop()'
+        gl_speech_runner.stop()
+    count = 0
+    while gl_speech_runner != None:
+        count += 1
+        if count > 10000:
+            print 'timeout waiting for gl_speech_runner_to_stop'
+            break
+        time.sleep(.005)
+    print 'startNewSpeechRunner timeout count: ' + str(count)
+    if gl_speech_runner != None:
+        print 'could not start a new speech runner because the old one has not stopped'
+        return
+    gl_speech_runner = SpeechRunner(handleSpeechInput)
+
+
+#def startNewSpeechRunner():
+#    global gl_speech_runner
+#    if gl_speech_runner == None:
+#        gl_speech_runner = SpeechRunner(handleSpeechInput)
+#    gl_speech_runner.start()
 
 
 def stopSpeechRunner():
     global gl_speech_runner
-    global gl_speech_runner_paused_p
     if gl_speech_runner == None:
         print 'no speech_runner to stop'
         return
     gl_speech_runner.stop()
-    gl_speech_runner = None
 
 
-def pauseSpeechRunner():
-    global gl_speech_runner
-    global gl_speech_runner_paused_p
-    if gl_speech_runner == None:
-        print 'no speech_runner to pause'
-        return
-    gl_speech_runner.stop()
-    gl_speech_runner_paused_p = True
+
+#def pauseSpeechRunner():
+#    global gl_speech_runner
+#    global gl_speech_runner_paused_p
+#    if gl_speech_runner == None:
+#        print 'no speech_runner to pause'
+#        return
+#    gl_speech_runner.stop()
+#    gl_speech_runner_paused_p = True
 
 
-def resumeSpeechRunner():
-    global gl_speech_runner
-    global gl_speech_runner_paused_p
-    if gl_speech_runner == None:
-        print 'no speech_runner to resume'
-        return
-    gl_speech_runner.start()
-    gl_speech_runner_paused_p = False
+#def resumeSpeechRunner():
+#    global gl_speech_runner
+#    global gl_speech_runner_paused_p
+#    if gl_speech_runner == None:
+#        print 'no speech_runner to resume'
+#        return
+#    gl_speech_runner.start()
+#    gl_speech_runner_paused_p = False
 
 
 
@@ -3013,9 +3166,11 @@ def ttsSpeakText(tts_string):
     tts = gTTS(text=tts_string, lang='en')
     tts.save(gl_tts_temp_file)
 
-    pauseSpeechRunner()
+    stopSpeechRunner()
+    print 'playMP3 start'
     playMP3(gl_tts_temp_file)
-    resumeSpeechRunner()
+    print 'playMP3 done'
+    startNewSpeechRunner()
 
 
 
@@ -3101,13 +3256,31 @@ def extractItemsFromCommaSeparatedListString(str_comma_sep_items):
     #print 'extractItemsFromCommaSeparatedListString(' + str_comma_sep_items + ')'
     
     l1 = str_comma_sep_items.split(',')
-    print 'l1: ' + str(l1)
+    #print 'extractItems...l1: ' + str(l1)
     for item in l1:
         item = item.strip()
         #print ' item: ' + item
         str_item_list.append(item)
     return str_item_list
     
+
+
+gl_transcript_filepath = 'C:/temp/da-transcript.text'
+gl_transcript_file = None
+
+
+def openTranscriptFile(filepath=gl_transcript_filepath):
+    global gl_transcript_file
+    gl_transcript_file = open(filepath, 'w')
+
+def writeToTranscriptFile(text_string):
+    global gl_transcript_file
+    gl_transcript_file.write(text_string + '\n')
+
+def closeTranscriptFile():
+    global gl_transcript_file
+    gl_transcript_file.close()
+
 
 
 
@@ -3525,4 +3698,160 @@ def handleInformTopicInfo_SendRole_Old(da_list):
     ret = [gl_da_inform_dm_repeat_intention]
     ret.extend(prepareNextDataChunk(gl_agent))
     return ret
+
+
+
+#this old version works fine for just keyboard input, but adding in a wait timeout
+#and then speech gives problems with multithreading.
+def loopDialogMain_Old():
+    global gl_agent
+    global gl_use_speech_p
+    input_string = raw_input('Input: ')
+    input_string = rp.removePunctuationAndLowerTextCasing(input_string)
+
+    while input_string != 'stop' and input_string != 'quit':
+        writeToTranscriptFile('Input: ' + input_string)
+        #print '\n' + input_string
+        rule_match_list = rp.applyLFRulesToString(input_string)
+        if rule_match_list == False:
+            print 'no DialogRule matches found'
+        else:
+            print 'MATCH: ' + str(rule_match_list);
+        da_list = rp.parseDialogActsFromRuleMatches(rule_match_list)
+
+        gl_agent.setTurn('self')
+        response_da_list = generateResponseToInputDialog(da_list)
+
+        #print 'got ' + str(len(da_list)) + ' DialogActs'
+        #print 'raw: ' + str(da_list)
+        output_word_list = []
+        for da in response_da_list:
+            #print 'intent:' + da.intent
+            #print 'arg_list: ' + str(da.arg_list)
+            da.printSelf()
+            da_generated_word_list = rp.generateTextFromDialogAct(da)
+            if da_generated_word_list == None:
+                print 'could not generate a string from da'
+            else:
+                output_word_list.extend(da_generated_word_list)
+            #print 'lfs: ' + str(da.arg_list)
+            #for lf in da.arg_list:
+            #    lf.printSelf()
+
+        #printAgentBeliefs(False)
+        str_generated = ' '.join(output_word_list)
+        print 'gen: ' + str_generated
+
+        if gl_use_speech_p and len(str_generated) > 0:
+            ttsSpeakText(str_generated)
+            resetNextTurnBeliefs()
+
+        writeToTranscriptFile('Output: ' + str_generated)
+        
+        input_string = raw_input('\nInput: ')
+        input_string = rp.removePunctuationAndLowerTextCasing(input_string)
+
+    if input_string == 'quit':
+        stopTimer()
+        stopSpeechRunner()
+        closeTranscriptFile()
+
+
+
+#This gets triggered after self's turn confidence exceeds a threshold after waiting for partner to
+#execute their turn.
+#This will be called on a different thread from the main thread, so beware simultaneous
+#access of the data values.
+def issueOutputAfterWaitTimeout_Old():
+
+    last_self_utterance_tup = fetchLastUtteranceFromTurnHistory('self')
+    if last_self_utterance_tup == None:
+        return
+    da_list = last_self_utterance_tup[2]
+    last_self_utterance_contains_inform_digits_p = False
+    for da in da_list:
+        str_da = da.getPrintString()
+        if str_da.find('InformTopicInfo(ItemValue(Digit') == 0:
+            last_self_utterance_contains_inform_digits_p = True
+
+
+    #print 'last_self_utterance_contains_inform_digits_p: ' + str(last_self_utterance_contains_inform_digits_p)
+    output_da_list = None
+    synthesized_confirm_da_list = [gl_da_affirmation_okay]
+    if last_self_utterance_contains_inform_digits_p == True:
+        synthesized_confirm_da_list = [gl_da_affirmation_okay]
+        output_da_list = generateResponseToInputDialog(synthesized_confirm_da_list)
+
+    #else:
+        #output_da_list = [gl_da_check_readiness]
+
+    if output_da_list != None:
+        output_word_list = []
+        for da in output_da_list:
+            #print 'intent:' + da.intent
+            #print 'arg_list: ' + str(da.arg_list)
+            da.printSelf()
+            da_generated_word_list = rp.generateTextFromDialogAct(da)
+            if da_generated_word_list == None:
+                print 'could not generate a string from da'
+            else:
+                output_word_list.extend(da_generated_word_list)
+            #print 'lfs: ' + str(da.arg_list)
+            #for lf in da.arg_list:
+            #    lf.printSelf()
+
+        #printAgentBeliefs(False)
+        str_generated = ' '.join(output_word_list)
+        print 'gen: ' + str_generated
+
+        if gl_use_speech_p and len(str_generated) > 0:
+            ttsSpeakText(str_generated)
+
+        writeToTranscriptFile('Output: ' + str_generated)
+
+        print '\nInput: '
+
+
+#Treat speech input the same as typed input
+def handleSpeechInput_Old(input_string):
+    global gl_agent
+
+    writeToTranscriptFile('Input: ' + input_string)
+
+    print 'handleSpeechInput: ' + str(input_string)
+
+    rule_match_list = rp.applyLFRulesToString(input_string)
+    if rule_match_list == False:
+        print 'no DialogRule matches found'
+    else:
+        print 'MATCH: ' + str(rule_match_list);
+    da_list = rp.parseDialogActsFromRuleMatches(rule_match_list)
+
+    gl_agent.setTurn('self')
+    response_da_list = generateResponseToInputDialog(da_list)
+
+    #print 'got ' + str(len(da_list)) + ' DialogActs'
+    #print 'raw: ' + str(da_list)
+    output_word_list = []
+    for da in response_da_list:
+        #print 'intent:' + da.intent
+        #print 'arg_list: ' + str(da.arg_list)
+        da.printSelf()
+        da_generated_word_list = rp.generateTextFromDialogAct(da)
+        if da_generated_word_list == None:
+            print 'could not generate a string from da'
+        else:
+            output_word_list.extend(da_generated_word_list)
+        #print 'lfs: ' + str(da.arg_list)
+        #for lf in da.arg_list:
+        #    lf.printSelf()
+
+    #printAgentBeliefs(False)
+    str_generated = ' '.join(output_word_list)
+    print 'gen: ' + str_generated
+    if len(str_generated) > 0:
+        ttsSpeakText(str_generated)
+        resetNextTurnBeliefs()
+
+    writeToTranscriptFile('Output: ' + str_generated)
 
