@@ -235,6 +235,15 @@ CommandCat[tell-me] <-> tell me
 CommandCat[tell-me] <-> give me
 CommandCat[tell-me] <-> provide me
 CommandCat[tell-me] <-> what is
+CommandCat[tell-me] <-> what's
+CommandCat[tell-me] <-> i want to know
+CommandCat[tell-me] <-> i need to know
+CommandCat[tell-me] <-> i want you to tell me
+CommandCat[tell-me] <-> i need you to tell me
+CommandCat[tell-me] <-> can you tell me
+CommandCat[tell-me] <-> receive
+CommandCat[tell-me] <-> get
+CommandCat[tell-me] <-> look up
 
 CommandCat[tell-you] <-> tell you
 CommandCat[tell-you] <-> give you
@@ -243,12 +252,19 @@ CommandCat[tell-you] <-> take this
 CommandCat[tell-you] <-> take down this
 
 
+
 #command form: tell me / tell you the the...
 RequestTopicInfo(SendReceive($1), InfoTopic($2)) <-> {CommandCat[$1]} {InfoTypeCat[$2]}
 
-#Pure request form; what is/was the/that digit/area-code/exchange/number/ telephone number
+#Pure request form: what is/was the/that digit/area-code/exchange/number/ telephone number
 RequestTopicInfo(ItemType($1)) <-> what {GrammaticalBeCat[$2]}{GrammaticalIndicativeCat[$3]}{InfoTypeCat[$1]}
 RequestTopicInfo(ItemType($1)) <-> {GrammaticalIndicativeCat[$3]}{InfoTypeCat[$1]}{GrammaticalBeCat[$2]} what
+
+#I'd like to form: I'd like to send/receive X
+RequestTopicInfo(SendReceive($1), InfoTopic($2)) <-> I would like to {CommandCat[$1]} {InfoTypeCat[$2]}
+RequestTopicInfo(SendReceive($1), InfoTopic($2)) <-> I'd like to {CommandCat[$1]} {InfoTypeCat[$2]}
+
+
 
 
 RequestTopicInfo(SendReceive(tell-me), InfoTopic(user-name)) <-> who am i
@@ -335,6 +351,7 @@ InformDialogManagement(misaligned-digit-values) <-> we are out of sync about the
 ConfirmDialogManagement(affirmation-okay) <-> ok
 ConfirmDialogManagement(affirmation-okay) <-> okay
 ConfirmDialogManagement(affirmation-yes) <-> yes
+ConfirmDialogManagement(affirmation-yes) <-> sure
 ConfirmDialogManagement(affirmation-yes) <-> yup
 ConfirmDialogManagement(affirmation-yes) <-> proceed
 ConfirmDialogManagement(affirmation-yes) <-> go on
@@ -453,6 +470,7 @@ RequestDialogManagement(misalignment-parnter-hearing-or-understanding) <-> you d
 #Request repeat of last utterance
 #This should also include 'what' but 'what' is so multi-purpose it gets its own predicate
 RequestDialogManagement(misalignment-request-repeat) <-> say that again
+RequestDialogManagement(misalignment-request-repeat) <-> tell me that again
 RequestDialogManagement(misalignment-request-repeat) <-> repeat that
 RequestDialogManagement(misalignment-request-repeat) <-> repeat them
 RequestDialogManagement(misalignment-request-repeat) <-> again please
