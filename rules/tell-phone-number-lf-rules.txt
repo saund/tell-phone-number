@@ -240,6 +240,7 @@ CommandCat[tell-me] <-> i want to know
 CommandCat[tell-me] <-> i need to know
 CommandCat[tell-me] <-> i want you to tell me
 CommandCat[tell-me] <-> i need you to tell me
+CommandCat[tell-me] <-> i would like you to tell me
 CommandCat[tell-me] <-> can you tell me
 CommandCat[tell-me] <-> receive
 CommandCat[tell-me] <-> get
