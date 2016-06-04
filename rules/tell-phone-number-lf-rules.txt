@@ -75,7 +75,7 @@ DigitCat[seven] <-> seven
 DigitCat[eight] <-> eight
 DigitCat[nine] <-> nine
 DigitCat[zero] <-> zero
-DigitCat[zero] <-> oh
+DigitCat[zero] <- oh
 
 #Sending of digit values as InformTopicData DialogActs
 InformTopicInfo(ItemValue(Digit($1))) <-> {DigitCat[$1]}
@@ -154,21 +154,21 @@ InformTopicInfo(ItemValue(DigitSequence($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
 
 InformTopicInfo(ItemType($1)) <-> {InfoTypeCat[$1]}
 
-InfoTypeCat[telephone-number] <-> phone number
+InfoTypeCat[telephone-number] <- phone number
 InfoTypeCat[telephone-number] <-> telephone number
-InfoTypeCat[digit] <-> number
+InfoTypeCat[digit] <- number
 InfoTypeCat[digit] <-> digit
 InfoTypeCat[area-code] <-> area code
-InfoTypeCat[exchange] <-> prefix
+InfoTypeCat[exchange] <- prefix
 InfoTypeCat[exchange] <-> exchange
 InfoTypeCat[line-number] <-> line number
-InfoTypeCat[line-number] <-> last four digits
-InfoTypeCat[line-number] <-> last four numbers
+InfoTypeCat[line-number] <- last four digits
+InfoTypeCat[line-number] <- last four numbers
 
 
 
-InfoTypeCat[address] <-> place of residence
-InfoTypeCat[address] <-> street address
+InfoTypeCat[address] <- place of residence
+InfoTypeCat[address] <- street address
 InfoTypeCat[address] <-> address
 
 InfoTypeCat[agent-name] <-> your name
@@ -180,9 +180,9 @@ InfoNameCat[computer] <-> computer
 
 InformTopicInfo(self-name, Name($1)) <-> My name is {InfoNameCat[$1]}
 InformTopicInfo(self-name, Name($1)) <-> My name it is {InfoNameCat[$1]}
-InformTopicInfo(self-name, Name($1)) <-> {InfoNameCat[$1]} is my name
-InformTopicInfo(self-name, Name($1)) <-> my name it's {InfoNameCat[$1]}
-InformTopicInfo(self-name, Name($1)) <-> my name it is {InfoNameCat[$1]}
+InformTopicInfo(self-name, Name($1)) <- {InfoNameCat[$1]} is my name
+InformTopicInfo(self-name, Name($1)) <- my name it's {InfoNameCat[$1]}
+InformTopicInfo(self-name, Name($1)) <- my name it is {InfoNameCat[$1]}
 InformTopicInfo(partner-name, Name($1)) <-> I believe your name is {InfoNameCat[$1]}
 
 
@@ -206,7 +206,7 @@ IndexicalCat[last] <-> last
 IndexicalCat[last] <-> final
 IndexicalCat[last] <-> the final
 
-InformTopicInfo(IndexicalPosition($1)) <-> {IndexicalCat[$1]} number
+InformTopicInfo(IndexicalPosition($1)) <- {IndexicalCat[$1]} number
 InformTopicInfo(IndexicalPosition($1)) <-> {IndexicalCat[$1]} digit
 
 InformTopicInfo(IndexicalRelation(first)) <-> first
@@ -231,26 +231,27 @@ InformDialogManagement(Alignment()) <-> fourth time
 
 
 
-CommandCat[tell-me] <-> tell me
-CommandCat[tell-me] <-> give me
-CommandCat[tell-me] <-> provide me
-CommandCat[tell-me] <-> what is
-CommandCat[tell-me] <-> what's
-CommandCat[tell-me] <-> i want to know
-CommandCat[tell-me] <-> i need to know
-CommandCat[tell-me] <-> i want you to tell me
-CommandCat[tell-me] <-> i need you to tell me
-CommandCat[tell-me] <-> i would like you to tell me
-CommandCat[tell-me] <-> can you tell me
-CommandCat[tell-me] <-> receive
-CommandCat[tell-me] <-> get
-CommandCat[tell-me] <-> look up
+CommandCat[tell-me] <-> please tell me
+CommandCat[tell-me] <- tell me
+CommandCat[tell-me] <- give me
+CommandCat[tell-me] <- provide me
+CommandCat[tell-me] <- what is
+CommandCat[tell-me] <- what's
+CommandCat[tell-me] <- i want to know
+CommandCat[tell-me] <- i need to know
+CommandCat[tell-me] <- i want you to tell me
+CommandCat[tell-me] <- i need you to tell me
+CommandCat[tell-me] <- i would like you to tell me
+CommandCat[tell-me] <- can you tell me
+CommandCat[tell-me] <- receive
+CommandCat[tell-me] <- get
+CommandCat[tell-me] <- look up
 
 CommandCat[tell-you] <-> tell you
-CommandCat[tell-you] <-> give you
-CommandCat[tell-you] <-> provide you
-CommandCat[tell-you] <-> take this
-CommandCat[tell-you] <-> take down this
+CommandCat[tell-you] <- give you
+CommandCat[tell-you] <- provide you
+CommandCat[tell-you] <- take this
+CommandCat[tell-you] <- take down this
 
 
 
@@ -258,12 +259,13 @@ CommandCat[tell-you] <-> take down this
 RequestTopicInfo(SendReceive($1), InfoTopic($2)) <-> {CommandCat[$1]} {InfoTypeCat[$2]}
 
 #Pure request form: what is/was the/that digit/area-code/exchange/number/ telephone number
-RequestTopicInfo(ItemType($1)) <-> what {GrammaticalBeCat[$2]}{GrammaticalIndicativeCat[$3]}{InfoTypeCat[$1]}
-RequestTopicInfo(ItemType($1)) <-> {GrammaticalIndicativeCat[$3]}{InfoTypeCat[$1]}{GrammaticalBeCat[$2]} what
+RequestTopicInfo(ItemType($1)) <- what {GrammaticalBeCat[$2]}{GrammaticalIndicativeCat[$3]}{InfoTypeCat[$1]}
+RequestTopicInfo(ItemType($1)) <- {GrammaticalIndicativeCat[$3]}{InfoTypeCat[$1]}{GrammaticalBeCat[$2]} what
+RequestTopicInfo(ItemType($1)) <-> what is the {InfoTypeCat[$1]}
 
 #I'd like to form: I'd like to send/receive X
 RequestTopicInfo(SendReceive($1), InfoTopic($2)) <-> I would like to {CommandCat[$1]} {InfoTypeCat[$2]}
-RequestTopicInfo(SendReceive($1), InfoTopic($2)) <-> I'd like to {CommandCat[$1]} {InfoTypeCat[$2]}
+RequestTopicInfo(SendReceive($1), InfoTopic($2)) <- I'd like to {CommandCat[$1]} {InfoTypeCat[$2]}
 
 
 
@@ -349,33 +351,34 @@ InformDialogManagement(misaligned-digit-values) <-> we are out of sync about the
 #Also serves as CheckTopicInfo(request-affirmation), as in okay? as a question
 #When we have prosody then maybe we can separate these.
 #These are turn continuers.
-ConfirmDialogManagement(affirmation-okay) <-> ok
+ConfirmDialogManagement(affirmation-okay) <- ok
 ConfirmDialogManagement(affirmation-okay) <-> okay
 ConfirmDialogManagement(affirmation-yes) <-> yes
-ConfirmDialogManagement(affirmation-yes) <-> sure
-ConfirmDialogManagement(affirmation-yes) <-> yup
-ConfirmDialogManagement(affirmation-yes) <-> proceed
-ConfirmDialogManagement(affirmation-yes) <-> go on
-ConfirmDialogManagement(affirmation-yes) <-> got it
-ConfirmDialogManagement(affirmation-yes) <-> got it already
-ConfirmDialogManagement(affirmation-yes) <-> got that
-ConfirmDialogManagement(affirmation-yes) <-> allright
-ConfirmDialogManagement(affirmation-yes) <-> all right
-ConfirmDialogManagement(affirmation-yes) <-> i got it already
-ConfirmDialogManagement(affirmation-yes) <-> i got that already
+ConfirmDialogManagement(affirmation-yes) <- sure
+ConfirmDialogManagement(affirmation-yes) <- yup
+ConfirmDialogManagement(affirmation-yes) <- proceed
+ConfirmDialogManagement(affirmation-yes) <- go on
+ConfirmDialogManagement(affirmation-yes) <- got it
+ConfirmDialogManagement(affirmation-yes) <- got it already
+ConfirmDialogManagement(affirmation-yes) <- got that
+ConfirmDialogManagement(affirmation-yes) <- allright
+ConfirmDialogManagement(affirmation-yes) <- all right
+ConfirmDialogManagement(affirmation-yes) <- i got it already
+ConfirmDialogManagement(affirmation-yes) <- i got that already
 
 
 #These should probably be broken out as request-for-next-chunk, which 
 #would imply affirmation-yes but goes beyond that.
-ConfirmDialogManagement(affirmation-yes) <-> keep going
-ConfirmDialogManagement(affirmation-yes) <-> what else
-ConfirmDialogManagement(affirmation-yes) <-> then what
-ConfirmDialogManagement(affirmation-yes) <-> what's next
-ConfirmDialogManagement(affirmation-yes) <-> what is next
-ConfirmDialogManagement(affirmation-yes) <-> what comes next
-ConfirmDialogManagement(affirmation-yes) <-> what's after that
-ConfirmDialogManagement(affirmation-yes) <-> what is after that
-ConfirmDialogManagement(affirmation-yes) <-> what comes after that
+ConfirmDialogManagement(affirmation-yes) <-> please go on
+ConfirmDialogManagement(affirmation-yes) <- keep going
+ConfirmDialogManagement(affirmation-yes) <- what else
+ConfirmDialogManagement(affirmation-yes) <- then what
+ConfirmDialogManagement(affirmation-yes) <- what's next
+ConfirmDialogManagement(affirmation-yes) <- what is next
+ConfirmDialogManagement(affirmation-yes) <- what comes next
+ConfirmDialogManagement(affirmation-yes) <- what's after that
+ConfirmDialogManagement(affirmation-yes) <- what is after that
+ConfirmDialogManagement(affirmation-yes) <- what comes after that
 
 
 InformDialogManagement(self-correction) <-> sorry
@@ -384,18 +387,19 @@ InformDialogManagement(self-correction) <-> sorry
 
 #not sure about just plain no, it is so context-dependent
 CorrectionDialogManagement(negation) <-> no
-CorrectionDialogManagement(negation) <-> sorry no
-CorrectionDialogManagement(negation) <-> no sorry
+CorrectionDialogManagement(negation) <- no sorry
+CorrectionDialogManagement(negation) <- sorry no
+
 
 #CorrectionTopicInfo(partner-correction) <-> no 
 #CorrectionTopicInfo(partner-correction) <-> sorry no
 #CorrectionTopicInfo(partner-correction) <-> no sorry
 
 CorrectionTopicInfo(negation) <-> no
-CorrectionTopicInfo(negation) <-> sorry no
-CorrectionTopicInfo(negation) <-> no sorry
+CorrectionTopicInfo(negation) <- sorry no
+CorrectionTopicInfo(negation) <- no sorry
 CorrectionTopicInfo(negation-polite) <-> sorry no
-CorrectionTopicInfo(negation-polite) <-> no sorry
+CorrectionTopicInfo(negation-polite) <- no sorry
 
 CorrectionTopicInfo(partner-correction) <-> no that's
 CorrectionTopicInfo(partner-correction) <-> no that is
@@ -403,15 +407,15 @@ CorrectionTopicInfo(partner-correction) <-> no it's
 CorrectionTopicInfo(negation-polite-partner-correction) <-> sorry no it's
 CorrectionTopicInfo(partner-correction) <-> no it is
 CorrectionTopicInfo(partner-correction) <-> no it was
-CorrectionTopicInfo(partner-correction) <-> wrong that's
-CorrectionTopicInfo(partner-correction) <-> wrong that is
-CorrectionTopicInfo(partner-correction) <-> wrong it's
-CorrectionTopicInfo(partner-correction) <-> wrong it is
-CorrectionTopicInfo(partner-correction) <-> wrong it was
+CorrectionTopicInfo(partner-correction) <- wrong that's
+CorrectionTopicInfo(partner-correction) <- wrong that is
+CorrectionTopicInfo(partner-correction) <- wrong it's
+CorrectionTopicInfo(partner-correction) <- wrong it is
+CorrectionTopicInfo(partner-correction) <- wrong it was
 
 #"that is the area code"
 CorrectionTopicInfo(partner-correction-present, ItemType($1)) <-> that is the {InfoTypeCat[$1]}
-CorrectionTopicInfo(partner-correction-past, ItemType($1)) <-> that was the {InfoTypeCat[$1]}
+CorrectionTopicInfo(partner-correction-past, ItemType($1)) <- that was the {InfoTypeCat[$1]}
 
 #"is the area code"
 InformTopicInfo(info-type-present, ItemType($1)) <-> is the {InfoTypeCat[$1]}
@@ -424,26 +428,26 @@ InformTopicInfo(info-type-past, ItemType($1)) <-> was the {InfoTypeCat[$1]}
 
 
 
-InformDialogManagement(self-readiness) <-> i'm ready
+InformDialogManagement(self-readiness) <- i'm ready
 InformDialogManagement(self-readiness) <-> i am ready
-InformDialogManagement(self-not-readiness) <-> i'm not ready
+InformDialogManagement(self-not-readiness) <- i'm not ready
 InformDialogManagement(self-not-readiness) <-> i am not ready
 InformDialogManagement(self-not-readiness) <-> please wait
-InformDialogManagement(self-not-readiness) <-> wait please 
+InformDialogManagement(self-not-readiness) <- wait please 
 
 InformDialogManagement(repeat-intention) <-> I'll repeat that.
 
 
 CheckDialogManagement(other-readiness) <-> are you ready
-CheckDialogManagement(other-readiness) <-> are you there
+CheckDialogManagement(other-readiness) <- are you there
 
 
-RequestDialogManagement(misalignment-start-again) <-> start from the top
-RequestDialogManagement(misalignment-start-again) <-> start from the beginning
-RequestDialogManagement(misalignment-start-again) <-> let's start again
-RequestDialogManagement(misalignment-start-again) <-> start over
-RequestDialogManagement(misalignment-start-again) <-> start over again
-RequestDialogManagement(misalignment-start-again) <-> start again
+RequestDialogManagement(misalignment-start-again) <- start from the top
+RequestDialogManagement(misalignment-start-again) <- start from the beginning
+RequestDialogManagement(misalignment-start-again) <- let's start again
+RequestDialogManagement(misalignment-start-again) <- start over
+RequestDialogManagement(misalignment-start-again) <- start over again
+RequestDialogManagement(misalignment-start-again) <- start again
 RequestDialogManagement(misalignment-start-again) <-> let's start over
 
 #Very context dependent
@@ -470,18 +474,19 @@ RequestDialogManagement(misalignment-parnter-hearing-or-understanding) <-> you d
 
 #Request repeat of last utterance
 #This should also include 'what' but 'what' is so multi-purpose it gets its own predicate
-RequestDialogManagement(misalignment-request-repeat) <-> say that again
-RequestDialogManagement(misalignment-request-repeat) <-> tell me that again
-RequestDialogManagement(misalignment-request-repeat) <-> repeat that
-RequestDialogManagement(misalignment-request-repeat) <-> repeat them
-RequestDialogManagement(misalignment-request-repeat) <-> again please
+RequestDialogManagement(misalignment-request-repeat) <-> please say that again
+RequestDialogManagement(misalignment-request-repeat) <- say that again
+RequestDialogManagement(misalignment-request-repeat) <- tell me that again
+RequestDialogManagement(misalignment-request-repeat) <- repeat that
+RequestDialogManagement(misalignment-request-repeat) <- repeat them
+RequestDialogManagement(misalignment-request-repeat) <- again please
 
 #Request repeat of last utterance containing topic info
-RequestDialogManagement(misalignment-request-repeat, pronoun-ref) <-> what is it again
-RequestDialogManagement(misalignment-request-repeat, pronoun-ref) <-> what is that again
-RequestDialogManagement(misalignment-request-repeat, pronoun-ref) <-> what was it again
+RequestDialogManagement(misalignment-request-repeat, pronoun-ref) <- what is it again
+RequestDialogManagement(misalignment-request-repeat, pronoun-ref) <- what is that again
+RequestDialogManagement(misalignment-request-repeat, pronoun-ref) <- what was it again
 RequestDialogManagement(misalignment-request-repeat, pronoun-ref) <-> what was that again
-RequestDialogManagement(misalignment-request-repeat, pronoun-ref) <-> what were they again
+RequestDialogManagement(misalignment-request-repeat, pronoun-ref) <- what were they again
 
 
 RequestDialogManagement(again) <-> again
@@ -583,20 +588,20 @@ GrammaticalBeCat[infinitive] <-> be
 GrammaticalBeCat[past-singular] <-> was
 GrammaticalBeCat[past-plural] <-> were
 
-GrammaticalBeNotCat[present-singular] <-> isn't
+GrammaticalBeNotCat[present-singular] <- isn't
 GrammaticalBeNotCat[present-singular] <-> is not
-GrammaticalBeNotCat[present-plural] <-> aren't
+GrammaticalBeNotCat[present-plural] <- aren't
 GrammaticalBeNotCat[present-plural] <-> are not
-GrammaticalBeNotCat[past-singular] <-> wasn't
+GrammaticalBeNotCat[past-singular] <- wasn't
 GrammaticalBeNotCat[past-singular] <-> was not
-GrammaticalBeNotCat[past-plural] <-> weren't
+GrammaticalBeNotCat[past-plural] <- weren't
 GrammaticalBeNotCat[past-plural] <-> were not
 
-GrammaticalDoNotCat[present] <-> doesn't
+GrammaticalDoNotCat[present] <- doesn't
 GrammaticalDoNotCat[present] <-> does not
-GrammaticalDoNotCat[past] <-> didn't
+GrammaticalDoNotCat[past] <- didn't
 GrammaticalDoNotCat[past] <-> did not
-GrammaticalDoNotCat[future] <-> won't
+GrammaticalDoNotCat[future] <- won't
 GrammaticalDoNotCat[future] <-> will not 
 
 GrammaticalIndicativeCat[definite-near] <-> this
@@ -610,17 +615,17 @@ GrammaticalBeIndicativeCat[present-singular-definite-far] <-> so that was
 GrammaticalBeIndicativeCat[present-singular-definite-far] <-> so that's
 
 
-ActionCat[receive-info] <-> hear
-ActionCat[receive-info] <-> get
-ActionCat[receive-info] <-> catch
-ActionCat[receive-info] <-> receive
+ActionCat[receive-info] <- hear
+ActionCat[receive-info] <- get
+ActionCat[receive-info] <- catch
+ActionCat[receive-info] <- receive
 ActionCat[receive-info] <-> understand
 
 
 #These should be fleshed out with arguments for checking different kinds of things
-CheckTopicInfo(request-confirmation) <-> is that
-CheckTopicInfo(request-confirmation) <-> right
-CheckTopicInfo(request-affirmation) <-> is that right
+CheckTopicInfo(request-confirmation) <- is that
+CheckTopicInfo(request-confirmation) <- right
+CheckTopicInfo(request-affirmation) <- is that right
 CheckTopicInfo(request-affirmation) <-> is that correct
 
 

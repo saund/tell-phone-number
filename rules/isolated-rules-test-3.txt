@@ -1,5 +1,4 @@
 
-
 #A file for isolating rules to do targeted tests
 
 
@@ -7,5 +6,3 @@ CommandCat[tell-me] <-> please tell me
 CommandCat[tell-me] <- i want to know
 
 RequestTopicInfo(tell-me) <-> {CommandCat[tell-me]}
-
-

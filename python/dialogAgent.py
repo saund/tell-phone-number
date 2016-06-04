@@ -161,12 +161,16 @@ def loopDialogMain():
             da_item = gl_dialog_act_queue[0]
             gl_dialog_act_queue = gl_dialog_act_queue[1:]
 
-            print '\nhandling input from ' + da_item[0]
             da_list = da_item[1]
+            print '\nhandling input from ' + da_item[0] + ' ' + str(len(da_list)) + ' das:'
+            for da in da_list:
+                da.printSelf()
+            print ' '
             response_da_list = generateResponseToInputDialog(da_list)
 
             #print 'got ' + str(len(da_list)) + ' DialogActs'
             #print 'raw: ' + str(da_list)
+            print 'response_da_list: ' + str(len(response_da_list))
             output_word_list = []
             for da in response_da_list:
                 #print 'intent:' + da.intent
@@ -943,6 +947,7 @@ gl_most_recent_data_topic_da_list = []
 
 
 def generateResponseToInputDialog(user_da_list):
+    print 'generateResponseToInputDialog user_da_list len: ' + str(len(user_da_list))
     global gl_turn_history
     global gl_turn_number
     global gl_most_recent_data_topic_da_list
@@ -1513,7 +1518,7 @@ def handleRequestTopicInfo_SendRole(da_list):
     if str_da_rti.find(gl_str_da_request_confirmation_) == 0:
         return handleRequestTopicInfo_RequestConfirmation(da_list)
 
-    print 'handleRequestTopicInfo has no handler for request ' + da_request_topic_info.getPrintString()
+    print 'handleRequestTopicInfo_SendRole has no handler for request ' + da_request_topic_info.getPrintString()
     return da_list;
 
 
@@ -1676,7 +1681,7 @@ def handleRequestTopicInfo_BanterRole(da_list):
     if str_da_rti.find(gl_str_da_request_confirmation_) == 0:
         return handleRequestTopicInfo_RequestConfirmation(da_list)
 
-    print 'handleRequestTopicInfo has no handler for request ' + da_request_topic_info.getPrintString()
+    print 'handleRequestTopicInfo_BanterRole has no handler for request ' + da_request_topic_info.getPrintString()
     return None
 
 
@@ -3136,6 +3141,7 @@ def spellOutDigits(text_string):
     text_string = text_string.replace('4', ' four ')
     text_string = text_string.replace('5', ' five ')
     text_string = text_string.replace('6', ' six ')
+    text_string = text_string.replace('sex', ' six ')
     text_string = text_string.replace('7', ' seven ')
     text_string = text_string.replace('8', ' eight ')
     text_string = text_string.replace('9', ' nine ')

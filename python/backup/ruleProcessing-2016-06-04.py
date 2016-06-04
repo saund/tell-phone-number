@@ -1,20 +1,22 @@
 #!/usr/bin/python -tt
 
-#ruleProcessing.py is for reading in Otto-like rules, using the rules 
-#to process input text to produce DialogActs, and using the rules to
-#produce output text from DialogRules.
+#ruleProcessing.py is for reading in Otto-like rules, and using the rules 
+#to process input text to produce DialogActs.
+#
+#A DialogAct is of the form,     Predicate(LogicalForm, LogicalForm, ...)
 #
 #A LogicalForm is of the form,   Predicate(LogicalForm, LogicalForm, ...)
 #or                              Predicate
 #
-#A DialogAct is of the form,     Predicate(LogicalForm, LogicalForm, ...)
-#but Predicate is drawn from a special set, called Intents.
-#
-#Thus two DialogActs might be:   RequestTopicInfo(receive-telephone-number)
+#Thus two DialogAct might be:    RequestTopicInfo(receive-telephone-number)
 #                                InformTD(IndexicalPosition(first))
 #
-#Version 2016/05/19:
-#The version of 2016/05/19 should work well enough to support simple rules, but
+#In this module, the DialogAct results of processing are expressed only as strings.
+#It is up to the calling module to parse a string DialogAct into 
+#Intents, LogicalForms, and the predicates and arguments that comprise LogicalForms.
+
+
+#This version of 2016/05/19 should work well enough to support simple rules, but
 #it should be significantly restructured.
 #
 #First, the distinction between DialogRules and Word Category rules is bogus.
@@ -31,14 +33,6 @@
 #An utterance rule rule can be both <->.
 #This will allow designation of a preferred way of speaking a DialogAct that can
 #be interpreted from several ways of saying it.
-#
-#Version 2016/06/04
-#This version of 2016/06/04 addresses the third issue above.  Now we maintain
-#separate sets of interpretation (<-) and generator (->) rules.  Like with Otto,
-#a rule can also be both (<->).  This gives greater control over how things are
-#said.  Generally, if there are alternative ways of expressing the same thing,
-#there will be a bunch of interpretation rules <- and a single bidirectional 
-#rule <-> which is the preferred output text.
 
 
 
@@ -92,10 +86,6 @@ def loopInputMain():
             print 'no match'
         else:
             print 'MATCH: ' + str(res);
-            da_list = parseDialogActsFromRuleMatches(res)
-            reconstructed_text = ' '.join(generateTextFromDialogActs(da_list))
-            print 'reconstructed: ' + reconstructed_text
-
         input_string = raw_input('\nInput: ')
 
 
@@ -134,17 +124,14 @@ gl_default_lf_rule_filename = 'tell-phone-number-lf-rules.txt'
 #       where rule_lhs is a text representation of a DialogAct, which is Intent(LogicalForm)
 #             rule_rhs is a list words or catgories
 #
-#Indexing from a string's first word is only needed for interpretation
-gl_first_word_string_to_interpretation_rule_dict = {}
+gl_first_word_string_to_rule_dict = {}
 
 
 #key: intent predicate of the DialogAct
 #value: a list of tuples for this intent: [(da, rhs), (da, rhs)...]
 #where da is a DialogAct instance
 #      rhs is a string of a list of words or category objects e.g. {PredCat[$1]}
-gl_interpretation_dialog_act_rules = {}
-gl_generator_dialog_act_rules = {}
-
+gl_dialog_act_rules = {}
 
 #Word-categories are like in Otto, in terms of variables enclosed by brackets [$1]
 #e.g. DigitCat[one] <-> one
@@ -166,8 +153,7 @@ gl_generator_dialog_act_rules = {}
 #    { AreaCodeCat:[(AreaCodeCat[area-code], (area, code)),
 #                   (AreaCodeCat[bozotron-code], (bozotron, code)) ]
 #
-gl_interpretation_word_category_rules = {}
-gl_generator_word_category_rules = {}
+gl_word_category_rules = {}
 
 
 
@@ -187,33 +173,27 @@ def initLFRules(lf_rule_filename = gl_default_lf_rule_filename):
     global gl_current_rules_filepath
     global gl_rules_dirpath
 
-    rules_filepath = gl_rules_dirpath + '/' + lf_rule_filename
-    print 'tellPhoneNumber LF rules filepath: ' + rules_filepath
-    gl_current_rules_filepath = rules_filepath
-    compileStringToLFRuleDicts(rules_filepath)
+    filepath = gl_rules_dirpath + '/' + lf_rule_filename
+    print 'tellPhoneNumber LF rules filepath: ' + filepath
+    gl_current_rules_filepath = filepath
+    compileStringToLFRuleDict(filepath)
 
 
 
-def compileStringToLFRuleDicts(rules_filepath):
-    file = open(rules_filepath, "rU")
-    global gl_first_word_string_to_interpretation_rule_dict
-    global gl_interpretation_dialog_act_rules
-    global gl_generator_dialog_act_rules
-    global gl_interpretation_word_category_rules
-    global gl_generator_word_category_rules
+def compileStringToLFRuleDict(filepath):
+    file = open(filepath, "rU")
+    global gl_first_word_string_to_rule_dict
+    global gl_dialog_act_rules
+    global gl_word_category_rules
     
-    gl_first_word_string_to_interpretation_rule_dict = {}
-    gl_interpretation_dialog_act_rules = {}
-    gl_generator_dialog_act_rules = {}
-    gl_interpretation_word_category_rules = {}
-    gl_generator_word_category_rules = {}
+    gl_first_word_string_to_rule_dict = {}
+    gl_dialog_act_rules = {}
+    gl_word_category_rules = {}
 
     
     rule_text = ''
-    interpretation_word_category_rule_list = []
-    generator_word_category_rule_list = []
-    interpretation_dialog_act_rule_list = []
-    generator_dialog_act_rule_list = []
+    word_category_rule_list = []
+    dialog_act_rule_list = []
     while True:
         text_line = file.readline()
         if not text_line:
@@ -230,94 +210,31 @@ def compileStringToLFRuleDicts(rules_filepath):
         else:
             rule_text += text_line
             if len(rule_text) > 1:
-                (rule_lhs, rule_rhs, direction) = parseRuleLHSRHS(rule_text)
+                (rule_lhs, rule_rhs) = parseRuleLHSRHS(rule_text)
                 lsb_index = rule_lhs.find('[')
                 if lsb_index > 0:
-                    if direction == '<->':
-                        interpretation_word_category_rule_list.append((rule_lhs, rule_rhs))
-                        generator_word_category_rule_list.append((rule_lhs, rule_rhs))
-                    elif direction == '<-':
-                        interpretation_word_category_rule_list.append((rule_lhs, rule_rhs))
-                    elif direction == '->':
-                        generator_word_category_rule_list.append((rule_lhs, rule_rhs))
-                    else:
-                        print 'error: compileStringToLFRuleDicts(' + rules_filepath + ') received unclear direction A ' + direction
+                    word_category_rule_list.append((rule_lhs, rule_rhs))
                 else:
-                    if direction == '<->':
-                        interpretation_dialog_act_rule_list.append((rule_lhs, rule_rhs))
-                        generator_dialog_act_rule_list.append((rule_lhs, rule_rhs))
-                    elif direction == '<-':
-                        interpretation_dialog_act_rule_list.append((rule_lhs, rule_rhs))
-                    elif direction == '->':
-                        generator_dialog_act_rule_list.append((rule_lhs, rule_rhs))
-                    else:
-                        print 'error: compileStringToLFRuleDicts(' + rules_filepath + ') received unclear direction B ' + direction
+                    dialog_act_rule_list.append((rule_lhs, rule_rhs))
             rule_text = ''
     file.close()
 
-    for word_category_rule in interpretation_word_category_rule_list:
-        parseAndAddWordCategoryRule(word_category_rule, gl_interpretation_word_category_rules)
-    for word_category_rule in generator_word_category_rule_list:
-        parseAndAddWordCategoryRule(word_category_rule, gl_generator_word_category_rules)
+    for word_category_rule in word_category_rule_list:
+        parseAndAddWordCategoryRule(word_category_rule)
 
-    for dialog_act_rule in interpretation_dialog_act_rule_list:
-        parseAndAddDialogActRule(dialog_act_rule, gl_interpretation_dialog_act_rules, '<-')
-    for dialog_act_rule in generator_dialog_act_rule_list:
-        parseAndAddDialogActRule(dialog_act_rule, gl_generator_dialog_act_rules, '->')
+    for dialog_act_rule in dialog_act_rule_list:
+        parseAndAddDialogActRule(dialog_act_rule)
 
-    sortWordCategoryRulesByLength(gl_interpretation_word_category_rules)
-    sortWordCategoryRulesByLength(gl_generator_word_category_rules)
-    print '\nInterpretation WordCategory rules:'
-    printAllWordCategoryRules(gl_interpretation_word_category_rules)
-    print '\nGenerator WordCategory rules:'
-    printAllWordCategoryRules(gl_generator_word_category_rules)
-    print '\nInterpretation DialogAct rules:'
-    printAllDialogActInterpretationRules()
-    print '\nGenerator DialogAct rules:'
-    printAllDialogActGeneratorRules()
+    sortWordCategoryRulesByLength()        
+    print '\nWordCategory rules:'
+    printAllWordCategoryRules()
+    print '\nDialogAct rules:'
+    printAllDialogActRules()
 
-
-
-#returns (rule_lhs, rule_rhs, direction) 
-#where direction is one of '<-', '->', '<->'
-def parseRuleLHSRHS(rule_text):
-    big_number = 100000
-    leftarrow_index = rule_text.find('<-')
-    rightarrow_index = rule_text.find('->')
-    both_index = rule_text.find('<->')
-
-    if leftarrow_index < 0 and rightarrow_index < 0 and both_index < 0:
-        print 'could not find arrow <-, ->, or <-> in rule_text: ' + rule_text
-        return
-    #index not found will be -1
-    max_index = max(leftarrow_index+1, rightarrow_index+1, both_index+2)
-    if leftarrow_index == -1:
-        leftarrow_index = big_number
-    if rightarrow_index == -1:
-        rightarrow_index = big_number
-    if both_index == -1:
-        both_index = big_number
-    min_index = min(leftarrow_index, rightarrow_index, both_index)
-
-    lhs = rule_text[0:min_index]
-    lhs = lhs.strip()
-    rhs = rule_text[max_index+1:]
-    rhs = rhs.strip()
-    if both_index < big_number:
-        return (lhs, rhs, '<->')
-    elif leftarrow_index < big_number:
-        return (lhs, rhs, '<-')
-    elif rightarrow_index < big_number:
-        return (lhs, rhs, '->')
-    else:
-        print 'error in parseRuleLHSRHS: could not identify direction in rule_text:' + rule_text
-        return None
-    
 
 
 #returns (rule_lhs, rule_rhs)
-#This obsolete version before 2016/06/04 does not distinguish <-, ->, <->
-def parseRuleLHSRHS_Obsolete(rule_text):
+def parseRuleLHSRHS(rule_text):
     leftarrow_index = rule_text.find('<')
     if leftarrow_index < 0:
         print 'could not find < in rule_text: ' + rule_text
@@ -334,11 +251,9 @@ def parseRuleLHSRHS_Obsolete(rule_text):
 
 
 
-
-
 #A Word-Category rules is a mapping:
 #   Predicate[arg] <-> word1 word2...
-def parseAndAddWordCategoryRule(str_rule_lhs_rhs, word_category_rules_dict):
+def parseAndAddWordCategoryRule(str_rule_lhs_rhs):
     lhs = str_rule_lhs_rhs[0]
     rhs = str_rule_lhs_rhs[1]
 
@@ -348,10 +263,10 @@ def parseAndAddWordCategoryRule(str_rule_lhs_rhs, word_category_rules_dict):
 
     lsb_index = lhs.find('[')
     wcategory_predicate = lhs[0:lsb_index]
-    this_wcategory_predicate_rule_list = word_category_rules_dict.get(wcategory_predicate)
+    this_wcategory_predicate_rule_list = gl_word_category_rules.get(wcategory_predicate)
     if this_wcategory_predicate_rule_list == None:
         this_wcategory_predicate_rule_list = []
-        word_category_rules_dict[wcategory_predicate] = this_wcategory_predicate_rule_list
+        gl_word_category_rules[wcategory_predicate] = this_wcategory_predicate_rule_list
     this_wcategory_predicate_rule_list.append((lhs, rhs_words_tup))
 
 
@@ -361,14 +276,13 @@ def parseAndAddWordCategoryRule(str_rule_lhs_rhs, word_category_rules_dict):
 #This turns the str_rhs into a tuple of either words or word-category predicates.
 #This creates a rule, (str_lhs, (word_or_word_category_predicate, word_or_word_category_predicate, ...))
 #Then, this picks off the first word_or_word_category_predicate from the rhs tuple.
-#If this is a word, then this adds the rule to the gl_first_word_string_to_interpretation_rule_dict, with the
+#If this is a word, then this adds the rule to the gl_first_word_string_to_rule_dict, with the
 # key being that word.
 #If the first element is a word_category_predicate, then this adds the rule to every first word
 #of every arg version for the word_category having that predicate.
-def parseAndAddDialogActRule(str_rule_lhs_rhs, dialog_act_rules_dict, direction):
-    global gl_interpretation_word_category_rules
-    global gl_first_word_string_to_interpretation_rule_dict
-    #global gl_dialog_act_rules
+def parseAndAddDialogActRule(str_rule_lhs_rhs):
+    global gl_word_category_rules
+    global gl_first_word_string_to_rule_dict
 
     lhs = str_rule_lhs_rhs[0]
     rhs = str_rule_lhs_rhs[1]
@@ -380,17 +294,11 @@ def parseAndAddDialogActRule(str_rule_lhs_rhs, dialog_act_rules_dict, direction)
     rhs = rhs.replace('{', ' {')
 
     da = parseDialogActFromString(lhs)
-    da_list = dialog_act_rules_dict.get(da.intent)
+    da_list = gl_dialog_act_rules.get(da.intent)
     if da_list == None:
         da_list = []
-        dialog_act_rules_dict[da.intent] = da_list
+        gl_dialog_act_rules[da.intent] = da_list
     da_list.append((da, rhs))
-
-    #only need to deal with the gl_first_word_string_to_interpretation_rule_dict for rules
-    #that serve in interpretation
-    if direction == '->':
-        return
-
 
     rhs_words = rhs.split()
     rhs_words_tup = tuple(rhs_words)
@@ -407,7 +315,7 @@ def parseAndAddDialogActRule(str_rule_lhs_rhs, dialog_act_rules_dict, direction)
         predicate = first_word_or_cat[lbr_index+1:lsq_index]
         predicate = predicate.strip()
 
-        cat_list = gl_interpretation_word_category_rules.get(predicate)
+        cat_list = gl_word_category_rules.get(predicate)
         if cat_list == None:
             print 'Problem in parseAndAddDialogActRule. Predicate ' + predicate + ' not found in word-cateogry dict'
             return
@@ -426,53 +334,49 @@ def parseAndAddDialogActRule(str_rule_lhs_rhs, dialog_act_rules_dict, direction)
     #print 'first_words_to_index_under: ' + str(first_words_to_index_under)
 
     for first_word_to_index_under in first_words_to_index_under:
-        first_word_rule_list = gl_first_word_string_to_interpretation_rule_dict.get(first_word_to_index_under)
+        first_word_rule_list = gl_first_word_string_to_rule_dict.get(first_word_to_index_under)
         if first_word_rule_list == None:
             first_word_rule_list = []
-            gl_first_word_string_to_interpretation_rule_dict[first_word_to_index_under] = first_word_rule_list
+            gl_first_word_string_to_rule_dict[first_word_to_index_under] = first_word_rule_list
         first_word_rule_list.append((lhs, rhs_words_tup))
 
 
 
 
-#gl_interpretation_word_category_rules and gl_generator_word_category_rules are both dictionaries.
+#gl_word_category_rules is a dictionary:
 #   key: word-category-predicate   value: list of word-category rules with this predicate
 #Different word-category rules share the same predicate but have different arg and 
 #possibly different numbers of words in their text utterance.
-#This runs through all of the word-category predicates in word_category_rules_dict, and
+#This runs through all of the word-category predicates in gl_word_category_rules, and
 #for each one, it sorts its list of word-category rules from longest to shortest.
-def sortWordCategoryRulesByLength(word_category_rules_dict):
-    for predicate in word_category_rules_dict.keys():
-        rule_list = word_category_rules_dict.get(predicate)
+def sortWordCategoryRulesByLength():
+    global gl_word_category_rules
+
+    for predicate in gl_word_category_rules.keys():
+        rule_list = gl_word_category_rules.get(predicate)
         rule_list.sort(key = lambda wc_rule_tup: len(wc_rule_tup[1]))  # sorts in place, key is len of rhs of the rule
         rule_list.reverse()
 
 
-def printAllWordCategoryRules(word_category_rules_dict):
+def printAllWordCategoryRules():
+    global gl_word_category_rules
 
-    for predicate in word_category_rules_dict.keys():
+    for predicate in gl_word_category_rules.keys():
         print 'predicate: ' + predicate
-        rule_list = word_category_rules_dict.get(predicate)
+        rule_list = gl_word_category_rules.get(predicate)
         for rule in rule_list:
             print '    '  + str(rule)
 
 
-def printAllDialogActInterpretationRules():
-    global gl_first_word_string_to_interpretation_rule_dict
+def printAllDialogActRules():
+    global gl_first_word_string_to_rule_dict
 
-    for rule_key in gl_first_word_string_to_interpretation_rule_dict.keys():
+    for rule_key in gl_first_word_string_to_rule_dict.keys():
         print rule_key
-        rule_list = gl_first_word_string_to_interpretation_rule_dict[rule_key]
+        rule_list = gl_first_word_string_to_rule_dict[rule_key]
         for rule in rule_list:
             print '    '  + str(rule)
 
-
-def printAllDialogActGeneratorRules():
-    global gl_generator_dialog_act_rules
-
-    for da in gl_generator_dialog_act_rules.keys():
-        rhs = gl_generator_dialog_act_rules.get(da)
-        print '     ' + da + ' ' + str(rhs)
 
 
 #
@@ -492,13 +396,11 @@ def printAllDialogActGeneratorRules():
 #RequestTopicData
 #CheckTopicData
 #ConfirmTopicData
-#CorrectionTopicData
 #
 #InformDM    DM = DialogManagement
 #RequestDM
 #CheckDM
 #ConfirmDM
-#CorrectionDM
 #
 
 class LogicalForm():
@@ -697,7 +599,7 @@ def parsePredicatesWithArgs(str_preds_args):
 #
 #Interpretion of text input using rules
 #        
-#This works in terms only of gl_first_word_string_to_interpretation_rule_dict 
+#This works in terms only of gl_first_word_string_to_rule_dict 
 #which uses a tuple (lhs, rhs) version of the rules, where lhs and rhs are strings.
 #This does not use the DialogAct or LogicalForm classes.
 #That would be an alternative way of doing it but it doesn't seem necessary.
@@ -705,7 +607,7 @@ def parsePredicatesWithArgs(str_preds_args):
 
 #Assumes the rule set has already been loaded by initLFRulesIfNecessary() or a related function.
 def applyLFRulesToString(input_string):
-    global gl_first_word_string_to_interpretation_rule_dict
+    global gl_first_word_string_to_rule_dict
     global gl_tell
 
     word_list = input_string.split()
@@ -714,7 +616,7 @@ def applyLFRulesToString(input_string):
     fit_rule_list = []    #a list of rule fits to the_string: [(DialogAct, start_i, end_i),...]
     while i_word < len(word_list):
         word_i = word_list[i_word]
-        possible_rules = gl_first_word_string_to_interpretation_rule_dict.get(word_i)
+        possible_rules = gl_first_word_string_to_rule_dict.get(word_i)
         #print '\'' + word_i + '\':   possible_rules: ' + str(possible_rules)
         if possible_rules != None:
             for possible_rule in possible_rules:
@@ -741,7 +643,7 @@ def applyLFRulesToString(input_string):
 #This function selects the longest (most-word) fitting tuples in a greedy fashion
 #Returns a list of tuples which is a subset of the tuples passed
 #
-#Right now, this does not allow muliple DialogActs to 
+#Right now, this not allow muliple DialogActs to 
 #apply to the same set of words, so it does not return two interpretations of the same input
 #.e.g. both InformTD and ConfirmTD.
 #
@@ -789,12 +691,11 @@ def selectMaximallyCoveringRules(fit_rule_list, input_length):
 #i_word.  If a match is found, then the variable $1 for that word-category is made available
 #for setting the argument value for that variable in the rule_lhs
 #
-#This returns a list: [ (str_DialogAct, i_word, i_next_word), ...]
-#str_DialogAct means that it is not an actual DialogAct instance, but the string counterpart of one.
-#The str_DialogAct's arguments will be filled in with values from any Word-Categories that were used
-#i_word and i_next_word in the tuple tell what part of the word_list is spanned by the str_DialogAct.
+#This returns a list: [ (DialogAct, i_word, i_next_word), ...]
+#The DialogAct's arguments will be filled in with values from any Word-Categories that were used
+#i_word and i_next_word in the tuple tell what part of the word_list is spanned by the DialogAct.
 def testRuleOnInputWordsAtWordIndex(rule, word_list, i_word_start):
-    global gl_interpretation_word_category_rules
+    global gl_word_category_rules
 
     #print ' testRuleOnInputWordsAtWordIndex(' + str(rule) + ', ' + str(word_list) + ', ' + str(i_word_start) + ')'
     rule_rhs_items = rule[1]
@@ -812,7 +713,7 @@ def testRuleOnInputWordsAtWordIndex(rule, word_list, i_word_start):
         if rule_word_or_word_category.find('{') == 0:
             lbr_index = rule_word_or_word_category.find('[')
             word_category_predicate = rule_word_or_word_category[1:lbr_index]
-            word_category = gl_interpretation_word_category_rules.get(word_category_predicate)
+            word_category = gl_word_category_rules.get(word_category_predicate)
             if word_category == None:
                 print 'error testRuleOnInputWordsAtWordIndex() could not find word-category ' + word_category_predicate
                 i_word += 1
@@ -901,20 +802,20 @@ def testRuleOnInputWordsAtWordIndex(rule, word_list, i_word_start):
 #word_list starting at i_word
 #If there's a word-by-word match for all words in the word tuple of a word-category, then
 #that arg is returned along with that word_category's length (number of words)
-#Preferably, the list of word_categories in gl_interpretation_word_category_rules would have been sorted by 
+#Preferably, the list of word_categories in gl_word_category_rules would have been sorted by 
 #length so that the longest possible match is returned
 #returns (num_words_consumed, word_category_arg)
 def testWordCategoryOnInputWordsAtWordIndex(word_category_predicate, word_list, i_word_start):
-    global gl_interpretation_word_category_rules
+    global gl_word_category_rules
     
     if i_word_start >= len(word_list):
         return (0, None)
 
-    word_category_rules = gl_interpretation_word_category_rules.get(word_category_predicate)
+    word_category_rules = gl_word_category_rules.get(word_category_predicate)
 
     #print 'testWordCategoryOnInputWordsAtWordIndex(' + word_category_predicate + ', ' + str(word_list) + ', ' + str(i_word_start) + ')'
 
-    wc_rule_list = gl_interpretation_word_category_rules.get(word_category_predicate)
+    wc_rule_list = gl_word_category_rules.get(word_category_predicate)
     if wc_rule_list == None:
         print 'problem in testWordCategoryOnInputWordsAtWordIndex() no wc rules for predicate ' + word_category_predicate
         return (0, None)
@@ -975,9 +876,7 @@ def generateTextFromDialogActs(da_list):
 #from the DialogRule to the utterance.
 #Returns a word_list of words generated by the gen_dialog_act passed.
 def generateTextFromDialogAct(gen_dialog_act):
-    global gl_generator_dialog_act_rules
-
-    da_rule_list = gl_generator_dialog_act_rules.get(gen_dialog_act.intent)
+    da_rule_list = gl_dialog_act_rules.get(gen_dialog_act.intent)
     if da_rule_list == None:
         print 'error generateTextFromDialogAct() sees no rules for dialog_act ' + gen_dialog_act.getPrintString() + ' intent ' + gen_dialog_act.intent
         return None
@@ -985,37 +884,18 @@ def generateTextFromDialogAct(gen_dialog_act):
     #Run through all of the LogicalForms and Word-Category rules that use this intent in its DialogAct.
     #Match predicte-by-predicate recursively.  As free arguments are encountered in the rule, map them
     #to argument values from the arguments of the generated LogicalForm.
-    #XXXReturn the argument mapping for the first match to the dialog_act passed.
-    #Prepare a list of all dialog rules that produce an argument mapping.
-    arg_mapping_list = []
-    #arg_mapping = None
+    #Return the argument mapping for the first match to the dialog_act passed.
+    arg_mapping = None
     for da_rule in da_rule_list:
         rule_da = da_rule[0]
         arg_mapping = recursivelyMapDialogRule(rule_da, gen_dialog_act)
         if arg_mapping != None:
-            arg_mapping_list.append((da_rule, arg_mapping))
-            print ' matching gen rule: ' + da_rule[0].getPrintString() + ' arg_mapping: ' + str(arg_mapping)
-    if len(arg_mapping_list) == 0:
+            break
+    if arg_mapping == None:
         print 'error generateTextFromDialogAct() could not find a consistent recursive mapping for dialog_act\n '\
             + gen_dialog_act.getPrintString() + ' intent ' + gen_dialog_act.intent
         print 'da: ' + gen_dialog_act.getPrintString()
         return None
-
-
-    #choose the DialogRule with the shortest arg_mapping because that is most specific, the one
-    #with the fewest free parameters
-    min_arg_mapping_len = 10000
-    da_rule = None
-    arg_mapping = None
-    for da_rule_and_mapping in arg_mapping_list:
-        this_da_rule = da_rule_and_mapping[0]
-        this_arg_mapping = da_rule_and_mapping[1]
-        if len(this_arg_mapping) < min_arg_mapping_len:
-            min_arg_mapping_len = len(this_arg_mapping)
-            da_rule = this_da_rule
-            arg_mapping = this_arg_mapping
-    
-    print ' finally chose matching gen rule: ' + da_rule[0].getPrintString() + ' arg_mapping: ' + str(arg_mapping)
 
     word_list = []
     rhs = da_rule[1]
@@ -1048,12 +928,12 @@ def generateTextFromDialogAct(gen_dialog_act):
 
 
 #A word-category is of the form  predicate[arg-value]
-#This looks up the word-category in the gl_generator_word_category_rules dictionary, then selects
+#This looks up the word-category in the gl_word_category_rules dictionary, then selects
 #The correct version for the arg_value.
 #This returns a tuple of words which is the rhs of that word-category
 def lookupWordCategoryRHSWords(wc_predicate, arg_value):
-    global gl_generator_word_category_rules
-    wc_rule_list = gl_generator_word_category_rules.get(wc_predicate)
+    global gl_word_category_rules
+    wc_rule_list = gl_word_category_rules.get(wc_predicate)
     if wc_rule_list == None:
         print 'error lookupWordCategoryRHSWords(' + wc_predicate + ', ' + arg_value + ') found no items' 
         return ''
