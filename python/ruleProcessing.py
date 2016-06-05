@@ -128,7 +128,8 @@ def removePunctuationAndLowerTextCasing(text_data):
 #
 
 
-gl_default_lf_rule_filename = 'tell-phone-number-lf-rules.txt'
+#gl_default_lf_rule_filename = 'tell-phone-number-lf-rules.txt'
+gl_default_lf_rule_filename = 'tell-phone-number-lf-rules-2.txt'
 
 #key: first-word-or-category-of-sequence:  value: (rule_lhs, rule_rhs)
 #       where rule_lhs is a text representation of a DialogAct, which is Intent(LogicalForm)

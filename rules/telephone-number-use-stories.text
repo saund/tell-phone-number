@@ -18,9 +18,9 @@ What is the ?[phone | telephone] number ?again
 These will be arguments to Intents and LogicalForms
 
 
-* Topic Items *
+* Topic Data Values *
 
-*Item value*
+*TD Item Value*
 (TopicData, confirmation-repeat)
 one
 two 
@@ -39,21 +39,34 @@ open parenthesis
 close parenthesis
 
 
-*Item group type*
-(TopicData)
-area code
-last four digits
-
-
-*Item type*
+*TD Item Type*
 (TopicData)
 digit
+number
+letter
+character
 dash
 punctuation
 parenthesis
+numeric
+alphanumeric
+alphabetic
 
 
-*Indexical-Position*
+
+*TD Field Names*
+(TopicData)
+area code
+exchange
+line number
+last four digits
+telephone number
+phone number
+country code
+extension
+
+
+*TD Indexical-Position*
 (DM-data)
 first
 last
@@ -67,7 +80,7 @@ eight
 ninth
 tenth
 
-*Indexical-Relation*
+*TD Indexical-Relation*
 (DM-data)
 next
 then
@@ -147,7 +160,7 @@ did you go away?
 are you still listening?
 [Name]?
 
-*DM-Management - communciation-channel*
+*DM-Management - communication-channel*
 I can't hear you
 can you hear me?
 there's noise on the line
@@ -312,10 +325,10 @@ CorrectDialogManagement
 InformTopicInfo(ItemValue)
 "six two three"
 
-InformTopicInfo(ItemGroupType)
+InformTopicInfo(ItemFieldName)
 "area code"
 
-InformTopicInfo(ItemGroupType, ItemValue)
+InformTopicInfo(ItemFieldName, ItemValue)
 "area code two one three"
 "the area code is two one three"
 
@@ -364,8 +377,6 @@ InformDialogManagement(negation)
 
 InformDialogManagement(partner-correction)
 "no that's"
-
-$$
 
 
 InformDialogManagement(negation, ItemValue)
@@ -435,7 +446,7 @@ RequestTopicInfo(IndexicalRelation, ItemType)
 RequestTopicInfo(ItemValue)
 "was that a seven?"
 
-RequestTopicInfo(ItemGroupType)
+RequestTopicInfo(ItemFieldName)
 "what is the area code?"
 "please tell me the number"
 
@@ -508,7 +519,7 @@ CheckTopicInfo(ItemValue, IndexicalPosition)
 CheckTopicInfo(ItemValue, IndexicalPosition, ItemValue)
 "did you get that seven is after the six"
 
-CheckTopicInfo(ItemGroupType)
+CheckTopicInfo(ItemFieldName)
 "are you ready for the area code?"
 
 CheckTopicInfo(ItemType)
@@ -577,11 +588,11 @@ CheckDialogManagement(understanding)
 ConfirmTopicInfo(ItemValue)
 "six two three"
 
-ConfirmTopicInfo(ItemGroupType)
+ConfirmTopicInfo(ItemFieldName)
 "area code"
 "okay that's the area code"
 
-ConfirmTopicInfo(ItemGroupType, ItemValue)
+ConfirmTopicInfo(ItemFieldName, ItemValue)
 "area code six two three"
 "okay the area code is six two three"
 
@@ -725,7 +736,7 @@ Synopsis of Utterance Categories
 (needs to be updated)
 
 InformTopicInfo(ItemValue)
-InformTopicInfo(ItemGroupType)
+InformTopicInfo(ItemFieldName)
 InformTopicInfo(ItemType)
 InformTopicInfo(IndexicalPosition)
 InformTopicInfo(IndexicalRelation)
@@ -740,7 +751,7 @@ InformDialogManagement(protocol)
 InformDialogManagement(readiness)
 
 RequestTopicInfo(ItemValue)
-RequestTopicInfo(ItemGroupType)
+RequestTopicInfo(ItemFieldName)
 RequestTopicInfo(ItemType)
 RequestTopicInfo(IndexicalPosition)
 RequestTopicInfo(IndexicalRelation)
@@ -756,7 +767,7 @@ RequestDialogManagement(protocol)
 RequestDialogManagement(readiness)
 
 ConfirmTopicInfo(ItemValue)
-ConfirmTopicInfo(ItemGroupType)
+ConfirmTopicInfo(ItemFieldName)
 ConfirmTopicInfo(ItemType)
 ConfirmTopicInfo(IndexicalPosition)
 ConfirmTopicInfo(IndexicalRelation)
@@ -772,7 +783,7 @@ ConfirmDialogManagement(readiness)
 
 
 CheckTopicInfo(ItemValue)
-CheckTopicInfo(ItemGroupType)
+CheckTopicInfo(ItemFieldName)
 CheckTopicInfo(ItemType)
 CheckTopicInfo(indexical-position)
 CheckTopicInfo(indexical-relation)
