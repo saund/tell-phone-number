@@ -1101,23 +1101,41 @@ gl_str_da_correction_dm_negation = 'CorrectionDialogManagement(negation)'
 
 
 #e.g. 'that is the [area code]'
-gl_da_correction_dm_item_type_present = rp.parseDialogActFromString('CorrectionTopicInfo(partner-correction-present, ItemType($1))')
-gl_str_da_correction_dm_item_type_present = 'CorrectionTopicInfo(partner-correction-present, ItemType($1))'
+#gl_da_correction_dm_item_type_present = rp.parseDialogActFromString('CorrectionTopicInfo(partner-correction-present, FieldName($1))')
+#gl_str_da_correction_dm_item_type_present = 'CorrectionTopicInfo(partner-correction-present, FieldName($1))'
 
 #e.g.. 'that was the [area code]'
-gl_da_correction_dm_item_type_past = rp.parseDialogActFromString('CorrectionTopicInfo(partner-correction-past, ItemType($1))')
-gl_str_da_correction_dm_item_type_past = 'CorrectionTopicInfo(partner-correction-past, ItemType($1))'
+#gl_da_correction_dm_item_type_past = rp.parseDialogActFromString('CorrectionTopicInfo(partner-correction-past, ItemType($1))')
+#gl_str_da_correction_dm_item_type_past = 'CorrectionTopicInfo(partner-correction-past, ItemType($1))'
+
+# "is the [area code]"
+#This uses the RequestTopicInfo Intent because "is the" also starts a request
+#So this construction is identical to gl_str_da_request_field_confirmation.
+#Tense is one of: {'present-singular', 'present-plural', 'infinitive', 'past-singular', 'past-plural'
+gl_da_inform_field = rp.parseDialogActFromString('RequestTopicInfo(request-confirmation, Tense($1), FieldName($2))')
+gl_str_da_inform_field = 'RequestTopicInfo(request-confirmation, Tense($1), FieldName($2))'
+
+#"that is the [area code]"
+gl_da_inform_dm_field_indicative = rp.parseDialogActFromString('InformTopicInfo(grammatical-be-indicative, Grammar($1), FieldName($2))')
+gl_str_da_inform_dm_field_indicative = 'InformTopicInfo(grammatical-be-indicative, Grammar($1), FieldName($2))'
+
+
 
 
 #e.g. 'is the area code'
-gl_da_inform_item_type = rp.parseDialogActFromString('InformTopicInfo(info-type-present, ItemType($1))')
-gl_str_da_inform_item_type = 'InformTopicInfo(info-type-present, ItemType($1))'
+#gl_da_inform_item_type = rp.parseDialogActFromString('InformTopicInfo(info-type-present, ItemType($1))')
+#gl_str_da_inform_item_type = 'InformTopicInfo(info-type-present, ItemType($1))'
+
+#e.g. "is/was the area code"
+gl_da_request_field_confirmation = rp.parseDialogActFromString('RequestTopicInfo(request-confirmation, Tense($1) FieldName($2))')
+gl_str_da_request_field_confirmation = 'RequestTopicInfo(request-confirmation, Tense($1), FieldName($2))'
+
 
 
 
 #g.e. 'six is the the digit
-gl_da_correction_dm_item_value_digit_item_type_present = rp.parseDialogActFromString('CorrectionTopicInfo(partner-correction-present, InfoTopic(ItemValue(Digit($1))), ItemType($2))')
-gl_str_da_correction_dm_item_value_digit_item_type_present = 'CorrectionTopicInfo(partner-correction-present, InfoTopic(ItemValue(Digit($1))), ItemType($2))'
+#gl_da_correction_dm_item_value_digit_item_type_present = rp.parseDialogActFromString('CorrectionTopicInfo(partner-correction-present, InfoTopic(ItemValue(Digit($1))), ItemType($2))')
+#gl_str_da_correction_dm_item_value_digit_item_type_present = 'CorrectionTopicInfo(partner-correction-present, InfoTopic(ItemValue(Digit($1))), ItemType($2))'
 
 #g.e. 'six five zero is the the area code
 #Not doing it this way because it requires spelling out each DigitSequence arugment.
@@ -1140,8 +1158,9 @@ gl_str_da_misalignment_self_hearing_or_understanding = 'RequestDialogManagement(
 gl_da_misalignment_self_hearing_or_understanding_pronoun_ref = rp.parseDialogActFromString('RequestDialogManagement(misalignment-self-hearing-or-understanding, pronoun-ref)')
 gl_str_da_misalignment_self_hearing_or_understanding_pronoun_ref = 'RequestDialogManagement(misalignment-self-hearing-or-understanding, pronoun-ref)'
 
-gl_da_misalignment_self_hearing_or_understanding_item_type = rp.parseDialogActFromString('RequestDialogManagement(misalignment-self-hearing-or-understanding, ItemType($1))')
-gl_str_da_misalignment_self_hearing_or_understanding_item_type = 'RequestDialogManagement(misalignment-self-hearing-or-understanding, ItemType($1))'
+
+gl_da_misalignment_self_hearing_or_understanding_field = rp.parseDialogActFromString('RequestDialogManagement(misalignment-self-hearing-or-understanding, FieldName($1))')
+gl_str_da_misalignment_self_hearing_or_understanding_field = 'RequestDialogManagement(misalignment-self-hearing-or-understanding, FieldName($1))'
 
 gl_da_misalignment_request_repeat = rp.parseDialogActFromString('RequestDialogManagement(misalignment-request-repeat)')
 gl_str_da_misalignment_request_repeat = 'RequestDialogManagement(misalignment-request-repeat)'
@@ -1151,8 +1170,9 @@ gl_str_da_misalignment_request_repeat = 'RequestDialogManagement(misalignment-re
 gl_da_misalignment_request_repeat_pronoun_ref = rp.parseDialogActFromString('RequestDialogManagement(misalignment-request-repeat, pronoun-ref)')
 gl_str_da_misalignment_request_repeat_pronoun_ref = 'RequestDialogManagement(misalignment-request-repeat, pronoun-ref)'
 
-gl_da_misalignment_request_repeat_item_type = rp.parseDialogActFromString('RequestDialogManagement(misalignment-request-repeat, ItemType($1))')
-gl_str_da_misalignment_request_repeat_item_type = 'RequestDialogManagement(misalignment-request-repeat, ItemType($1))'
+
+gl_da_misalignment_request_repeat_field = rp.parseDialogActFromString('RequestDialogManagement(misalignment-request-repeat, FieldName($1))')
+gl_str_da_misalignment_request_repeat_field = 'RequestDialogManagement(misalignment-request-repeat, FieldName($1))'
 
 gl_da_inform_dm_repeat_intention = rp.parseDialogActFromString('InformDialogManagement(repeat-intention)')
 gl_str_da_inform_dm_repeat_intention = 'InformDialogManagement(repeat-intention)'
@@ -1175,11 +1195,19 @@ gl_str_da_correction_topic_info_negation_polite_partner_correction = 'Correction
 
 
 
-gl_da_clarification_utterance_past = rp.parseDialogActFromString('RequestDialogManagement(clarification-utterance-past, ItemType($1))')
-gl_str_da_clarification_utterance_past = 'RequestDialogManagement(clarification-utterance-past, ItemType($1))'
+#gl_da_clarification_utterance_past = rp.parseDialogActFromString('RequestDialogManagement(clarification-utterance-past, ItemType($1))')
+#gl_str_da_clarification_utterance_past = 'RequestDialogManagement(clarification-utterance-past, ItemType($1))'
 
-gl_da_clarification_utterance_present = rp.parseDialogActFromString('RequestDialogManagement(clarification-utterance-present, ItemType($1))')
-gl_str_da_clarification_utterance_present = 'RequestDialogManagement(clarification-utterance-present, ItemType($1))'
+#gl_da_clarification_utterance_present = rp.parseDialogActFromString('RequestDialogManagement(clarification-utterance-present, ItemType($1))')
+#gl_str_da_clarification_utterance_present = 'RequestDialogManagement(clarification-utterance-present, ItemType($1))'
+
+
+"was/is that the area code", "did you just say the area code"
+gl_da_request_clarification_utterance_field = rp.parseDialogActFromString('RequestDialogManagement(clarification-utterance, Grammar($1), FieldName($2))')
+gl_str_da_request_clarification_utterance_field = 'RequestDialogManagement(clarification-utterance, Grammar($1), FieldName($2))'
+
+
+
 
 
 gl_digit_list = ['zero', 'oh', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine']
@@ -1726,6 +1754,10 @@ def handleRequestDialogManagement(da_list):
     da_request_dm = da_list[0] 
     str_da_request_dm = da_request_dm.getPrintString()
 
+    print 'handleRequestDialogManagement()'
+    for da in da_list:
+        da.printSelf()
+
     #Determine if the utterance from partner merits becoming the most recent data topic of discussion
     response_to_become_most_recent_data_topic_p = False
     for da in da_list:
@@ -1734,10 +1766,6 @@ def handleRequestDialogManagement(da_list):
             break
     if response_to_become_most_recent_data_topic_p == True:
         gl_most_recent_data_topic_da_list = da_list[:]
-
-    print 'handleRequestDialogManagement()'
-    for da in da_list:
-        da.printSelf()
 
     #handle "i didn't get that"
     #print 'str_da_request_dm: ' + str_da_request_dm
@@ -1792,13 +1820,12 @@ def handleRequestDialogManagement(da_list):
         #'was that $1', we can handle it in the same way as a request for confirmation of data.
         return handleRequestTopicInfo_RequestConfirmation(da_list)
 
-
     #print 'str_da_request_dm: ' + str_da_request_dm
     #print 'gl_da_misalignment_self_hearing_or_understanding_item_type: ' + gl_da_misalignment_self_hearing_or_understanding_item_type.getPrintString()
     #handle "I did not understand the area code, etc"
-    mapping_ma = rp.recursivelyMapDialogRule(gl_da_misalignment_self_hearing_or_understanding_item_type, da_request_dm)
+    mapping_ma = rp.recursivelyMapDialogRule(gl_da_misalignment_self_hearing_or_understanding_field, da_request_dm)
     #handle "repeat the area code, etc'
-    mapping_rr = rp.recursivelyMapDialogRule(gl_da_misalignment_request_repeat_item_type, da_request_dm)
+    mapping_rr = rp.recursivelyMapDialogRule(gl_da_misalignment_request_repeat_field, da_request_dm)
 
     mapping = None
     if mapping_ma != None:
@@ -1806,43 +1833,50 @@ def handleRequestDialogManagement(da_list):
     if mapping_rr != None:
         mapping = mapping_rr
     if mapping != None:
-        misunderstood_item_type = mapping.get('1')
-        if misunderstood_item_type in gl_agent.self_dialog_model.data_model.data_indices.keys():
+        misunderstood_field_name = mapping.get('1')
+        if misunderstood_field_name in gl_agent.self_dialog_model.data_model.data_indices.keys():
             #If partner is asking for a chunk, reset belief in partner data_model for this segment as unknown
-            chunk_indices = gl_agent.self_dialog_model.data_model.data_indices.get(segment_chunk_name)
+            chunk_indices = gl_agent.self_dialog_model.data_model.data_indices.get(misunderstood_field_name)
             for i in range(chunk_indices[0], chunk_indices[1] + 1):
                 data_index_pointer = gl_10_digit_index_list[i]
                 gl_agent.partner_dialog_model.data_model.setNthPhoneNumberDigit(data_index_pointer, '?', 1.0)
-            return handleSendSegmentChunkNameAndData(misunderstood_item_type)
+            return handleSendSegmentChunkNameAndData(misunderstood_field_name)
 
-    #handle "was that the area code?"
-    mapping_cpa = rp.recursivelyMapDialogRule(gl_da_clarification_utterance_past, da_request_dm)
+    #handle "is/was that the area code?"
+    mapping_cpa = rp.recursivelyMapDialogRule(gl_da_request_clarification_utterance_field, da_request_dm)
     print 'mapping_cpa: ' + str(mapping_cpa)
     #handle "is that the area code?"
-    mapping_cpr = rp.recursivelyMapDialogRule(gl_da_clarification_utterance_present, da_request_dm)
+    #mapping_cpr = rp.recursivelyMapDialogRule(gl_da_clarification_utterance_present, da_request_dm)
     if mapping_cpa != None:
         mapping = mapping_cpa
     if mapping_cpr != None:
         mapping = mapping_cpr
     if mapping != None:
-        clarification_item_type = mapping.get('1')
+        clarification_grammar = mapping.get('1')
+        clarification_field_name = mapping.get('2')
         last_self_utterance_tup = fetchLastUtteranceFromTurnHistory('self')
         da_list = last_self_utterance_tup[2]
         segment_names = findSegmentNameForDialogActs(da_list)
         print 'segment_names: ' + str(segment_names)
 
-        if len(segment_names) == 1 and segment_names[0] == clarification_item_type:
+        if len(segment_names) == 1 and segment_names[0] == clarification_field_name:
             return [gl_da_affirmation_yes]
         #generate correction, 'no, [six five zero] is the [exchange]'
         elif len(segment_names) == 1:
             digit_value_list = collectDataValuesFromDialogActs(da_list)
             digit_value_da = synthesizeLogicalFormForDigitOrDigitSequence(digit_value_list)
 
-            da_str_inform_item_type = gl_str_da_inform_item_type.replace('$1', segment_names[0])
-            da_inform_item_type = rp.parseDialogActFromString(da_str_inform_item_type)
-            return [gl_da_correction_dm_negation, digit_value_da, da_inform_item_type]
+            da_str_inform_field = gl_str_da_inform_field.replace('$1', 'present-singular') # Tense($1)
+            da_str_inform_field = da_str_inform_field.replace('$2', segment_names[0])      # FieldName($2)
+            da_inform_field = rp.parseDialogActFromString(da_str_inform_field)
+            return [gl_da_correction_dm_negation, digit_value_da, da_inform_field]
 
         return [da_request_dm]
+
+    #handle 
+
+
+
 
                                                   
 

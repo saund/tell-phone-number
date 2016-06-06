@@ -223,6 +223,13 @@ InformTopicInfo(ItemTypeChar($1)) <-> {ItemTypeCharCat[$1]}
 InformTopicInfo(FieldName($1)) <-> {FieldNameCat[$1]}
 
 
+#That is the area code
+InformTopicInfo(grammatical-be-indicative, Grammar($1), FieldName($2)) <-> {GrammaticalBeIndicativeAssertionCat[$1]} {FieldNameCat[$2]}
+
+
+
+
+
 #TopicData Item Type
 # types of Item Values
 #The format is
@@ -264,7 +271,11 @@ FieldNameCat[state] <-> state
 FieldNameCat[zip-code] <-> zip code
 FieldNameCat[country] <-> country
 
-
+#I actually think this needs reworking more to give digits and other fields
+#parallel structure
+#
+#   agent-name and user-name should be field names,
+#   and their values can be person, computer
 
 #Names of participants
 
@@ -442,15 +453,20 @@ RequestTopicInfo(tell-me) <-> {CommandCat[tell-me]}
 
 
 
-#Request confirmation of digit values as RequestTopicData DialogActs
+#Request confirmation of digit values as RequestTopicInfo DialogActs
 #These mirror InformTopicInfo above
+#clarification/confirmation is in the gray zone between RequestTopicInfo 
+#and RequestDialogManagement; "was that the area code" might come under the latter
+#because it refers to a field name not a data value
 #Unfortunate that we have to spell out each digit argument in a digit sequence. 
 #There should be a more concise way to do this.
+#Possibly this could be treated as a concatenation of an Intent encoding 
+#the GrammaticalBeIndicativeCat followed by an Intent holding the digits.
+#
 #was that six / is that six
 
 RequestTopicInfo(request-confirmation, ItemValue(Digit($1))) <-> \
 {GrammaticalBeIndicativeCat[$100]} {DigitCat[$1]}\
-
 
 RequestTopicInfo(request-confirmation, ItemValue(DigitSequence($1, $2))) <-> \
 {GrammaticalBeIndicativeCat[$100]}{DigitCat[$1]} {DigitCat[$2]} 
@@ -485,6 +501,8 @@ RequestTopicInfo(request-confirmation, ItemValue(DigitSequence($1, $2, $3, $4, $
 RequestTopicInfo(request-confirmation, ItemValue(DigitSequence($1, $2, $3, $4, $5, $6, $7, $8, $9, $10))) <-> \
 {GrammaticalBeIndicativeCat[$100]}{DigitCat[$1]} {DigitCat[$2]} {DigitCat[$3]} \
 {DigitCat[$4]} {DigitCat[$5]} {DigitCat[$6]} {DigitCat[$7]} {DigitCat[$8]} {DigitCat[$9]} {DigitCat[$10]}
+
+
 
 
 
@@ -573,18 +591,85 @@ CorrectionTopicInfo(partner-correction) <- wrong it's
 CorrectionTopicInfo(partner-correction) <- wrong it is
 CorrectionTopicInfo(partner-correction) <- wrong it was
 
+#This is actually Inform, not a correction
 #"that is the area code"
-CorrectionTopicInfo(partner-correction-present, FieldName($1)) <-> that is the {FieldNameCat[$1]}
-CorrectionTopicInfo(partner-correction-past, FieldName($1)) <- that was the {FieldNameCat[$1]}
-CorrectionTopicInfo(partner-correction-present, ItemTypeChar($1)) <-> that is the {ItemTypeCharCat[$1]}
-CorrectionTopicInfo(partner-correction-past, ItemTypeChar($1)) <- that was the {ItemTypeCharCat[$1]}
+#CorrectionTopicInfo(partner-correction-present, FieldName($1)) <-> that is the {FieldNameCat[$1]}
+#CorrectionTopicInfo(partner-correction-past, FieldName($1)) <- that was the {FieldNameCat[$1]}
+#CorrectionTopicInfo(partner-correction-present, ItemTypeChar($1)) <-> that is the {ItemTypeCharCat[$1]}
+#CorrectionTopicInfo(partner-correction-past, ItemTypeChar($1)) <- that was the {ItemTypeCharCat[$1]}
+
+
+#"not the area code"
+CorrectionTopicInfo(FieldName($1)) <-> not the {FieldNameCat[$1]}
+
+#"not six five zero"
+CorrectionTopicInfo(ItemValue(Digit($1))) <-> \
+not {DigitCat[$1]}\
+
+CorrectionTopicInfo(ItemValue(DigitSequence($1, $2))) <-> \
+not {DigitCat[$1]} {DigitCat[$2]} 
+
+CorrectionTopicInfo(ItemValue(DigitSequence($1, $2, $3))) <-> \
+not {DigitCat[$1]} {DigitCat[$2]} {DigitCat[$3]} 
+
+CorrectionTopicInfo(ItemValue(DigitSequence($1, $2, $3, $4))) <-> \
+not {DigitCat[$1]} {DigitCat[$2]} {DigitCat[$3]} {DigitCat[$4]}
+
+CorrectionTopicInfo(ItemValue(DigitSequence($1, $2, $3, $4, $5))) <-> \
+not {DigitCat[$1]} {DigitCat[$2]} {DigitCat[$3]} {DigitCat[$4]} {DigitCat[$5]}
+
+CorrectionTopicInfo(ItemValue(DigitSequence($1, $2, $3, $4, $5, $6))) <-> \
+not {DigitCat[$1]} {DigitCat[$2]} {DigitCat[$3]} {DigitCat[$4]} {DigitCat[$5]} {DigitCat[$6]}
+
+CorrectionTopicInfo(ItemValue(DigitSequence($1, $2, $3, $4, $5, $6, $7))) <-> \
+not {DigitCat[$1]} {DigitCat[$2]} {DigitCat[$3]} {DigitCat[$4]} {DigitCat[$5]} {DigitCat[$6]} {DigitCat[$7]}
+
+CorrectionTopicInfo(ItemValue(DigitSequence($1, $2, $3, $4, $5, $6, $7, $8))) <-> \
+not {DigitCat[$1]} {DigitCat[$2]} {DigitCat[$3]} \
+{DigitCat[$4]} {DigitCat[$5]} {DigitCat[$6]} {DigitCat[$7]} {DigitCat[$8]}
+
+CorrectionTopicInfo(ItemValue(DigitSequence($1, $2, $3, $4, $5, $6, $7, $8, $9))) <-> \
+not {DigitCat[$1]} {DigitCat[$2]} {DigitCat[$3]} \
+{DigitCat[$4]} {DigitCat[$5]} {DigitCat[$6]} {DigitCat[$7]} {DigitCat[$8]} {DigitCat[$9]}
+
+CorrectionTopicInfo(ItemValue(DigitSequence($1, $2, $3, $4, $5, $6, $7, $8, $9, $10))) <-> \
+not {DigitCat[$1]} {DigitCat[$2]} {DigitCat[$3]} \
+{DigitCat[$4]} {DigitCat[$5]} {DigitCat[$6]} {DigitCat[$7]} {DigitCat[$8]} {DigitCat[$9]} {DigitCat[$10]}
+
+
+
+
+
+
+
+
+
+
+
+
+
+#The syntact construction, "is the area code" can be used both in a question and in a statement:
+#  is the area code [six five zero]    Request(request-confirmation, 
+#  [six five zero] is the area code    Inform(be
+#Right now, we cannot produce multiple Intent semantic parses for the same utterance
+#When an utterance is parsed in terms of multiple intents (to preserve syntactic order), they
+#the first Inten is the one used in dialogAgent.py to dispatch on to interpret and formulate
+#a response.   Therefore, we choose to use the Request Intent for "is the FieldName"
+
+#include the the or not?
+#RequestTopicInfo(request-confirmation, Tense($1), FieldName($2)) <-> {GrammaticalBeCat[$1]} the {FieldNameCat[$2]}
+RequestTopicInfo(request-confirmation, Tense($1), FieldName($2)) <-> {GrammaticalBeCat[$1]} {FieldNameCat[$2]}
+
 
 #"is the area code"
-InformTopicInfo(info-type-present, ItemTypeChar($1)) <-> is the {ItemTypeCharCat[$1]}
-InformTopicInfo(info-type-present, FieldName($1)) <-> is the {FieldNameCat[$1]}
+#InformTopicInfo(info-type-present, ItemTypeChar($1)) <-> is the {ItemTypeCharCat[$1]}
+#InformTopicInfo(info-type-present, FieldName($1)) <-> is the {FieldNameCat[$1]}
 #"was the area code"
-InformTopicInfo(info-type-past, ItemTypeChar($1)) <-> was the {ItemTypeCharCat[$1]}
-InformTopicInfo(info-type-past, FieldName($1)) <-> was the {FieldNameCat[$1]}
+#InformTopicInfo(info-type-past, ItemTypeChar($1)) <-> was the {ItemTypeCharCat[$1]}
+#InformTopicInfo(info-type-past, FieldName($1)) <-> was the {FieldNameCat[$1]}
+
+
+
 
 #CorrectionTopicInfo(partner-correction-present, InfoTopic(ItemValue(Digit($1))), ItemType($2)) <-> {DigitCat[$1]} is the {InfoTypeCat[$2]}
 #CorrectionTopicInfo(partner-correction-present, InfoTopic(ItemValue(DigitSequence($1))), ItemType($2)) <-> {DigitCat[$1]} is the {InfoTypeCat[$2]}
@@ -673,11 +758,14 @@ RequestDialogManagement(misalignment-request-repeat, FieldName($1)) <-> say the 
 RequestDialogManagement(misalignment-request-repeat, FieldName($1)) <-> repeat the {FieldNameCat[$1]} 
 RequestDialogManagement(misalignment-request-repeat, FieldName($1)) <-> again please the {FieldNameCat[$1]} 
 
-RequestDialogManagement(clarification-utterance-past, FieldName($1)) <-> was that the {FieldNameCat[$1]}
-RequestDialogManagement(clarification-utterance-past, FieldName($1)) <-> did you just say the {FieldNameCat[$1]}
-RequestDialogManagement(clarification-utterance-past, FieldName($1)) <-> did you just give the {FieldNameCat[$1]}
-RequestDialogManagement(clarification-utterance-present, FieldName($1)) <-> is that the {FieldNameCat[$1]}
-RequestDialogManagement(clarification-utterance-present, FieldName($1)) <-> are those the {FieldNameCat[$1]}
+#clarification/confirmation is in the gray zone between RequestTopicInfo 
+#and RequestDialogManagement; "was that the area code" comes under the latter
+#because it refers to a field name not a data value
+RequestDialogManagement(clarification-utterance, Grammar(past), FieldName($1)) <-> was that the {FieldNameCat[$1]}
+RequestDialogManagement(clarification-utterance, Grammar(past), FieldName($1)) <-> did you just say the {FieldNameCat[$1]}
+RequestDialogManagement(clarification-utterance, Grammar(past), FieldName($1)) <-> did you just give the {FieldNameCat[$1]}
+RequestDialogManagement(clarification-utterance, Grammar(present), FieldName($1)) <-> is that the {FieldNameCat[$1]}
+RequestDialogManagement(clarification-utterance, Grammar(present), FieldName($1)) <-> are those the {FieldNameCat[$1]}
 
 
 GrammaticalUtteranceConfirmationCat[partner] <-> did you say
@@ -790,10 +878,38 @@ GrammaticalIndicativeCat[definite] <-> the
 GrammaticalIndicativeCat[definite-far] <-> that
 GrammaticalIndicativeCat[indefinite] <-> a
 
-GrammaticalBeIndicativeCat[present-singular-definite-far] <-> is that
-GrammaticalBeIndicativeCat[past-singular-definite-far] <-> was that
-GrammaticalBeIndicativeCat[present-singular-definite-far] <-> so that was
-GrammaticalBeIndicativeCat[present-singular-definite-far] <-> so that's
+#How much to factorize the utterance category name versus list all combinations in the argument?
+GrammaticalBeIndicativeQuestionCat[present-singular-definite-far] <-> is that
+GrammaticalBeIndicativeQuestionCat[past-singular-definite-far] <-> was that
+GrammaticalBeIndicativeQuestionCat[present-singular-definite-near] <-> is this
+GrammaticalBeIndicativeQuestionCat[past-singular-definite-near] <-> was this
+GrammaticalBeIndicativeQuestionCat[present-plural-definite-far] <-> are those
+GrammaticalBeIndicativeQuestionCat[past-plural-definite-far] <-> were those
+GrammaticalBeIndicativeQuestionCat[present-plural-definite-near] <-> are these
+GrammaticalBeIndicativeQuestionCat[past-plural-definite-near] <-> were these
+
+GrammaticalBeIndicativeAssertionCat[present-singular-definite-far] <-> that is 
+GrammaticalBeIndicativeAssertionCat[past-singular-definite-far] <-> that was 
+GrammaticalBeIndicativeAssertionCat[present-singular-definite-near] <-> this is 
+GrammaticalBeIndicativeAssertionCat[past-singular-definite-near] <-> this was 
+GrammaticalBeIndicativeAssertionCat[present-plural-definite-far] <-> those are 
+GrammaticalBeIndicativeAssertionCat[past-plural-definite-far] <-> those were 
+GrammaticalBeIndicativeAssertionCat[present-plural-definite-near] <-> these are 
+GrammaticalBeIndicativeAssertionCat[past-plural-definite-near] <-> these were 
+
+GrammaticalBeIndicativeAssertionCat[present-singular-definite-far] -> so that was
+GrammaticalBeIndicativeAssertionCat[present-singular-definite-far] -> so that's
+
+
+
+#A way to allow an utterance to start with a GrammaticalBeIndicativeQuestionCat, 
+#i.e. "is that"
+RequestDialogManagement(grammatical-be-indicative, Grammar($1)) <-> {GrammaticalBeIndicativeQuestionCat[$1]}
+
+#A way to allow an utterance to start with a GrammaticalBeIndicativeAssertionCat, 
+#i.e. "that is"
+InformDialogManagement(grammatical-be-indicative, Grammar($1)) <-> {GrammaticalBeIndicativeAssertionCat[$1]}
+
 
 
 ActionCat[receive-info] <- hear
