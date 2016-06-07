@@ -984,6 +984,7 @@ def generateResponseToInputDialog(user_da_list):
     elif user_da_list[0].intent == 'RequestAction':
         da_response = handleRequestAction(user_da_list)
 
+    print '......'
     
     if da_response != None:
         gl_turn_history.insert(0, (gl_turn_number, 'self', da_response))
@@ -1138,6 +1139,13 @@ gl_da_inform_field_indicative = rp.parseDialogActFromString('InformTopicInfo(gra
 gl_str_da_inform_field_indicative = 'InformTopicInfo(grammatical-be-indicative, Grammar($1), FieldName($2))'
 
 
+#"is the"
+#{ definite-present, definite-past, indefinite-present, indefinite-past }
+gl_da_inform_be_indicative = rp.parseDialogActFromString('InformTopicInfo(GrammaticalBeIndicative($1))')
+gl_str_da_inform_be_indicative = 'InformTopicInfo(GrammaticalBeIndicative($1))'
+
+
+
 
 
 #e.g. 'is the area code'
@@ -1149,6 +1157,7 @@ gl_da_request_field_confirmation = rp.parseDialogActFromString('RequestTopicInfo
 gl_str_da_request_field_confirmation = 'RequestTopicInfo(request-confirmation, Tense($1), FieldName($2))'
 
 
+#"is six five zero the area code?"
 gl_da_is_digits_1_the_field = rp.parseDialogActFromString('RequestTopicInfo(request-confirmation, ItemValue(Digit($1)), FieldName($2), Tense($100))')
 
 gl_da_is_digits_2_the_field = rp.parseDialogActFromString('RequestTopicInfo(request-confirmation, ItemValue(DigitSequence($1, $2)), FieldName($3), Tense($100))')
@@ -1237,6 +1246,10 @@ gl_str_da_correction_topic_info_negation_polite_partner_correction = 'Correction
 "was/is that the area code", "did you just say the area code"
 gl_da_request_clarification_utterance_field = rp.parseDialogActFromString('RequestDialogManagement(clarification-utterance, Grammar($1), FieldName($2))')
 gl_str_da_request_clarification_utterance_field = 'RequestDialogManagement(clarification-utterance, Grammar($1), FieldName($2))'
+
+
+gl_da_field_name = rp.parseDialogActFromString('InformTopicInfo(FieldName($1))')
+gl_str_da_field_name = 'InformTopicInfo(FieldName($1))'
 
 
 
@@ -1639,22 +1652,47 @@ def handleRequestTopicInfo_SendRole(da_list):
         data_value_list = [mapping.get('1')]
         field_name = mapping.get('2')
     if mapping != None:
-        correct_data_value_list = getDataValueListForField(gl_agent.self_dialog_model.data_model, field_name)
+        #First try to reply with the actual segment name for the digits spoken by partner
+        print 'data_value_list: ' + str(data_value_list)
+
+        actual_segment_names = findSegmentNameForDigitList(data_value_list)
+        if len(actual_segment_names) > 0:
+            #really we should allow multiple segment names with the same digit sequence
+            actual_segment_name = actual_segment_names[0]
+            str_da_say_actual_segment_name_is = gl_str_da_say_field_name_is.replace('$1', actual_segment_name)
+            da_say_actual_segment_name_is = rp.parseDialogActFromString(str_da_say_actual_segment_name_is)
+            segment_digit_sequence_lf = synthesizeLogicalFormForDigitOrDigitSequence(data_value_list)
+            str_da_inform_be_indicative = gl_str_da_inform_be_indicative.replace('$1', 'definite-present')
+            da_inform_be_indicative = rp.parseDialogActFromString(str_da_inform_be_indicative)
+            str_da_field_name = gl_str_da_field_name.replace('$1', actual_segment_name)
+            da_field_name = rp.parseDialogActFromString(str_da_field_name)
+
+            if actual_segment_name == field_name:
+                #more syntax than I would prefer
+                res = [ gl_da_affirmation_yes, segment_digit_sequence_lf, da_inform_be_indicative, da_field_name]
+                print 'res: ' + str(res)
+                return res
+            else:
+                res = [ gl_da_correction_dm_negation, segment_digit_sequence_lf, da_inform_be_indicative, da_field_name]
+                print 'res: ' + str(res)
+                return res
+
+        #If that fails, then report on the correct digits of the segment named by partner in their query.
         str_da_say_field_name_is = gl_str_da_say_field_name_is.replace('$1', field_name)
         da_say_field_name_is = rp.parseDialogActFromString(str_da_say_field_name_is)
-        digit_sequence_lf = synthesizeLogicalFormForDigitOrDigitSequence(correct_data_value_list)
-        print 'data_value_list: ' + str(data_value_list)
-        if data_value_list == correct_data_value_list:
-            print ' returning affirmation yes ' + str(correct_data_value_list)
+        field_data_value_list = getDataValueListForField(gl_agent.self_dialog_model.data_model, field_name)
+        field_digit_sequence_lf = synthesizeLogicalFormForDigitOrDigitSequence(field_data_value_list)
+        if data_value_list == field_data_value_list:
+            print ' returning affirmation yes ' + str(field_data_value_list)
             res = [ gl_da_affirmation_yes, da_say_field_name_is]
-            if digit_sequence_lf != None:
-                res.append(digit_sequence_lf)
+            if field_digit_sequence_lf != None:
+                res.append(field_digit_sequence_lf)
             return res
         else:
-            print ' returning correction negation ' + str(correct_data_value_list)
+            print ' returning correction negation ' + str(field_data_value_list)
             res = [ gl_da_correction_dm_negation, da_say_field_name_is]
-            if digit_sequence_lf != None:
-                res.append(digit_sequence_lf)
+            if field_digit_sequence_lf != None:
+                res.append(field_digit_sequence_lf)
             print 'res: ' + str(res)
             return res
         
@@ -1992,6 +2030,14 @@ def handleRequestDialogManagement(da_list):
 def findSegmentNameForDialogActs(da_list):
     global gl_agent
     test_digit_value_list = collectDataValuesFromDialogActs(da_list)
+    return findSegmentNameForDigitList(test_digit_value_list)
+
+
+
+#da_list is a list of digit values, e.g. ['six', 'five', 'zero']
+#Returns a list of data segment names (e.g. 'area-code') for the agent's self_dialog_model.data_model 
+#that match the digits
+def findSegmentNameForDigitList(digit_list):
     matching_segment_name_list = []
 
     for segment_name in gl_agent.self_dialog_model.data_model.data_indices.keys():
@@ -2003,25 +2049,29 @@ def findSegmentNameForDialogActs(da_list):
         test_digit_i = 0
         match_p = True
         for segment_i in range(segment_start_index, segment_end_index+1):
+            if segment_end_index - segment_start_index + 1 != len(digit_list):
+                match_p = False
+                break
             segment_digit_belief = gl_agent.self_dialog_model.data_model.data_beliefs[segment_i]
             segment_data_value_tuple = segment_digit_belief.getHighestConfidenceValue()      #returns a tuple e.g. ('one', .8)
             segment_data_value = segment_data_value_tuple[0]
-            if test_digit_i >= len(test_digit_value_list):
+            if test_digit_i >= len(digit_list):
                 match_p = False
                 break
-            test_digit_value = test_digit_value_list[test_digit_i]
+            test_digit_value = digit_list[test_digit_i]
             if segment_data_value != test_digit_value:
                 print 'XX segment_data_value ' + segment_data_value + ' != test_digit_value ' + test_digit_value
                 match_p = False
                 break
             elif segment_i == segment_end_index:
-                if test_digit_i+1 < len(test_digit_value_list):
-                    print 'test_digit_i ' + str(test_digit_i) + ' < ' + 'len(test_digit_value_list): ' + str(len(test_digit_value_list))
+                if test_digit_i+1 < len(digit_list):
+                    print 'test_digit_i ' + str(test_digit_i) + ' < ' + 'len(test_digit_value_list): ' + str(len(digit_list))
                     match_p = False
                 break
             test_digit_i += 1
         if match_p:
             matching_segment_name_list.append(segment_name)
+    print 'findSegmentNameForDigitList found segment names: ' + str(matching_segment_name_list)
     return matching_segment_name_list
         
 

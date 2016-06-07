@@ -271,6 +271,11 @@ FieldNameCat[state] <-> state
 FieldNameCat[zip-code] <-> zip code
 FieldNameCat[country] <-> country
 
+
+InformTopicInfo(FieldName($1)) <-> {FieldNameCat[$1]}
+
+
+
 #I actually think this needs reworking more to give digits and other fields
 #parallel structure
 #
@@ -722,6 +727,10 @@ RequestTopicInfo(request-confirmation, Tense($1), FieldName($2)) <- {Grammatical
 #CorrectionTopicInfo(partner-correction-present, InfoTopic(ItemValue(DigitSequence($1))), ItemType($2)) <-> {DigitCat[$1]} is the {InfoTypeCat[$2]}
 
 
+#"is the"
+#{ definite-present, definite-past, indefinite-present, indefinite-past }
+InformTopicInfo(GrammaticalBeIndicative($1)) <-> {GrammaticalBeIndicativeCat[$1]}
+
 
 
 InformDialogManagement(self-readiness) <- i'm ready
@@ -924,6 +933,12 @@ GrammaticalIndicativeCat[definite-near] <-> this
 GrammaticalIndicativeCat[definite] <-> the
 GrammaticalIndicativeCat[definite-far] <-> that
 GrammaticalIndicativeCat[indefinite] <-> a
+
+GrammaticalBeIndicativeCat[definite-present] <-> is the
+GrammaticalBeIndicativeCat[definite-past] <-> was the
+GrammaticalBeIndicativeCat[indefinite-present] <-> is a
+GrammaticalBeIndicativeCat[indefinite-past] <-> was a
+
 
 #How much to factorize the utterance category name versus list all combinations in the argument?
 GrammaticalBeIndicativeQuestionCat[present-singular-far] <-> is that
