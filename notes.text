@@ -78,6 +78,28 @@ https://pypi.python.org/pypi/gTTS
 pip install gTTS
 
 
+-------------
+2016/06/06
+
+over the past week:
+
+-working on a document about dialog management for data communication such as 
+ telephone numbers
+k:/chat/docs/dm-for-data-communication.text
+k:/chat/docs/dialogue-management-for-data-communication.pptx
+
+-while refactoring to improve organization of the existing level 3 capability
+dialogManagement.py
+
+-now moving to 
+tell-phone-number-lf-rules-2.txt
+
+-worked on ruleProcessing.py to now support directional rules <-, ->, <->
+
+
+
+
+
 
 
 

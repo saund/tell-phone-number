@@ -3,9 +3,86 @@
 #A file for isolating rules to do targeted tests
 
 
-CommandCat[tell-me] <-> please tell me
-CommandCat[tell-me] <- i want to know
+#This test shows that you cannot have any unmatched arguments, something needs to match the
+#$100 in GrammaticalBeCat[$100].
 
-RequestTopicInfo(tell-me) <-> {CommandCat[tell-me]}
+
+#Digit word categories
+DigitCat[one] <-> one
+DigitCat[two] <-> two
+DigitCat[three] <-> three
+DigitCat[four] <-> four
+DigitCat[five] <-> five
+DigitCat[six] <-> six
+DigitCat[seven] <-> seven
+DigitCat[eight] <-> eight
+DigitCat[nine] <-> nine
+DigitCat[zero] <-> zero
+DigitCat[zero] <- oh
+
+
+FieldNameCat[telephone-number] <- phone number
+FieldNameCat[telephone-number] <-> telephone number
+FieldNameCat[area-code] <-> area code
+FieldNameCat[exchange] <- prefix
+FieldNameCat[exchange] <-> exchange
+FieldNameCat[line-number] <-> line number
+FieldNameCat[line-number] <- last four digits
+FieldNameCat[line-number] <- last four numbers
+FieldNameCat[country-code] <-> country code
+FieldNameCat[extension] <-> extension
+
+
+GrammaticalBeCat[present-singular] <-> is
+GrammaticalBeCat[present-plural] <-> are
+GrammaticalBeCat[infinitive] <-> be
+GrammaticalBeCat[past-singular] <-> was
+GrammaticalBeCat[past-plural] <-> were
+
+
+
+#"is six five zero the area code?"
+
+RequestTopicInfo(request-confirmation, ItemValue(Digit($1)), FieldName($50), Tense($100)) <-> \
+{GrammaticalBeCat[$100]} {DigitCat[$1]} the {FieldNameCat[$50]}
+
+RequestTopicInfo(request-confirmation, ItemValue(DigitSequence($1, $2)), FieldName($50), Tense($100)) <-> \
+{GrammaticalBeCat[$100]} {DigitCat[$1]} {DigitCat[$2]} the {FieldNameCat[$50]}
+
+RequestTopicInfo(request-confirmation, ItemValue(DigitSequence($1, $2, $3)), FieldName($50), Tense($100)) <-> \
+{GrammaticalBeCat[$100]} {DigitCat[$1]} {DigitCat[$2]} {DigitCat[$3]} the {FieldNameCat[$50]}
+
+RequestTopicInfo(request-confirmation, ItemValue(DigitSequence($1, $2, $3, $4)), FieldName($50), Tense($100)) <-> \
+{GrammaticalBeCat[$100]} {DigitCat[$1]} {DigitCat[$2]} {DigitCat[$3]} {DigitCat[$4]} the {FieldNameCat[$50]}
+
+RequestTopicInfo(request-confirmation, ItemValue(DigitSequence($1, $2, $3, $4, $5)), FieldName($50), Tense($100)) <-> \
+{GrammaticalBeCat[$100]} {DigitCat[$1]} {DigitCat[$2]} {DigitCat[$3]} \
+{DigitCat[$4]} {DigitCat[$5]} the {FieldNameCat[$50]}
+
+RequestTopicInfo(request-confirmation, ItemValue(DigitSequence($1, $2, $3, $4, $5, $6)), FieldName($50), Tense($100)) <-> \
+{GrammaticalBeCat[$100]} {DigitCat[$1]} {DigitCat[$2]} {DigitCat[$3]} \
+{DigitCat[$4]} {DigitCat[$5]} {DigitCat[$6]} the {FieldNameCat[$50]}
+
+RequestTopicInfo(request-confirmation, ItemValue(DigitSequence($1, $2, $3, $4, $5, $6, $7)), FieldName($50), Tense($100)) <-> \
+{GrammaticalBeCat[$100]} {DigitCat[$1]} {DigitCat[$2]} {DigitCat[$3]} \
+{DigitCat[$4]} {DigitCat[$5]} {DigitCat[$6]} {DigitCat[$7]} the {FieldNameCat[$50]}
+
+RequestTopicInfo(request-confirmation, ItemValue(DigitSequence($1, $2, $3, $4, $5, $6, $7, $8)), FieldName($50), Tense($100)) <-> \
+{GrammaticalBeCat[$100]} {DigitCat[$1]} {DigitCat[$2]} {DigitCat[$3]} \
+{DigitCat[$4]} {DigitCat[$5]} {DigitCat[$6]} {DigitCat[$7]} {DigitCat[$8]} the {FieldNameCat[$50]}
+
+RequestTopicInfo(request-confirmation, ItemValue(DigitSequence($1, $2, $3, $4, $5, $6, $7, $8, $9)), FieldName($50), Tense($100)) <-> \
+{GrammaticalBeCat[$100]} {DigitCat[$1]} {DigitCat[$2]} {DigitCat[$3]} \
+{DigitCat[$4]} {DigitCat[$5]} {DigitCat[$6]} {DigitCat[$7]} {DigitCat[$8]} {DigitCat[$9]} the {FieldNameCat[$50]}
+
+RequestTopicInfo(request-confirmation, ItemValue(DigitSequence($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)), FieldName($50), Tense($100)) <-> \
+{GrammaticalBeCat[$100]} {DigitCat[$1]} {DigitCat[$2]} {DigitCat[$3]} \
+{DigitCat[$4]} {DigitCat[$5]} {DigitCat[$6]} {DigitCat[$7]} {DigitCat[$8]} {DigitCat[$9]} {DigitCat[$10]}\
+the {FieldNameCat[$50]}
+
+
+RequestTopicInfo(request-confirmation, Tense($1), FieldName($2)) <-> {GrammaticalBeCat[$1]} the {FieldNameCat[$2]}
+RequestTopicInfo(request-confirmation, Tense($1), FieldName($2)) <- {GrammaticalBeCat[$1]} {FieldNameCat[$2]}
+
 
 

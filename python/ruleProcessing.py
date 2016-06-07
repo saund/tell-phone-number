@@ -712,7 +712,7 @@ def applyLFRulesToString(input_string):
     word_list = input_string.split()
     i_word = 0;
     
-    fit_rule_list = []    #a list of rule fits to the_string: [(DialogAct, start_i, end_i),...]
+    fit_rule_list = []    #a list of rule fits to the_string: [(DialogAct, start_i, end_i, num_words_matched),...]
     while i_word < len(word_list):
         word_i = word_list[i_word]
         possible_rules = gl_first_word_string_to_interpretation_rule_dict.get(word_i)
@@ -757,8 +757,14 @@ def selectMaximallyCoveringRules(fit_rule_list, input_length):
 
     covered_word_flag_ar = [False] * input_length;
     res = []
-    fit_rule_list.sort(key = lambda tup: tup[2]-tup[1])
+    #fit_rule_list.sort(key = lambda tup: tup[2]-tup[1])
+    fit_rule_list.sort(key = lambda tup: tup[3])  #sort by number  of words matched
     fit_rule_list.reverse()
+
+    #print 'selectMaximallyCoveringRules fit_rule_list sorted longest to shortest: '
+    #for fit_rule_tup in fit_rule_list:
+    #    print str(fit_rule_tup)
+
     for fit_rule_tup in fit_rule_list:
         ok_p = True
         for ii in range(fit_rule_tup[1], fit_rule_tup[2]+1):
@@ -790,7 +796,7 @@ def selectMaximallyCoveringRules(fit_rule_list, input_length):
 #i_word.  If a match is found, then the variable $1 for that word-category is made available
 #for setting the argument value for that variable in the rule_lhs
 #
-#This returns a list: [ (str_DialogAct, i_word, i_next_word), ...]
+#This returns a list: [ (str_DialogAct, i_word, i_next_word, num_words_matched), ...]
 #str_DialogAct means that it is not an actual DialogAct instance, but the string counterpart of one.
 #The str_DialogAct's arguments will be filled in with values from any Word-Categories that were used
 #i_word and i_next_word in the tuple tell what part of the word_list is spanned by the str_DialogAct.
@@ -802,6 +808,7 @@ def testRuleOnInputWordsAtWordIndex(rule, word_list, i_word_start):
     arg_index_map = {}    #key: $X where X is an argument indicator, value:  a predicate provided by a word-category
                           #that will substitute for $X in the DialogAct returned (if it matches)
     i_word = i_word_start
+    total_num_words_matched = 0
     i_rule = 0
     #print ' rule_rhs_items: ' + str(rule_rhs_items)
     while True:   #march along until either the end of the dialog rule word list or the input word list is exhausted, 
@@ -818,8 +825,8 @@ def testRuleOnInputWordsAtWordIndex(rule, word_list, i_word_start):
                 print 'error testRuleOnInputWordsAtWordIndex() could not find word-category ' + word_category_predicate
                 i_word += 1
                 continue
-            (num_words_consumed, word_category_arg) = testWordCategoryOnInputWordsAtWordIndex(word_category_predicate, 
-                                                                                              word_list, i_word)
+            (num_words_consumed, word_category_arg, num_words_matched) =\
+                      testWordCategoryOnInputWordsAtWordIndex(word_category_predicate, word_list, i_word)
             #print 'testWordCategory can consume ' + str(num_words_consumed) + ' words'
             #The word_category_arg tell which arg version of the Word-Category matched
             #If the rule_word_or_word_category has a settable argument $arg_name,  then stuff a map.
@@ -832,18 +839,21 @@ def testRuleOnInputWordsAtWordIndex(rule, word_list, i_word_start):
                 if lsb_index < 0:
                     i_word += num_words_consumed
                     i_rule += 1
+                    total_num_words_matched += num_words_matched
                 elif rule_word_or_word_category[lsb_index+1] == '$':
                     rsb_index = rule_word_or_word_category.find(']')
                     arg_name = rule_word_or_word_category[lsb_index+2:rsb_index]
                     arg_index_map[arg_name] = word_category_arg
                     i_word += num_words_consumed
                     i_rule += 1
+                    total_num_words_matched += num_words_matched
                 else:
                     rsb_index = rule_word_or_word_category.find(']')
                     arg_name = rule_word_or_word_category[lsb_index+1:rsb_index]
                     if word_category_arg == arg_name:
                         i_word += num_words_consumed
                         i_rule += 1
+                        total_num_words_matched += num_words_matched
                     else:
                         #print 'matched arg ' + word_category_arg + ' does not match required arg ' + arg_name
                         return None                        
@@ -859,6 +869,7 @@ def testRuleOnInputWordsAtWordIndex(rule, word_list, i_word_start):
             if word_list[i_word] == rule_word_or_word_category:
                 i_word += 1
                 i_rule += 1
+                total_num_words_matched += 1
             #if a word-to-word non-match, then this rule doesn't apply
             else:
                 #print 'word-to-word non-match ' + word_list[i_word] + ' : ' + rule_word_or_word_category
@@ -893,7 +904,7 @@ def testRuleOnInputWordsAtWordIndex(rule, word_list, i_word_start):
             rule_dialog_act = rule_dialog_act[0:d_index] + word_category_arg + rule_dialog_act[rp_index:]
         d_index = rule_dialog_act.find('$', rp_index+1)
     #print 'returning ' + str((rule_dialog_act, i_word_start, i_word)) + '\n'
-    return (rule_dialog_act, i_word_start, i_word-1)
+    return (rule_dialog_act, i_word_start, i_word-1, total_num_words_matched)
 
 
 
@@ -904,13 +915,14 @@ def testRuleOnInputWordsAtWordIndex(rule, word_list, i_word_start):
 #that arg is returned along with that word_category's length (number of words)
 #Preferably, the list of word_categories in gl_interpretation_word_category_rules would have been sorted by 
 #length so that the longest possible match is returned
-#returns (num_words_consumed, word_category_arg)
+#returns (num_words_consumed, word_category_arg, num_words_matched)
 def testWordCategoryOnInputWordsAtWordIndex(word_category_predicate, word_list, i_word_start):
     global gl_interpretation_word_category_rules
     
     if i_word_start >= len(word_list):
-        return (0, None)
+        return (0, None, 0)
 
+    num_words_matched = 0
     word_category_rules = gl_interpretation_word_category_rules.get(word_category_predicate)
 
     #print 'testWordCategoryOnInputWordsAtWordIndex(' + word_category_predicate + ', ' + str(word_list) + ', ' + str(i_word_start) + ')'
@@ -918,7 +930,7 @@ def testWordCategoryOnInputWordsAtWordIndex(word_category_predicate, word_list, 
     wc_rule_list = gl_interpretation_word_category_rules.get(word_category_predicate)
     if wc_rule_list == None:
         print 'problem in testWordCategoryOnInputWordsAtWordIndex() no wc rules for predicate ' + word_category_predicate
-        return (0, None)
+        return (0, None, 0)
 
     for wc_rule in wc_rule_list:
         rhs = wc_rule[1]  #a tuple of words 
@@ -934,19 +946,20 @@ def testWordCategoryOnInputWordsAtWordIndex(word_category_predicate, word_list, 
                 break
             i_word += 1
             i_wc_word += 1
+            num_words_matched += 1
         if match_p:
             if i_wc_word < len(rhs):
                 #print 'testWordCategory... rhs: ' + str(rhs) + ' ran out of words in word_list ' + str(word_list) + ' i_wc_word: ' + str(i_wc_word)
-                return (0, None)
+                return (0, None, 0)
 
             lhs = wc_rule[0]
             lsb_index = lhs.find('[')
             rsb_index = lhs.find(']')
             wc_arg = lhs[lsb_index+1:rsb_index]
             #print 'testWordCategory...' + word_category_predicate + ' returning (' + str(len(rhs)) + ', ' + wc_arg + ')'
-            return ( len(rhs), wc_arg)
+            return ( len(rhs), wc_arg, num_words_matched)
 
-    return (0, None)
+    return (0, None, 0)
 
 
 #

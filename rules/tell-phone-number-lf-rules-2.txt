@@ -31,7 +31,7 @@
 #rule is detected by the presence of square brackets [] on the LHS.
 #
 #A DialogAct rule starts with one of the Intent predicates,
-#InformTopicInform, InformDialogManagement, RequestTopicInform, ...
+#InformTopicInfo, InformDialogManagement, RequestTopicInform, ...
 #A DialogAct rule does not contain square brackets on the LHS
 #
 #Both Utterance Category rules and DialogAct rules can specify direction,
@@ -461,46 +461,93 @@ RequestTopicInfo(tell-me) <-> {CommandCat[tell-me]}
 #Unfortunate that we have to spell out each digit argument in a digit sequence. 
 #There should be a more concise way to do this.
 #Possibly this could be treated as a concatenation of an Intent encoding 
-#the GrammaticalBeIndicativeCat followed by an Intent holding the digits.
+#the GrammaticalBeIndicativeQuestionCat followed by an Intent holding the digits.
 #
 #was that six / is that six
 
-RequestTopicInfo(request-confirmation, ItemValue(Digit($1))) <-> \
-{GrammaticalBeIndicativeCat[$100]} {DigitCat[$1]}\
+RequestTopicInfo(request-confirmation, ItemValue(Digit($1)), Grammar($100)) <-> \
+{GrammaticalBeIndicativeQuestionCat[$100]} {DigitCat[$1]}
 
-RequestTopicInfo(request-confirmation, ItemValue(DigitSequence($1, $2))) <-> \
-{GrammaticalBeIndicativeCat[$100]}{DigitCat[$1]} {DigitCat[$2]} 
+RequestTopicInfo(request-confirmation, ItemValue(DigitSequence($1, $2)), Grammar($100)) <-> \
+{GrammaticalBeIndicativeQuestionCat[$100]}{DigitCat[$1]} {DigitCat[$2]} 
 
-RequestTopicInfo(request-confirmation, ItemValue(DigitSequence($1, $2, $3))) <-> \
-{GrammaticalBeIndicativeCat[$100]}{DigitCat[$1]} {DigitCat[$2]} {DigitCat[$3]} 
+RequestTopicInfo(request-confirmation, ItemValue(DigitSequence($1, $2, $3)), Grammar($100)) <-> \
+{GrammaticalBeIndicativeQuestionCat[$100]}{DigitCat[$1]} {DigitCat[$2]} {DigitCat[$3]} 
 
-RequestTopicInfo(request-confirmation, ItemValue(DigitSequence($1, $2, $3, $4))) <-> \
-{GrammaticalBeIndicativeCat[$100]}{DigitCat[$1]} {DigitCat[$2]} {DigitCat[$3]} \
+RequestTopicInfo(request-confirmation, ItemValue(DigitSequence($1, $2, $3, $4)), Grammar($100)) <-> \
+{GrammaticalBeIndicativeQuestionCat[$100]}{DigitCat[$1]} {DigitCat[$2]} {DigitCat[$3]} \
 {DigitCat[$4]}
 
-RequestTopicInfo(request-confirmation, ItemValue(DigitSequence($1, $2, $3, $4, $5))) <-> \
-{GrammaticalBeIndicativeCat[$100]}{DigitCat[$1]} {DigitCat[$2]} {DigitCat[$3]} \
+RequestTopicInfo(request-confirmation, ItemValue(DigitSequence($1, $2, $3, $4, $5)), Grammar($100)) <-> \
+{GrammaticalBeIndicativeQuestionCat[$100]}{DigitCat[$1]} {DigitCat[$2]} {DigitCat[$3]} \
 {DigitCat[$4]} {DigitCat[$5]}
 
-RequestTopicInfo(request-confirmation, ItemValue(DigitSequence($1, $2, $3, $4, $5, $6))) <-> \
-{GrammaticalBeIndicativeCat[$100]}{DigitCat[$1]} {DigitCat[$2]} {DigitCat[$3]} \
+RequestTopicInfo(request-confirmation, ItemValue(DigitSequence($1, $2, $3, $4, $5, $6)), Grammar($100)) <-> \
+{GrammaticalBeIndicativeQuestionCat[$100]}{DigitCat[$1]} {DigitCat[$2]} {DigitCat[$3]} \
 {DigitCat[$4]} {DigitCat[$5]} {DigitCat[$6]}
 
-RequestTopicInfo(request-confirmation, ItemValue(DigitSequence($1, $2, $3, $4, $5, $6, $7))) <-> \
-{GrammaticalBeIndicativeCat[$100]}{DigitCat[$1]} {DigitCat[$2]} {DigitCat[$3]} \
+RequestTopicInfo(request-confirmation, ItemValue(DigitSequence($1, $2, $3, $4, $5, $6, $7)), Grammar($100)) <-> \
+{GrammaticalBeIndicativeQuestionCat[$100]}{DigitCat[$1]} {DigitCat[$2]} {DigitCat[$3]} \
 {DigitCat[$4]} {DigitCat[$5]} {DigitCat[$6]} {DigitCat[$7]}
 
-RequestTopicInfo(request-confirmation, ItemValue(DigitSequence($1, $2, $3, $4, $5, $6, $7, $8))) <-> \
-{GrammaticalBeIndicativeCat[$100]}{DigitCat[$1]} {DigitCat[$2]} {DigitCat[$3]} \
+RequestTopicInfo(request-confirmation, ItemValue(DigitSequence($1, $2, $3, $4, $5, $6, $7, $8)), Grammar($100)) <-> \
+{GrammaticalBeIndicativeQuestionCat[$100]}{DigitCat[$1]} {DigitCat[$2]} {DigitCat[$3]} \
 {DigitCat[$4]} {DigitCat[$5]} {DigitCat[$6]} {DigitCat[$7]} {DigitCat[$8]}
 
-RequestTopicInfo(request-confirmation, ItemValue(DigitSequence($1, $2, $3, $4, $5, $6, $7, $8, $9))) <-> \
-{GrammaticalBeIndicativeCat[$100]}{DigitCat[$1]} {DigitCat[$2]} {DigitCat[$3]} \
+RequestTopicInfo(request-confirmation, ItemValue(DigitSequence($1, $2, $3, $4, $5, $6, $7, $8, $9)), Grammar($100)) <-> \
+{GrammaticalBeIndicativeQuestionCat[$100]}{DigitCat[$1]} {DigitCat[$2]} {DigitCat[$3]} \
 {DigitCat[$4]} {DigitCat[$5]} {DigitCat[$6]} {DigitCat[$7]} {DigitCat[$8]} {DigitCat[$9]}
 
-RequestTopicInfo(request-confirmation, ItemValue(DigitSequence($1, $2, $3, $4, $5, $6, $7, $8, $9, $10))) <-> \
-{GrammaticalBeIndicativeCat[$100]}{DigitCat[$1]} {DigitCat[$2]} {DigitCat[$3]} \
+RequestTopicInfo(request-confirmation, ItemValue(DigitSequence($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)), Grammar($100)) <-> \
+{GrammaticalBeIndicativeQuestionCat[$100]}{DigitCat[$1]} {DigitCat[$2]} {DigitCat[$3]} \
 {DigitCat[$4]} {DigitCat[$5]} {DigitCat[$6]} {DigitCat[$7]} {DigitCat[$8]} {DigitCat[$9]} {DigitCat[$10]}
+
+
+
+
+
+
+#"is six five zero the area code?"
+
+RequestTopicInfo(request-confirmation, ItemValue(Digit($1)), FieldName($50), Tense($100)) <-> \
+{GrammaticalBeCat[$100]} {DigitCat[$1]} the {FieldNameCat[$50]}
+
+RequestTopicInfo(request-confirmation, ItemValue(DigitSequence($1, $2)), FieldName($50), Tense($100)) <-> \
+{GrammaticalBeCat[$100]} {DigitCat[$1]} {DigitCat[$2]} the {FieldNameCat[$50]}
+
+RequestTopicInfo(request-confirmation, ItemValue(DigitSequence($1, $2, $3)), FieldName($50), Tense($100)) <-> \
+{GrammaticalBeCat[$100]} {DigitCat[$1]} {DigitCat[$2]} {DigitCat[$3]} the {FieldNameCat[$50]}
+
+RequestTopicInfo(request-confirmation, ItemValue(DigitSequence($1, $2, $3, $4)), FieldName($50), Tense($100)) <-> \
+{GrammaticalBeCat[$100]} {DigitCat[$1]} {DigitCat[$2]} {DigitCat[$3]} {DigitCat[$4]} the {FieldNameCat[$50]}
+
+RequestTopicInfo(request-confirmation, ItemValue(DigitSequence($1, $2, $3, $4, $5)), FieldName($50), Tense($100)) <-> \
+{GrammaticalBeCat[$100]} {DigitCat[$1]} {DigitCat[$2]} {DigitCat[$3]} \
+{DigitCat[$4]} {DigitCat[$5]} the {FieldNameCat[$50]}
+
+RequestTopicInfo(request-confirmation, ItemValue(DigitSequence($1, $2, $3, $4, $5, $6)), FieldName($50), Tense($100)) <-> \
+{GrammaticalBeCat[$100]} {DigitCat[$1]} {DigitCat[$2]} {DigitCat[$3]} \
+{DigitCat[$4]} {DigitCat[$5]} {DigitCat[$6]} the {FieldNameCat[$50]}
+
+RequestTopicInfo(request-confirmation, ItemValue(DigitSequence($1, $2, $3, $4, $5, $6, $7)), FieldName($50), Tense($100)) <-> \
+{GrammaticalBeCat[$100]} {DigitCat[$1]} {DigitCat[$2]} {DigitCat[$3]} \
+{DigitCat[$4]} {DigitCat[$5]} {DigitCat[$6]} {DigitCat[$7]} the {FieldNameCat[$50]}
+
+RequestTopicInfo(request-confirmation, ItemValue(DigitSequence($1, $2, $3, $4, $5, $6, $7, $8)), FieldName($50), Tense($100)) <-> \
+{GrammaticalBeCat[$100]} {DigitCat[$1]} {DigitCat[$2]} {DigitCat[$3]} \
+{DigitCat[$4]} {DigitCat[$5]} {DigitCat[$6]} {DigitCat[$7]} {DigitCat[$8]} the {FieldNameCat[$50]}
+
+RequestTopicInfo(request-confirmation, ItemValue(DigitSequence($1, $2, $3, $4, $5, $6, $7, $8, $9)), FieldName($50), Tense($100)) <-> \
+{GrammaticalBeCat[$100]} {DigitCat[$1]} {DigitCat[$2]} {DigitCat[$3]} \
+{DigitCat[$4]} {DigitCat[$5]} {DigitCat[$6]} {DigitCat[$7]} {DigitCat[$8]} {DigitCat[$9]} the {FieldNameCat[$50]}
+
+RequestTopicInfo(request-confirmation, ItemValue(DigitSequence($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)), FieldName($50), Tense($100)) <-> \
+{GrammaticalBeCat[$100]} {DigitCat[$1]} {DigitCat[$2]} {DigitCat[$3]} \
+{DigitCat[$4]} {DigitCat[$5]} {DigitCat[$6]} {DigitCat[$7]} {DigitCat[$8]} {DigitCat[$9]} {DigitCat[$10]}\
+the {FieldNameCat[$50]}
+
+
+
 
 
 
@@ -657,8 +704,8 @@ not {DigitCat[$1]} {DigitCat[$2]} {DigitCat[$3]} \
 #a response.   Therefore, we choose to use the Request Intent for "is the FieldName"
 
 #include the the or not?
-#RequestTopicInfo(request-confirmation, Tense($1), FieldName($2)) <-> {GrammaticalBeCat[$1]} the {FieldNameCat[$2]}
-RequestTopicInfo(request-confirmation, Tense($1), FieldName($2)) <-> {GrammaticalBeCat[$1]} {FieldNameCat[$2]}
+RequestTopicInfo(request-confirmation, Tense($1), FieldName($2)) <-> {GrammaticalBeCat[$1]} the {FieldNameCat[$2]}
+RequestTopicInfo(request-confirmation, Tense($1), FieldName($2)) <- {GrammaticalBeCat[$1]} {FieldNameCat[$2]}
 
 
 #"is the area code"
@@ -685,6 +732,7 @@ InformDialogManagement(self-not-readiness) <-> please wait
 InformDialogManagement(self-not-readiness) <- wait please 
 
 InformDialogManagement(repeat-intention) <-> I'll repeat that.
+InformDialogManagement(repeat-intention) <- I will repeat that.
 
 
 CheckDialogManagement(other-readiness) <-> are you ready
@@ -779,43 +827,42 @@ GrammaticalUtteranceConfirmationCat[self] <-> did i say
 #Unfortunate that we have to spell out each digit argument in a digit sequence. 
 #There should be a more concise way to do this.
 
-#did you say six
+#"did you say six five zero"
 
-RequestDialogManagement(clarification-utterance-past, ItemValue(Digit($1))) <-> \
-{GrammaticalUtteranceConfirmationCat[$100]} {DigitCat[$1]}\
+RequestDialogManagement(clarification-utterance, ItemValue(Digit($1)), Speaker($100)) <-> \
+{GrammaticalUtteranceConfirmationCat[$100]} {DigitCat[$1]}
 
-
-RequestDialogManagement(clarification-utterance-past, ItemValue(DigitSequence($1, $2))) <-> \
+RequestDialogManagement(clarification-utterance, ItemValue(DigitSequence($1, $2)), Speaker($100)) <-> \
 {GrammaticalUtteranceConfirmationCat[$100]}{DigitCat[$1]} {DigitCat[$2]} 
 
-RequestDialogManagement(clarification-utterance-past, ItemValue(DigitSequence($1, $2, $3))) <-> \
+RequestDialogManagement(clarification-utterance, ItemValue(DigitSequence($1, $2, $3)), Speaker($100)) <-> \
 {GrammaticalUtteranceConfirmationCat[$100]}{DigitCat[$1]} {DigitCat[$2]} {DigitCat[$3]} 
 
-RequestDialogManagement(clarification-utterance-past, ItemValue(DigitSequence($1, $2, $3, $4))) <-> \
+RequestDialogManagement(clarification-utterance, ItemValue(DigitSequence($1, $2, $3, $4)), Speaker($100)) <-> \
 {GrammaticalUtteranceConfirmationCat[$100]}{DigitCat[$1]} {DigitCat[$2]} {DigitCat[$3]} \
 {DigitCat[$4]}
 
-RequestDialogManagement(clarification-utterance-past, ItemValue(DigitSequence($1, $2, $3, $4, $5))) <-> \
+RequestDialogManagement(clarification-utterance, ItemValue(DigitSequence($1, $2, $3, $4, $5)), Speaker($100)) <-> \
 {GrammaticalUtteranceConfirmationCat[$100]}{DigitCat[$1]} {DigitCat[$2]} {DigitCat[$3]} \
 {DigitCat[$4]} {DigitCat[$5]}
 
-RequestDialogManagement(clarification-utterance-past, ItemValue(DigitSequence($1, $2, $3, $4, $5, $6))) <-> \
+RequestDialogManagement(clarification-utterance, ItemValue(DigitSequence($1, $2, $3, $4, $5, $6)), Speaker($100)) <-> \
 {GrammaticalUtteranceConfirmationCat[$100]}{DigitCat[$1]} {DigitCat[$2]} {DigitCat[$3]} \
 {DigitCat[$4]} {DigitCat[$5]} {DigitCat[$6]}
 
-RequestDialogManagement(clarification-utterance-past, ItemValue(DigitSequence($1, $2, $3, $4, $5, $6, $7))) <-> \
+RequestDialogManagement(clarification-utterance, ItemValue(DigitSequence($1, $2, $3, $4, $5, $6, $7)), Speaker($100)) <-> \
 {GrammaticalUtteranceConfirmationCat[$100]}{DigitCat[$1]} {DigitCat[$2]} {DigitCat[$3]} \
 {DigitCat[$4]} {DigitCat[$5]} {DigitCat[$6]} {DigitCat[$7]}
 
-RequestDialogManagement(clarification-utterance-past, ItemValue(DigitSequence($1, $2, $3, $4, $5, $6, $7, $8))) <-> \
+RequestDialogManagement(clarification-utterance, ItemValue(DigitSequence($1, $2, $3, $4, $5, $6, $7, $8)), Speaker($100)) <-> \
 {GrammaticalUtteranceConfirmationCat[$100]}{DigitCat[$1]} {DigitCat[$2]} {DigitCat[$3]} \
 {DigitCat[$4]} {DigitCat[$5]} {DigitCat[$6]} {DigitCat[$7]} {DigitCat[$8]}
 
-RequestDialogManagement(clarification-utterance-past, ItemValue(DigitSequence($1, $2, $3, $4, $5, $6, $7, $8, $9))) <-> \
+RequestDialogManagement(clarification-utterance, ItemValue(DigitSequence($1, $2, $3, $4, $5, $6, $7, $8, $9)), Speaker($100)) <-> \
 {GrammaticalUtteranceConfirmationCat[$100]}{DigitCat[$1]} {DigitCat[$2]} {DigitCat[$3]} \
 {DigitCat[$4]} {DigitCat[$5]} {DigitCat[$6]} {DigitCat[$7]} {DigitCat[$8]} {DigitCat[$9]}
 
-RequestDialogManagement(clarification-utterance-past, ItemValue(DigitSequence($1, $2, $3, $4, $5, $6, $7, $8, $9, $10))) <-> \
+RequestDialogManagement(clarification-utterance, ItemValue(DigitSequence($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)), Speaker($100)) <-> \
 {GrammaticalUtteranceConfirmationCat[$100]}{DigitCat[$1]} {DigitCat[$2]} {DigitCat[$3]} \
 {DigitCat[$4]} {DigitCat[$5]} {DigitCat[$6]} {DigitCat[$7]} {DigitCat[$8]} {DigitCat[$9]} {DigitCat[$10]}
 
@@ -829,7 +876,7 @@ RequestDialogManagement(clarification-utterance-past, ItemValue(DigitSequence($1
 
 #what is/was the/that digit/area-code/exchange/line-number/ telephone number
 #does not come under DM misalignment repair.  but RequestTopicInfo 
-#RequestDialogManagement(misalignment-request-repeat, $1) <-> what {GrammaticalBeCat[$2]}{GrammaticalIndicativeCat[$3]}{InfoTypeCat[$1]}
+#RequestDialogManagement(misalignment-request-repeat, $1) <-> what {GrammaticalBeCat[$2]}{GrammaticalCat[$3]}{InfoTypeCat[$1]}
 #RequestDialogManagement(misalignment-request-repeat, $1) <-> what is the {InfoTypeCat[$1]}
 #RequestDialogManagement(misalignment-request-repeat, $1) <-> what is that {InfoTypeCat[$1]}
 #RequestDialogManagement(misalignment-request-repeat, $1) <-> what was the {InfoTypeCat[$1]}
@@ -879,26 +926,45 @@ GrammaticalIndicativeCat[definite-far] <-> that
 GrammaticalIndicativeCat[indefinite] <-> a
 
 #How much to factorize the utterance category name versus list all combinations in the argument?
-GrammaticalBeIndicativeQuestionCat[present-singular-definite-far] <-> is that
-GrammaticalBeIndicativeQuestionCat[past-singular-definite-far] <-> was that
-GrammaticalBeIndicativeQuestionCat[present-singular-definite-near] <-> is this
-GrammaticalBeIndicativeQuestionCat[past-singular-definite-near] <-> was this
-GrammaticalBeIndicativeQuestionCat[present-plural-definite-far] <-> are those
-GrammaticalBeIndicativeQuestionCat[past-plural-definite-far] <-> were those
-GrammaticalBeIndicativeQuestionCat[present-plural-definite-near] <-> are these
-GrammaticalBeIndicativeQuestionCat[past-plural-definite-near] <-> were these
+GrammaticalBeIndicativeQuestionCat[present-singular-far] <-> is that
+GrammaticalBeIndicativeQuestionCat[past-singular-far] <-> was that
+GrammaticalBeIndicativeQuestionCat[present-singular-near] <-> is this
+GrammaticalBeIndicativeQuestionCat[past-singular-near] <-> was this
+GrammaticalBeIndicativeQuestionCat[present-plural-far] <-> are those
+GrammaticalBeIndicativeQuestionCat[past-plural-far] <-> were those
+GrammaticalBeIndicativeQuestionCat[present-plural-near] <-> are these
+GrammaticalBeIndicativeQuestionCat[past-plural-near] <-> were these
 
-GrammaticalBeIndicativeAssertionCat[present-singular-definite-far] <-> that is 
-GrammaticalBeIndicativeAssertionCat[past-singular-definite-far] <-> that was 
-GrammaticalBeIndicativeAssertionCat[present-singular-definite-near] <-> this is 
-GrammaticalBeIndicativeAssertionCat[past-singular-definite-near] <-> this was 
-GrammaticalBeIndicativeAssertionCat[present-plural-definite-far] <-> those are 
-GrammaticalBeIndicativeAssertionCat[past-plural-definite-far] <-> those were 
-GrammaticalBeIndicativeAssertionCat[present-plural-definite-near] <-> these are 
-GrammaticalBeIndicativeAssertionCat[past-plural-definite-near] <-> these were 
+GrammaticalBeIndicativeQuestionCat[present-singular-definite-far] <-> is that the
+GrammaticalBeIndicativeQuestionCat[past-singular-definite-far] <-> was that the
+GrammaticalBeIndicativeQuestionCat[present-singular-definite-near] <-> is this the
+GrammaticalBeIndicativeQuestionCat[past-singular-definite-near] <-> was this the
+GrammaticalBeIndicativeQuestionCat[present-plural-definite-far] <-> are those the
+GrammaticalBeIndicativeQuestionCat[past-plural-definite-far] <-> were those the
+GrammaticalBeIndicativeQuestionCat[present-plural-definite-near] <-> are these the
+GrammaticalBeIndicativeQuestionCat[past-plural-definite-near] <-> were these the
 
-GrammaticalBeIndicativeAssertionCat[present-singular-definite-far] -> so that was
-GrammaticalBeIndicativeAssertionCat[present-singular-definite-far] -> so that's
+GrammaticalBeIndicativeAssertionCat[present-singular-far] <-> that is 
+GrammaticalBeIndicativeAssertionCat[past-singular-far] <-> that was 
+GrammaticalBeIndicativeAssertionCat[present-singular-near] <-> this is 
+GrammaticalBeIndicativeAssertionCat[past-singular-near] <-> this was 
+GrammaticalBeIndicativeAssertionCat[present-plural-far] <-> those are 
+GrammaticalBeIndicativeAssertionCat[past-plural-far] <-> those were 
+GrammaticalBeIndicativeAssertionCat[present-plural-near] <-> these are 
+GrammaticalBeIndicativeAssertionCat[past-plural-near] <-> these were 
+
+GrammaticalBeIndicativeAssertionCat[present-singular-definite-far] <-> that is the
+GrammaticalBeIndicativeAssertionCat[past-singular-definite-far] <-> that was the
+GrammaticalBeIndicativeAssertionCat[present-singular-definite-near] <-> this is the
+GrammaticalBeIndicativeAssertionCat[past-singular-definite-near] <-> this was the
+GrammaticalBeIndicativeAssertionCat[present-plural-definite-far] <-> those are the
+GrammaticalBeIndicativeAssertionCat[past-plural-definite-far] <-> those were the
+GrammaticalBeIndicativeAssertionCat[present-plural-definite-near] <-> these are the
+GrammaticalBeIndicativeAssertionCat[past-plural-definite-near] <-> these were the
+
+
+GrammaticalBeIndicativeAssertionCat[present-singular-definite-far] <- so that was
+GrammaticalBeIndicativeAssertionCat[present-singular-definite-far] <- so that's
 
 
 
