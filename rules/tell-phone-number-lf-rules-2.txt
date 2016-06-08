@@ -406,7 +406,8 @@ CommandCat[tell-you] <- take down this
 
 
 
-#command form: tell me / tell you the the...
+#command form: tell me / tell you the the X
+#what is the X
 RequestTopicInfo(SendReceive($1), ItemTypeName($2)) <-> {CommandCat[$1]} {ItemTypeNameCat[$2]}
 RequestTopicInfo(SendReceive($1), ItemTypeChar($2)) <-> {CommandCat[$1]} {ItemTypeCharCat[$2]}
 RequestTopicInfo(SendReceive($1), FieldName($2)) <-> {CommandCat[$1]} {FieldNameCat[$2]}
@@ -550,10 +551,6 @@ RequestTopicInfo(request-confirmation, ItemValue(DigitSequence($1, $2, $3, $4, $
 {GrammaticalBeCat[$100]} {DigitCat[$1]} {DigitCat[$2]} {DigitCat[$3]} \
 {DigitCat[$4]} {DigitCat[$5]} {DigitCat[$6]} {DigitCat[$7]} {DigitCat[$8]} {DigitCat[$9]} {DigitCat[$10]}\
 the {FieldNameCat[$50]}
-
-
-
-
 
 
 
@@ -708,9 +705,10 @@ not {DigitCat[$1]} {DigitCat[$2]} {DigitCat[$3]} \
 #the first Inten is the one used in dialogAgent.py to dispatch on to interpret and formulate
 #a response.   Therefore, we choose to use the Request Intent for "is the FieldName"
 
-#include the the or not?
-RequestTopicInfo(request-confirmation, Tense($1), FieldName($2)) <-> {GrammaticalBeCat[$1]} the {FieldNameCat[$2]}
-RequestTopicInfo(request-confirmation, Tense($1), FieldName($2)) <- {GrammaticalBeCat[$1]} {FieldNameCat[$2]}
+
+#"is the area code"
+#{ definite-present, definite-past, indefinite-present, indefinite-past }
+RequestTopicInfo(request-confirmation, Tense($1), FieldName($2)) <-> {GrammaticalBeIndicativeCat[$1]}{FieldNameCat[$2]}
 
 
 #"is the area code"
@@ -907,6 +905,7 @@ RequestDialogManagement(misalignment-self-hearing-or-understanding, ItemTypeChar
 
 
 
+#{present-singular, present-plural, infinitive, past-singular, past-plural}
 GrammaticalBeCat[present-singular] <-> is
 GrammaticalBeCat[present-plural] <-> are
 GrammaticalBeCat[infinitive] <-> be
@@ -934,6 +933,7 @@ GrammaticalIndicativeCat[definite] <-> the
 GrammaticalIndicativeCat[definite-far] <-> that
 GrammaticalIndicativeCat[indefinite] <-> a
 
+#{ definite-present, definite-past, indefinite-present, indefinite-past }
 GrammaticalBeIndicativeCat[definite-present] <-> is the
 GrammaticalBeIndicativeCat[definite-past] <-> was the
 GrammaticalBeIndicativeCat[indefinite-present] <-> is a

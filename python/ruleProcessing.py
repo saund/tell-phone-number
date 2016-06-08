@@ -779,8 +779,11 @@ def selectMaximallyCoveringRules(fit_rule_list, input_length):
     return res
 
 
+gl_tell_match = False
 
-
+def setTellMatch(val):
+    global gl_tell_match
+    gl_tell_match = val
 
 
 #This applies all available rules to the word_list starting at i_word.
@@ -802,6 +805,7 @@ def selectMaximallyCoveringRules(fit_rule_list, input_length):
 #i_word and i_next_word in the tuple tell what part of the word_list is spanned by the str_DialogAct.
 def testRuleOnInputWordsAtWordIndex(rule, word_list, i_word_start):
     global gl_interpretation_word_category_rules
+    global gl_tell_match
 
     #print ' testRuleOnInputWordsAtWordIndex(' + str(rule) + ', ' + str(word_list) + ', ' + str(i_word_start) + ')'
     rule_rhs_items = rule[1]
@@ -810,11 +814,13 @@ def testRuleOnInputWordsAtWordIndex(rule, word_list, i_word_start):
     i_word = i_word_start
     total_num_words_matched = 0
     i_rule = 0
-    #print ' rule_rhs_items: ' + str(rule_rhs_items)
+    if gl_tell_match:
+        print ' rule_rhs_items: ' + str(rule_rhs_items)
     while True:   #march along until either the end of the dialog rule word list or the input word list is exhausted, 
                   #This test is below.
         rule_word_or_word_category = rule_rhs_items[i_rule]
-        #print '  test: ' + str(i_word) + ': ' + rule_word_or_word_category
+        if gl_tell_match:
+            print '  test: ' + str(i_word) + ': ' + rule_word_or_word_category
 
         #rule_word_or_word_category is either a word or else an indicator of a word-category, like, {DigitCat[$1]}
         if rule_word_or_word_category.find('{') == 0:
@@ -827,7 +833,8 @@ def testRuleOnInputWordsAtWordIndex(rule, word_list, i_word_start):
                 continue
             (num_words_consumed, word_category_arg, num_words_matched) =\
                       testWordCategoryOnInputWordsAtWordIndex(word_category_predicate, word_list, i_word)
-            #print 'testWordCategory can consume ' + str(num_words_consumed) + ' words'
+            if gl_tell_match:
+                print 'testWordCategory can consume ' + str(num_words_consumed) + ' words' + ' num_words_matched: ' + str(num_words_matched)
             #The word_category_arg tell which arg version of the Word-Category matched
             #If the rule_word_or_word_category has a settable argument $arg_name,  then stuff a map.
             #If the rule_word_or_word_category has a specified argument, then only accept the match if it matches
@@ -855,37 +862,44 @@ def testRuleOnInputWordsAtWordIndex(rule, word_list, i_word_start):
                         i_rule += 1
                         total_num_words_matched += num_words_matched
                     else:
-                        #print 'matched arg ' + word_category_arg + ' does not match required arg ' + arg_name
+                        if gl_tell_match:
+                            print 'matched arg ' + word_category_arg + ' does not match required arg ' + arg_name
                         return None                        
             else:
                 #if we're looking for a word category, allow intervening words
                 i_word += 1
         else:
             if i_word >= len(word_list):
-                #print 'ran out of words A'
+                if gl_tell_match:
+                    print 'ran out of words A'
                 return None
             #if a word-to-word match, then advance
-            #print 'word_list[' + str(i_word) + ']:' + word_list[i_word]  + ' rule_word_or_word_cat: ' + str(rule_word_or_word_category)
+            if gl_tell_match:
+                print 'word_list[' + str(i_word) + ']:' + word_list[i_word]  + ' rule_word_or_word_cat: ' + str(rule_word_or_word_category)
             if word_list[i_word] == rule_word_or_word_category:
                 i_word += 1
                 i_rule += 1
                 total_num_words_matched += 1
             #if a word-to-word non-match, then this rule doesn't apply
             else:
-                #print 'word-to-word non-match ' + word_list[i_word] + ' : ' + rule_word_or_word_category
+                if gl_tell_match:
+                    print 'word-to-word non-match ' + word_list[i_word] + ' : ' + rule_word_or_word_category
                 return None
 
 
         #the DialogAct matches
         if i_rule >= len(rule_rhs_items):
-            #print '\n****DialgAct matches: i_word: ' + str(i_word) + ' i_rule: ' + str(i_rule)
+            if gl_tell_match:
+                print '\n****DialgAct matches: i_word: ' + str(i_word) + ' i_rule: ' + str(i_rule)
             break
 
         if i_word > len(word_list):  # >= or > ?
-            #print 'ran out of words B'
+            if gl_tell_match:
+                print 'ran out of words B'
             return None
 
-    #print 'still going with rule ' + str(rule) + ' word_list: ' + str(word_list) + ' i_word: ' + str(i_word) + ' i_rule: ' + str(i_rule)
+    if gl_tell_match:
+        print 'still going with rule ' + str(rule) + ' word_list: ' + str(word_list) + ' i_word: ' + str(i_word) + ' i_rule: ' + str(i_rule)
 
     rule_dialog_act = rule[0]
     d_index = rule_dialog_act.find('$')
@@ -903,7 +917,8 @@ def testRuleOnInputWordsAtWordIndex(rule, word_list, i_word_start):
         if word_category_arg != None:
             rule_dialog_act = rule_dialog_act[0:d_index] + word_category_arg + rule_dialog_act[rp_index:]
         d_index = rule_dialog_act.find('$', rp_index+1)
-    #print 'returning ' + str((rule_dialog_act, i_word_start, i_word)) + '\n'
+    if gl_tell_match:
+        print 'returning ' + str((rule_dialog_act, i_word_start, i_word)) + '\n'
     return (rule_dialog_act, i_word_start, i_word-1, total_num_words_matched)
 
 
@@ -922,7 +937,7 @@ def testWordCategoryOnInputWordsAtWordIndex(word_category_predicate, word_list, 
     if i_word_start >= len(word_list):
         return (0, None, 0)
 
-    num_words_matched = 0
+
     word_category_rules = gl_interpretation_word_category_rules.get(word_category_predicate)
 
     #print 'testWordCategoryOnInputWordsAtWordIndex(' + word_category_predicate + ', ' + str(word_list) + ', ' + str(i_word_start) + ')'
@@ -934,6 +949,7 @@ def testWordCategoryOnInputWordsAtWordIndex(word_category_predicate, word_list, 
 
     for wc_rule in wc_rule_list:
         rhs = wc_rule[1]  #a tuple of words 
+        num_words_matched = 0
 
         i_word = i_word_start
         i_wc_word = 0
@@ -947,6 +963,8 @@ def testWordCategoryOnInputWordsAtWordIndex(word_category_predicate, word_list, 
             i_word += 1
             i_wc_word += 1
             num_words_matched += 1
+            #print 'word match: i_word: ' + str(i_word) + ':' + word_i + ' i_wc_word: ' + str(i_wc_word) + ':' + wc_word + ' num_words_matched: ' + str(num_words_matched)
+
         if match_p:
             if i_wc_word < len(rhs):
                 #print 'testWordCategory... rhs: ' + str(rhs) + ' ran out of words in word_list ' + str(word_list) + ' i_wc_word: ' + str(i_wc_word)

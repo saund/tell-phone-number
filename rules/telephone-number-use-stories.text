@@ -929,7 +929,7 @@ S:  six five zero            InformTopicInfo(DataValue(DigitSequence
 
 P:  six five zero            ConfirmTopicInfo(DataValue(DigitSequence  
                ^
-		  rising expectation as in, penultimate chucnk
+		  rising expectation as in, penultimate chunk
 		  
                              S interprets this as correct confirmation area code
 
@@ -977,5 +977,19 @@ S:  six five zero            InformTopicInfo(DataValue(DigitSequence
 
 
 
+-----------------------
+
+
+Examples from people trying the tell phone number demo.
+
+
+-what's the whole number?
+-can you tell me the entire number
+-what's the rest of it?
+-yeah you told me that
+-tell me the rest of the number
+-I heard you
+
+-the computer should request let's start over shall we.
 
 
