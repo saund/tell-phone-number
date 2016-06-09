@@ -457,6 +457,20 @@ CommandCat[tell-you] <- take this
 CommandCat[tell-you] <- take down this
 
 
+CommandCat[stop-process] <- computer stop
+CommandCat[stop-process] <- stop computer
+CommandCat[stop-process] <- stop process
+CommandCat[stop-process] <- stop processing
+CommandCat[stop-process] <- stop now
+CommandCat[stop-process] <- stop listening
+CommandCat[stop-process] <- stop telling me the phone number
+CommandCat[stop-process] <- stop telling me the telephone number
+CommandCat[stop-process] <- quit
+CommandCat[stop-process] <- shut up
+CommandCat[stop-process] <- be quiet
+CommandCat[stop-process] <- quit process
+
+
 
 #command form: tell me / tell you the the X
 #what is the X
@@ -544,6 +558,12 @@ RequestTopicInfo(SendReceive($50), FieldName($30)) <- I'd like to {CommandCat[$5
 
 #If an InfoTypeCat is not recognized, at least notice that a RequestTopicInfo has been issued
 RequestTopicInfo(SendReceive(tell-me)) <-> {CommandCat[tell-me]}
+
+
+
+
+
+RequestDialogManagement(StopProcess)) <-> {CommandCat[stop-process]}
 
 
 

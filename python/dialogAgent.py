@@ -1378,7 +1378,9 @@ gl_da_inform_dm_knowledge_field = rp.parseDialogActFromString('InformDialogManag
 gl_str_da_inform_dm_knowledge_field = 'InformDialogManagement(Knowledge(possess, PersonRef(self)), Tense($100), FieldName($30))'
 
 
-
+#stop, quit
+gl_da_request_dm_stop_process = rp.parseDialogActFromString('RequestDialogManagement(StopProcess))')
+gl_str_da_request_dm_stop_process = 'RequestDialogManagement(StopProcess))'
 
 
 #gg
@@ -2097,19 +2099,17 @@ def handleRequestTopicInfo_BanterRole(da_list):
         da_your_name_is = rp.parseDialogActFromString(str_da_your_name_is)
         return [da_i_believe, da_your_name_is]
 
-    #This is probably superfluous, covered by the tell me the X? below.
     #handle 'User: send me the phone number'
     #rp.setTellMap(True)
-    #mapping = rp.recursivelyMapDialogRule(gl_da_tell_me_phone_number, da_request_topic_info)
-    ##print 'mapping: ' + str(mapping)
-    #if mapping != None:
-    #    gl_agent.setRole('send', gl_default_phone_number)
-    #    #it would be best to spawn another thread to wait a beat then start the
-    #    #data transmission process, but return okay immediately.
-    #    #do that later
-    #    initializeStatesToSendPhoneNumberData(gl_agent)
-    #    return prepareNextDataChunk(gl_agent)
-
+    mapping = rp.recursivelyMapDialogRule(gl_da_tell_me_phone_number, da_request_topic_info)
+    #print 'mapping: ' + str(mapping)
+    if mapping != None:
+        gl_agent.setRole('send', gl_default_phone_number)
+        #it would be best to spawn another thread to wait a beat then start the
+        #data transmission process, but return okay immediately.
+        #do that later
+        initializeStatesToSendPhoneNumberData(gl_agent)
+        return prepareNextDataChunk(gl_agent)
 
     #handle "User: what is the area code"
     #handle "User: tell me the area code"
@@ -2207,6 +2207,10 @@ def handleRequestDialogManagement(da_list):
             break
     if response_to_become_most_recent_data_topic_p == True:
         gl_most_recent_data_topic_da_list = da_list[:]
+
+    if str_da_request_dm == gl_str_da_request_dm_stop_process:
+        stopMainLoop()
+        return [gl_da_affirmation_okay ]
 
 
     #handle restart 'let's start again'
