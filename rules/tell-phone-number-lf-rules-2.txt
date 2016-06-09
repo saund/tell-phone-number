@@ -81,10 +81,11 @@
 # $50 - $55    Command, Send/Receive  (tell-me / tell-you)
 # $100 - $119  Grammar, Grammatical, Tense, etc.
 # $120 - $124  ConfirmDialogManagement        affirmation-yes
-# $125 - $129  CorrectionDialogManagement     negation, partner-correction
-# $130         Augmentation        entire
+# $125 - $129  CorrectionDialogManagement     negation, partner-correction#
+## XX$130         Augmentation        entire
 # $131         Knowledge           possess, lack
 # $132         PersonRef           self, partner  (relative, not absolete, i.e. wrt who is speaking)
+# $140 - $144  Indexical           first, next, entire ...
 #
 
 
@@ -140,6 +141,10 @@ DigitCat[zero] <-> zero
 DigitCat[zero] <- oh
 
 #Sending of digit values as InformTopicData DialogActs
+#It is cumbersome to have a separate DialogAct for each number of digits.
+#It will probably be better to make a special processing rule to collect up
+#successive digits as a single argument.  
+
 InformTopicInfo(ItemValue(Digit($1))) <-> {DigitCat[$1]}
 
 InformTopicInfo(ItemValue(DigitSequence($1, $2))) <-> \
@@ -264,7 +269,9 @@ ItemTypeCharCat[punctuation-dash] <-> dash
 
 #TopicData Field Name
 # names for groupings of item values in the data model into fields
-# fields can be hierarchical
+# fields can overlap, but they are not hierarchical in the sense
+#that all fields refer to indices of the base data string, not
+#to each other.
 
 FieldNameCat[telephone-number] <- phone number
 FieldNameCat[telephone-number] <-> telephone number
@@ -299,13 +306,19 @@ InformTopicInfo(FieldName($30)) <-> {FieldNameCat[$30]}
 #   agent-name and user-name should be field names,
 #   and their values can be person, computer
 
-#Names of participants
-
 ItemTypeNameCat[agent-name-user-perspective] <- your name
+ItemTypeNameCat[agent-firstname-user-perspective] <- your first name
+ItemTypeNameCat[agent-lastname-user-perspective] <- your last name
 ItemTypeNameCat[user-name-user-perspective] <- my name
+ItemTypeNameCat[user-firstname-user-perspective] <- my first name
+ItemTypeNameCat[user-lastname-user-perspective] <- my last name
 
 ItemTypeNameCat[agent-name-agent-perspective] -> my name
+ItemTypeNameCat[agent-firstname-agent-perspective] -> my first name
+ItemTypeNameCat[agent-lastname-agent-perspective] -> my last name
 ItemTypeNameCat[user-name-agent-perspective] -> your name
+ItemTypeNameCat[user-firstname-agent-perspective] -> your first name
+ItemTypeNameCat[user-lastname-agent-perspective] -> your last name
 
 #provide DialogRules that bridge to Utterance Categories so the Utterance Categories can
 #be referred to in other DialogRules like RequestTopicInfo.
@@ -370,27 +383,48 @@ IndexicalCat[fourth] <-> fourth
 IndexicalCat[fifth] <-> fifth
 IndexicalCat[sixth] <-> sixth
 IndexicalCat[seventh] <-> seventh
-IndexicalCat[last] <-> last
-IndexicalCat[last] <-> final
-IndexicalCat[last] <-> the final
+IndexicalCat[final] <-> final
+IndexicalCat[final] <- the final
+IndexicalCat[last] <-> last       #last has two meanings, final and previous, have to treat is special
+IndexicalCat[previous] <- before
+IndexicalCat[previous] <-> previous
+IndexicalCat[next] <- after
+IndexicalCat[next] <-> next
+IndexicalCat[next] <- then
+IndexicalCat[remainder] <-> rest
+IndexicalCat[remainder] <- remainder
+IndexicalCat[entire] <-> entire
+IndexicalCat[entire] <- whole
+IndexicalCat[entire] <- complete
 
-InformTopicInfo(IndexicalPosition($1)) <- {IndexicalCat[$1]} number
-InformTopicInfo(IndexicalPosition($1)) <-> {IndexicalCat[$1]} digit
+InformTopicInfo(digit, IndexicalPosition($1)) <- {IndexicalCat[$1]} number
+InformTopicInfo(digit, IndexicalPosition($1)) <-> {IndexicalCat[$1]} digit
 
-InformTopicInfo(IndexicalRelation(first)) <-> first
-InformTopicInfo(IndexicalRelation(second)) <-> second
-InformTopicInfo(IndexicalRelation(third)) <-> third
-InformTopicInfo(IndexicalRelation(last)) <-> last
-InformTopicInfo(IndexicalRelation(last)) <-> final
-InformTopicInfo(IndexicalRelation(previous)) <-> before
-InformTopicInfo(IndexicalRelation(previous)) <-> last number
-InformTopicInfo(IndexicalRelation(previous)) <-> previous number
-InformTopicInfo(IndexicalRelation(next)) <-> after
-InformTopicInfo(IndexicalRelation(next)) <-> next
-InformTopicInfo(IndexicalRelation(next)) <-> then
+InformTopicInfo(Indexical($140)) <-> {IndexicalCat[$140]}
+
+#InformTopicInfo(IndexicalRelation(first)) <-> first
+#InformTopicInfo(IndexicalRelation(second)) <-> second
+#InformTopicInfo(IndexicalRelation(third)) <-> third
+#InformTopicInfo(IndexicalRelation(last)) <-> last
+#InformTopicInfo(IndexicalRelation(last)) <-> final
+#InformTopicInfo(IndexicalRelation(previous)) <-> before
+#InformTopicInfo(IndexicalRelation(previous)) <-> last
+#InformTopicInfo(IndexicalRelation(previous)) <-> previous
+#InformTopicInfo(IndexicalRelation(next)) <-> after
+#InformTopicInfo(IndexicalRelation(next)) <-> next
+#InformTopicInfo(IndexicalRelation(next)) <-> then
+#InformTopicInfo(IndexicalRelation(remainder)) <-> rest
+#InformTopicInfo(IndexicalRelation(remainder)) <-> remainder
+#This might be preferable to Augmentation below
+#InformTopicInfo(IndexicalRelation(entire)) <-> entire
+#InformTopicInfo(IndexicalRelation(entire)) <-> whole
+#InformTopicInfo(IndexicalRelation(entire)) <-> complete
 
 
-#as in, "That's the third time I've given you the area code"
+
+
+#As in, "That's the third time I've given you the area code"
+# this to be worked out later as needed 
 InformDialogManagement(Alignment()) <-> last time
 InformDialogManagement(Alignment()) <-> next time
 InformDialogManagement(Alignment()) <-> second time
@@ -432,18 +466,21 @@ RequestTopicInfo(SendReceive($50), ItemTypeChar($25)) <- {CommandCat[$50]} {Item
 RequestTopicInfo(SendReceive($50), FieldName($30)) <- {CommandCat[$50]} {FieldNameCat[$30]}
 
 #command form: tell me the entire / tell you the entire X / what is the entire X
+#   tell me the next X / tell you the next X / what is the next X
 #These are interpretation only because they don't contain enough grammar for generation
-RequestTopicInfo(SendReceive($50), ItemTypeName($20), Augmentation($130)) <- {CommandCat[$50]}{AugmentationCat[$130]}{ItemTypeNameCat[$20]}
-RequestTopicInfo(SendReceive($50), ItemTypeChar($25), Augmentation($130)) <- {CommandCat[$50]}{AugmentationCat[$130]}{ItemTypeCharCat[$25]}
-RequestTopicInfo(SendReceive($50), FieldName($30), Augmentation($130)) <- {CommandCat[$50]}{AugmentationCat[$130]}{FieldNameCat[$30]}
+RequestTopicInfo(SendReceive($50), ItemTypeName($20), Indexical($140)) <- {CommandCat[$50]}{IndexicalCat[$140]}{ItemTypeNameCat[$20]}
+RequestTopicInfo(SendReceive($50), ItemTypeChar($25), Indexical($140)) <- {CommandCat[$50]}{IndexicalCat[$140]}{ItemTypeCharCat[$25]}
+RequestTopicInfo(SendReceive($50), FieldName($30), Indexical($140)) <- {CommandCat[$50]}{IndexicalCat[$140]}{FieldNameCat[$30]}
 
-#what is the X
+
+#ItemTypeName is about your, my, and their, not inanimate GrammaticalIndicative
 RequestTopicInfo(SendReceive(tell-me), ItemTypeName($20), GrammaticalIndicative($100), GrammaticalBe($101)) <- \
       what {GrammaticalBeCat[$100]}{GrammaticalIndicativeCat[$3]}{ItemTypeNameCat[$20]}
 RequestTopicInfo(SendReceive(tell-me), ItemTypeName($20), GrammaticalIndicative($100), GrammaticalBe($101)) <- \
       {GrammaticalIndicativeCat[$100]}{ItemTypeNameCat[$20]}{GrammaticalBeCat[$101]} what
 RequestTopicInfo(SendReceive(tell-me), ItemTypeName($20)) <-> what is the {ItemTypeNameCat[$20]}
 
+#what is the X
 RequestTopicInfo(SendReceive(tell-me), ItemTypeChar($25), GrammaticalIndicative($100), GrammaticalBe($101)) <- \
        what {GrammaticalBeCat[$101]}{GrammaticalIndicativeCat[$100]}{ItemTypeCharCat[$25]}
 RequestTopicInfo(SendReceive(tell-me), ItemTypeChar($25), GrammaticalIndicative($100), GrammaticalBe($101)) <- \
@@ -457,33 +494,35 @@ RequestTopicInfo(SendReceive(tell-me), FieldName($30), GrammaticalIndicative($10
 RequestTopicInfo(SendReceive(tell-me), FieldName($30)) <-> what is the {FieldNameCat[$30]}
 
 
-#what is the entire X
-RequestTopicInfo(SendReceive(tell-me), ItemTypeName($20), Augmentation($130), GrammaticalIndicative($100), GrammaticalBe($101)) <- \
-      what {GrammaticalBeCat[$100]}{GrammaticalIndicativeCat[$3]}{AugmentationCat[$130]}{ItemTypeNameCat[$20]}
-RequestTopicInfo(SendReceive(tell-me), ItemTypeName($20), Augmentation($130), GrammaticalIndicative($100), GrammaticalBe($101)) <- \
-      {GrammaticalIndicativeCat[$100]}{ItemTypeNameCat[$20]}{AugmentationCat[$130]}{GrammaticalBeCat[$101]} what
-RequestTopicInfo(SendReceive(tell-me), ItemTypeName($20),Augmentation($130)) <-> what is the {AugmentationCat[$130]}{ItemTypeNameCat[$20]}
+#what is the next X, what is the entire X
+RequestTopicInfo(SendReceive(tell-me), ItemTypeName($20), Indexical($140), GrammaticalIndicative($100), GrammaticalBe($101)) <- \
+      what {GrammaticalBeCat[$100]}{GrammaticalIndicativeCat[$3]}{IndexicalCat[$140]}{ItemTypeNameCat[$20]}
+RequestTopicInfo(SendReceive(tell-me), ItemTypeName($20), Indexical($140), GrammaticalIndicative($100), GrammaticalBe($101)) <- \
+      {GrammaticalIndicativeCat[$100]}{ItemTypeNameCat[$20]}{IndexicalCat[$140]}{GrammaticalBeCat[$101]} what
+RequestTopicInfo(SendReceive(tell-me), ItemTypeName($20),Indexical($140)) <-> what is the {IndexicalCat[$140]}{ItemTypeNameCat[$20]}
 
-RequestTopicInfo(SendReceive(tell-me), ItemTypeChar($25), Augmentation($130), GrammaticalIndicative($100), GrammaticalBe($101)) <- \
-       what {GrammaticalBeCat[$101]}{GrammaticalIndicativeCat[$100]}{AugmentationCat[$130]}{ItemTypeCharCat[$25]}
-RequestTopicInfo(SendReceive(tell-me), ItemTypeChar($25), Augmentation($130), GrammaticalIndicative($100), GrammaticalBe($101)) <- \
-       {GrammaticalIndicativeCat[$100]}{AugmentationCat[$130]}{ItemTypeCharCat[$25]}{GrammaticalBeCat[$101]} what
-RequestTopicInfo(SendReceive(tell-me), ItemTypeChar($25), Augmentation($130)) <-> what is the {AugmentationCat[$130]}{ItemTypeCharCat[$25]}
+RequestTopicInfo(SendReceive(tell-me), ItemTypeChar($25), Indexical($140), GrammaticalIndicative($100), GrammaticalBe($101)) <- \
+       what {GrammaticalBeCat[$101]}{GrammaticalIndicativeCat[$100]}{IndexicalCat[$140]}{ItemTypeCharCat[$25]}
+RequestTopicInfo(SendReceive(tell-me), ItemTypeChar($25), Indexical($140), GrammaticalIndicative($100), GrammaticalBe($101)) <- \
+       {GrammaticalIndicativeCat[$100]}{IndexicalCat[$140]}{ItemTypeCharCat[$25]}{GrammaticalBeCat[$101]} what
+RequestTopicInfo(SendReceive(tell-me), ItemTypeChar($25), Indexical($140)) <-> what is the {IndexicalCat[$140]}{ItemTypeCharCat[$25]}
 
-RequestTopicInfo(SendReceive(tell-me), FieldName($30), Augmentation($130), GrammaticalIndicative($100), GrammaticalBe($101)) <- \
-       what {GrammaticalBeCat[$101]}{GrammaticalIndicativeCat[$100]}{AugmentationCat[$130]}{FieldNameCat[$30]}
-RequestTopicInfo(SendReceive(tell-me), FieldName($30), Augmentation($130), GrammaticalIndicative($100), GrammaticalBe($101)) <- \
-       {GrammaticalIndicativeCat[$100]}{AugmentationCat[$130]}{FieldNameCat[$30]}{GrammaticalBeCat[$101]} what
-RequestTopicInfo(SendReceive(tell-me), FieldName($30), Augmentation($130)) <-> what is the {AugmentationCat[$130]}{FieldNameCat[$30]}
-
-
+RequestTopicInfo(SendReceive(tell-me), FieldName($30), Indexical($140), GrammaticalIndicative($100), GrammaticalBe($101)) <- \
+       what {GrammaticalBeCat[$101]}{GrammaticalIndicativeCat[$100]}{IndexicalCat[$140]}{FieldNameCat[$30]}
+RequestTopicInfo(SendReceive(tell-me), FieldName($30), Indexical($140), GrammaticalIndicative($100), GrammaticalBe($101)) <- \
+       {GrammaticalIndicativeCat[$100]}{IndexicalCat[$140]}{FieldNameCat[$30]}{GrammaticalBeCat[$101]} what
+RequestTopicInfo(SendReceive(tell-me), FieldName($30), Indexical($140)) <-> what is the {IndexicalCat[$140]}{FieldNameCat[$30]}
 
 
 
 
 
 
-#I'd like to form: I'd like to send/receive X
+
+
+
+
+#I'd like to send/receive X
 RequestTopicInfo(SendReceive($50), ItemTypeName($20)) <-> I would like to {CommandCat[$50]} {ItemTypeNameCat[$20]}
 RequestTopicInfo(SendReceive($50), ItemTypeName($20)) <- I'd like to {CommandCat[$50]} {ItemTypeNameCat[$20]}
 RequestTopicInfo(SendReceive($50), ItemTypeName($20)) <-> I would like to {CommandCat[$50]} {ItemTypeNameCat[$20]}
@@ -836,7 +875,7 @@ RequestDialogManagement(what) <-> what
 
 #i did not/do not  get/hear/understand  that 
 
-InformDialogManagement(misalignment-self-hearing-or-understanding) <-> sorry i did not {ActionCat[receive-info-present]} that
+InformDialogManagement(misalignment-self-hearing-or-understanding) <-> . sorry, i did not {ActionCat[receive-info-present]} that
 InformDialogManagement(misalignment-self-hearing-or-understanding, pronoun-ref) <- i do not {ActionCat[receive-info-present]}
 InformDialogManagement(misalignment-self-hearing-or-understanding, pronoun-ref) <- i did not {ActionCat[receive-info-present]}
 InformDialogManagement(misalignment-self-hearing-or-understanding, pronoun-ref) <- i didn't {ActionCat[receive-info-present]}
@@ -1052,19 +1091,19 @@ GrammaticalBeIndicativeAssertionCat[present-singular-definite-far] <- so that wa
 GrammaticalBeIndicativeAssertionCat[present-singular-definite-far] <- so that's
 
 
+#This is be replaced by IndexicalRelation[entire]
+#AugmentationCat[entire-item-adj] <-> entire
+#AugmentationCat[entire-item-adj] <- whole
+#AugmentationCat[entire-item-adj] <- complete
 
-AugmentationCat[entire-item-adj] <-> entire
-AugmentationCat[entire-item-adj] <- whole
-AugmentationCat[entire-item-adj] <- complete
-
-AugmentationCat[entire-item-post] <-> all at once
-AugmentationCat[entire-item-post] <- all together
-AugmentationCat[entire-item-post] <- at one time
-AugmentationCat[entire-item-post] <- without pausing
+#AugmentationCat[entire-item-post] <-> all at once
+#AugmentationCat[entire-item-post] <- all together
+#AugmentationCat[entire-item-post] <- at one time
+#AugmentationCat[entire-item-post] <- without pausing
 
 
 #"I heard you say"
-InformDialogManagement(Inform(partner, self), Tense(past)) <-> I heard you say
+InformDialogManagement(Inform(partner, self), Tense(past)) <-> I heard you say,
 
 
 
@@ -1130,7 +1169,36 @@ KnowledgeCat[not-have-past] <- didn't know
 KnowledgeCat[not-have-past] <-> did not know
 
 
+DesireAssertionCat[self-positive-present] <- i want 
+DesireAssertionCat[self-positive-present] <- i would like 
+DesireAssertionCat[self-positive-present] <- i would prefer
+DesireAssertionCat[self-positive-present] <-> i prefer
+DesireAssertionCat[self-positive-past] <-> i wanted 
+DesireAssertionCat[self-positive-past] <- i preferred
 
+DesireAssertionCat[self-negative-present] <- i don't want 
+DesireAssertionCat[self-negative-present] <- i do not want 
+DesireAssertionCat[self-negative-present] <- i would not like 
+DesireAssertionCat[self-negative-present] <-> i would not prefer
+DesireAssertionCat[self-negative-past] <- i did not want 
+DesireAssertionCat[self-negative-past] <- i did not prefer
+
+DesireAssertionCat[partner-positive-present] <-> you want 
+DesireAssertionCat[partner-positive-present] <- you prefer
+DesireAssertionCat[partner-positive-present] <-  you would like
+DesireAssertionCat[partner-positive-present] <-  you would prefer
+DesireAssertionCat[partner-positive-past] <- you wanted
+DesireAssertionCat[partner-positive-past] <-> you preferred
+
+DesireQuestionCat[self-positive-present] <-> do i want 
+DesireQuestionCat[self-positive-present] <-  would i like
+DesireQuestionCat[self-positive-past] <-> did i want
+
+DesireQuestionCat[partner-positive-present] <- do you want 
+DesireQuestionCat[partner-positive-present] <->  would you like
+DesireQuestionCat[partner-positive-present] <-  would you prefer
+DesireQuestionCat[partner-positive-past] <-> did you want
+DesireQuestionCat[partner-positive-past] <- did you prefer
 
 
 
