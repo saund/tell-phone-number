@@ -258,7 +258,7 @@ InformTopicInfo(grammatical-be-indicative, Grammar($100), FieldName($30)) <-> {G
 # ItemType[category of type]Cat
 
 ItemTypeCharCat[digit] <- number
-ItemTypeCharCat[digit] <-> digit
+ItemTypeCharCat[digit] <-> digit  
 ItemTypeCharCat[alphabetic] <-> letter
 ItemTypeCharCat[alphanumeric] <-> character
 ItemTypeCharCat[alphanumeric] <- alphanumeric
@@ -490,42 +490,51 @@ RequestTopicInfo(SendReceive($50), FieldName($30), Indexical($140)) <- {CommandC
 #ItemTypeName is about your, my, and their, not inanimate GrammaticalIndicative
 RequestTopicInfo(SendReceive(tell-me), ItemTypeName($20), GrammaticalIndicative($100), GrammaticalBe($101)) <- \
       what {GrammaticalBeCat[$100]}{GrammaticalIndicativeCat[$3]}{ItemTypeNameCat[$20]}
-RequestTopicInfo(SendReceive(tell-me), ItemTypeName($20), GrammaticalIndicative($100), GrammaticalBe($101)) <- \
-      {GrammaticalIndicativeCat[$100]}{ItemTypeNameCat[$20]}{GrammaticalBeCat[$101]} what
-RequestTopicInfo(SendReceive(tell-me), ItemTypeName($20)) <-> what is the {ItemTypeNameCat[$20]}
+
+#RequestTopicInfo(SendReceive(tell-me), ItemTypeName($20), GrammaticalIndicative($100), GrammaticalBe($101)) <- \
+#      {GrammaticalIndicativeCat[$100]}{ItemTypeNameCat[$20]}{GrammaticalBeCat[$101]} what
+#RequestTopicInfo(SendReceive(tell-me), ItemTypeName($20)) <-> what is the {ItemTypeNameCat[$20]}
 
 #what is the X
 RequestTopicInfo(SendReceive(tell-me), ItemTypeChar($25), GrammaticalIndicative($100), GrammaticalBe($101)) <- \
        what {GrammaticalBeCat[$101]}{GrammaticalIndicativeCat[$100]}{ItemTypeCharCat[$25]}
-RequestTopicInfo(SendReceive(tell-me), ItemTypeChar($25), GrammaticalIndicative($100), GrammaticalBe($101)) <- \
-       {GrammaticalIndicativeCat[$100]}{ItemTypeCharCat[$25]}{GrammaticalBeCat[$101]} what
-RequestTopicInfo(SendReceive(tell-me), ItemTypeChar($25)) <-> what is the {ItemTypeCharCat[$25]}
+
+#RequestTopicInfo(SendReceive(tell-me), ItemTypeChar($25), GrammaticalIndicative($100), GrammaticalBe($101)) <- \
+#       {GrammaticalIndicativeCat[$100]}{ItemTypeCharCat[$25]}{GrammaticalBeCat[$101]} what
+#RequestTopicInfo(SendReceive(tell-me), ItemTypeChar($25)) <-> what is the {ItemTypeCharCat[$25]}
 
 RequestTopicInfo(SendReceive(tell-me), FieldName($30), GrammaticalIndicative($100), GrammaticalBe($101)) <- \
        what {GrammaticalBeCat[$101]}{GrammaticalIndicativeCat[$100]}{FieldNameCat[$30]}
-RequestTopicInfo(SendReceive(tell-me), FieldName($30), GrammaticalIndicative($100), GrammaticalBe($101)) <- \
-       {GrammaticalIndicativeCat[$100]}{FieldNameCat[$30]}{GrammaticalBeCat[$101]} what
-RequestTopicInfo(SendReceive(tell-me), FieldName($30)) <-> what is the {FieldNameCat[$30]}
+
+#RequestTopicInfo(SendReceive(tell-me), FieldName($30), GrammaticalIndicative($100), GrammaticalBe($101)) <- \
+#       {GrammaticalIndicativeCat[$100]}{FieldNameCat[$30]}{GrammaticalBeCat[$101]} what
+#RequestTopicInfo(SendReceive(tell-me), FieldName($30)) <-> what is the {FieldNameCat[$30]}
 
 
 #what is the next X, what is the entire X
 RequestTopicInfo(SendReceive(tell-me), ItemTypeName($20), Indexical($140), GrammaticalIndicative($100), GrammaticalBe($101)) <- \
       what {GrammaticalBeCat[$100]}{GrammaticalIndicativeCat[$3]}{IndexicalCat[$140]}{ItemTypeNameCat[$20]}
-RequestTopicInfo(SendReceive(tell-me), ItemTypeName($20), Indexical($140), GrammaticalIndicative($100), GrammaticalBe($101)) <- \
-      {GrammaticalIndicativeCat[$100]}{ItemTypeNameCat[$20]}{IndexicalCat[$140]}{GrammaticalBeCat[$101]} what
-RequestTopicInfo(SendReceive(tell-me), ItemTypeName($20),Indexical($140)) <-> what is the {IndexicalCat[$140]}{ItemTypeNameCat[$20]}
+
+#RequestTopicInfo(SendReceive(tell-me), ItemTypeName($20), Indexical($140), GrammaticalIndicative($100), GrammaticalBe($101)) <- \
+#      {GrammaticalIndicativeCat[$100]}{ItemTypeNameCat[$20]}{IndexicalCat[$140]}{GrammaticalBeCat[$101]} what
+#RequestTopicInfo(SendReceive(tell-me), ItemTypeName($20),Indexical($140), GrammaticalIndicative(definite), GrammaticalBe(present-singular)) <-> \
+#      what is the {IndexicalCat[$140]}{ItemTypeNameCat[$20]}
 
 RequestTopicInfo(SendReceive(tell-me), ItemTypeChar($25), Indexical($140), GrammaticalIndicative($100), GrammaticalBe($101)) <- \
        what {GrammaticalBeCat[$101]}{GrammaticalIndicativeCat[$100]}{IndexicalCat[$140]}{ItemTypeCharCat[$25]}
-RequestTopicInfo(SendReceive(tell-me), ItemTypeChar($25), Indexical($140), GrammaticalIndicative($100), GrammaticalBe($101)) <- \
-       {GrammaticalIndicativeCat[$100]}{IndexicalCat[$140]}{ItemTypeCharCat[$25]}{GrammaticalBeCat[$101]} what
-RequestTopicInfo(SendReceive(tell-me), ItemTypeChar($25), Indexical($140)) <-> what is the {IndexicalCat[$140]}{ItemTypeCharCat[$25]}
+
+#RequestTopicInfo(SendReceive(tell-me), ItemTypeChar($25), Indexical($140), GrammaticalIndicative($100), GrammaticalBe($101)) <- \
+#       {GrammaticalIndicativeCat[$100]}{IndexicalCat[$140]}{ItemTypeCharCat[$25]}{GrammaticalBeCat[$101]} what
+#RequestTopicInfo(SendReceive(tell-me), ItemTypeChar($25), Indexical($140), GrammaticalIndicative(definite), GrammaticalBe(present-singular)) <-> \
+#       what is the {IndexicalCat[$140]}{ItemTypeCharCat[$25]}
 
 RequestTopicInfo(SendReceive(tell-me), FieldName($30), Indexical($140), GrammaticalIndicative($100), GrammaticalBe($101)) <- \
        what {GrammaticalBeCat[$101]}{GrammaticalIndicativeCat[$100]}{IndexicalCat[$140]}{FieldNameCat[$30]}
-RequestTopicInfo(SendReceive(tell-me), FieldName($30), Indexical($140), GrammaticalIndicative($100), GrammaticalBe($101)) <- \
-       {GrammaticalIndicativeCat[$100]}{IndexicalCat[$140]}{FieldNameCat[$30]}{GrammaticalBeCat[$101]} what
-RequestTopicInfo(SendReceive(tell-me), FieldName($30), Indexical($140)) <-> what is the {IndexicalCat[$140]}{FieldNameCat[$30]}
+
+#RequestTopicInfo(SendReceive(tell-me), FieldName($30), Indexical($140), GrammaticalIndicative($100), GrammaticalBe($101)) <- \
+#       {GrammaticalIndicativeCat[$100]}{IndexicalCat[$140]}{FieldNameCat[$30]}{GrammaticalBeCat[$101]} what
+#RequestTopicInfo(SendReceive(tell-me), FieldName($30), Indexical($140), GrammaticalIndicative(definite), GrammaticalBe(present-singular)) <-> \
+#       what is the {IndexicalCat[$140]}{FieldNameCat[$30]}
 
 
 
@@ -664,8 +673,8 @@ the {FieldNameCat[$30]}
 
 
 
-
-
+#is not the area code
+InformTopicInfo(not-field, FieldName($30)) <-> {GrammaticalBeNotCat[present-singular]} the {FieldNameCat[$30]}
 
 
 
@@ -888,7 +897,7 @@ RequestDialogManagement(misalignment-start-again) <- start again
 RequestDialogManagement(misalignment-start-again) <-> let's start over
 
 #Very context dependent
-RequestDialogManagement(what) <-> como
+RequestDialogManagement(what) <- como
 RequestDialogManagement(what) <-> what
 
 

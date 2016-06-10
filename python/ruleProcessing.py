@@ -570,7 +570,7 @@ class DialogAct(LogicalForm):
 
 
 
-#rule_match_list is a list of tuples, (str_dialog_act, start_index, end_index)
+#rule_match_list is a list of tuples, (str_dialog_act, start_index, end_index, num_words_matched)
 #Returns a list of DialogActs
 def parseDialogActsFromRuleMatches(rule_match_list):
     da_list = []
@@ -730,7 +730,7 @@ def applyLFRulesToString(input_string):
         if possible_rules != None:
             for possible_rule in possible_rules:
                 #print 'possible_rule: ' + str(possible_rule)
-                #fit_tuple is (dialog_rule, i_word_start, i_word_end)  
+                #fit_tuple is (dialog_rule, i_word_start, i_word_end, num_words_matched)  
                 fit_tuple = testRuleOnInputWordsAtWordIndex(possible_rule, word_list, i_word)
                 if fit_tuple != None:
                     fit_rule_list.append(fit_tuple)
@@ -739,6 +739,7 @@ def applyLFRulesToString(input_string):
 
     if gl_tell:
         print 'found ' + str(len(fit_rule_list)) + ' matches'
+    #res = selectMaximallyCoveringRules_Greedy(fit_rule_list, len(word_list))
     res = selectMaximallyCoveringRules(fit_rule_list, len(word_list))
     if gl_tell:
         print 'narrowed down to ' + str(len(res)) + ' matches'
@@ -746,7 +747,8 @@ def applyLFRulesToString(input_string):
 
 
 
-#fit_rule_list is a list of tuples: (DialogAct, start_index, stop_index)
+
+#fit_rule_list is a list of tuples: (DialogAct, start_index, stop_index, num_words_matched)
 #where start_index and stop_index are indices into a word list for input text 
 #Some of the tuples could overlap and claim the same words.
 #This function selects the longest (most-word) fitting tuples in a greedy fashion
@@ -756,12 +758,17 @@ def applyLFRulesToString(input_string):
 #apply to the same set of words, so it does not return two interpretations of the same input
 #.e.g. both InformTD and ConfirmTD.
 #
-def selectMaximallyCoveringRules(fit_rule_list, input_length):
+#This greedy version returns a match of 
+#   InformTopicInfo(ItemValue(DigitSequence(six, zero))) to the input,  "six what zero"
+#when we would prefer
+#   InformTopicInfo(ItemValue(Digit(six))) RequestDialogManagement(what) InformTopicInfo(ItemValue(Digit(zero)))
+#
+def selectMaximallyCoveringRules_Greedy(fit_rule_list, input_length):
     global gl_tell    
     print 'gl_tell: ' + str(gl_tell)
 
     if gl_tell:
-        print 'selectMaximallyCoveringRules()  input_length: ' + str(input_length) + ' ' + str(len(fit_rule_list)) + ' rules'
+        print 'selectMaximallyCoveringRules_Greedy()  input_length: ' + str(input_length) + ' ' + str(len(fit_rule_list)) + ' rules'
         for fit_rule in fit_rule_list:
             print str(fit_rule)
 
@@ -787,6 +794,123 @@ def selectMaximallyCoveringRules(fit_rule_list, input_length):
                 covered_word_flag_ar[ii] = True
     res.sort(key = lambda tup: tup[1])
     return res
+
+
+gl_max_num_words_matched = 0
+gl_rule_lists_for_max_num_words_matched = []
+
+
+#fit_rule_list is a list of tuples: (DialogAct, start_index, stop_index, num_words_mached)
+#where start_index and stop_index are indices into a word list for input text 
+#Some of the tuples could overlap and claim the same words.
+#
+#The greedy version above returns a match of 
+#   InformTopicInfo(ItemValue(DigitSequence(six, zero))) to the input,  "six what zero"
+#when we would prefer
+#   InformTopicInfo(ItemValue(Digit(six))) RequestDialogManagement(what) InformTopicInfo(ItemValue(Digit(zero)))
+#
+#This version searches for the combination of rules that accounts for the most words.
+#The shortest combination that accounts for the most words wins and is returned.
+#
+#Right now, this does not allow muliple DialogActs to 
+#apply to the same set of words, so it does not return two interpretations of the same input
+#.e.g. both InformTD and ConfirmTD.
+#
+def selectMaximallyCoveringRules(fit_rule_list, input_length):
+    global gl_tell    
+    print 'gl_tell: ' + str(gl_tell)
+    global gl_max_num_words_matched
+    global gl_rule_lists_for_max_num_words_matched
+
+    if gl_tell:
+        print 'selectMaximallyCoveringRules()  input_length: ' + str(input_length) + ' ' + str(len(fit_rule_list)) + ' rules'
+        for fit_rule in fit_rule_list:
+            print str(fit_rule)
+
+    if len(fit_rule_list) < 1:
+        return []
+
+    covered_word_flag_ar = [False] * input_length;
+    res = []
+    #fit_rule_list.sort(key = lambda tup: tup[2]-tup[1])
+    fit_rule_list.sort(key = lambda tup: tup[3])  #sort by number  of words matched
+    fit_rule_list.reverse()
+
+    #debugging
+    #selectMaximallyCoveringRulesAux(fit_rule_list, input_length, [True, False, False, False, False, False])
+    #return
+
+    #since my algorithm is brute force, choose a cutoff in case we happen to have a very long input
+    #utterance like "one what two what three what four what five what six..."
+    if len(fit_rule_list) > 16:
+        return selectMaximallyCoveringRules_Greedy(fit_rule_list, input_length)
+
+    gl_max_num_words_matched = 0
+    gl_rule_lists_for_max_num_words_matched = []
+
+    selectMaximallyCoveringRulesAux(fit_rule_list, input_length, [True])
+    selectMaximallyCoveringRulesAux(fit_rule_list, input_length, [False])
+    
+    if gl_tell:
+        print 'max num words matched: ' + str(gl_max_num_words_matched)
+    min_num_rules = 10000
+    min_num_rules_rule_list = None    
+    for rule_list in gl_rule_lists_for_max_num_words_matched:
+        if gl_tell:
+            rule_list.sort(key = lambda tup: tup[1])
+            print ' rule_list: ' + str(rule_list)
+        if len(rule_list) < min_num_rules:
+            min_num_rules = len(rule_list)
+            min_num_rules_rule_list = rule_list
+
+    min_num_rules_rule_list.sort(key = lambda tup: tup[1])
+    return min_num_rules_rule_list
+                
+
+
+def selectMaximallyCoveringRulesAux(fit_rule_list, input_length, tf_list):
+    global gl_max_num_words_matched
+    global gl_rule_lists_for_max_num_words_matched
+
+    if len(fit_rule_list) < 1:
+        return
+
+    if len(tf_list) < len(fit_rule_list):
+        tf_list.append(True)
+        selectMaximallyCoveringRulesAux(fit_rule_list, input_length, tf_list)
+        tf_list.pop()
+        tf_list.append(False)
+        selectMaximallyCoveringRulesAux(fit_rule_list, input_length, tf_list)
+        tf_list.pop()
+        return
+
+    #print 'tf_list: ' + str(tf_list)
+        
+    covered_word_flag_ar = [False] * input_length;
+    covered_word_count = 0
+    active_rule_list = []
+    for i in range(0, len(tf_list)):
+        if tf_list[i] == False:
+            continue
+        fit_rule_tup = fit_rule_list[i]
+        for ii in range(fit_rule_tup[1], fit_rule_tup[2]+1):
+            if covered_word_flag_ar[ii] == True:
+                return
+        for ii in range(fit_rule_tup[1], fit_rule_tup[2]+1):
+            covered_word_flag_ar[ii] = True
+        active_rule_list.append(fit_rule_tup)
+        covered_word_count += fit_rule_tup[3]
+    
+    #print 'covered_word_count: ' + str(covered_word_count)
+    if covered_word_count > gl_max_num_words_matched:
+        gl_max_num_words_matched = covered_word_count
+        gl_rule_lists_for_max_num_words_matched = [ active_rule_list ]
+    elif covered_word_count == gl_max_num_words_matched:
+        gl_rule_lists_for_max_num_words_matched.append(active_rule_list)
+
+        
+
+
 
 
 gl_tell_match = False
