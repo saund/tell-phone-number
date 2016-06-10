@@ -1114,8 +1114,8 @@ gl_str_da_tell_me = 'RequestTopicInfo(SendReceive(tell-me))'
 
 #Use gl_da_tell_me_field instead
 #tell me the telephone number
-#gl_da_tell_me_phone_number = rp.parseDialogActFromString('RequestTopicInfo(SendReceive(tell-me), FieldName(telephone-number))')
-#gl_da_tell_you_phone_number = rp.parseDialogActFromString('RequestTopicInfo(SendReceive(tell-you), FieldName(telephone-number))')
+gl_da_tell_me_phone_number = rp.parseDialogActFromString('RequestTopicInfo(SendReceive(tell-me), FieldName(telephone-number))')
+gl_da_tell_you_phone_number = rp.parseDialogActFromString('RequestTopicInfo(SendReceive(tell-you), FieldName(telephone-number))')
 
 #tell me your name/my name
 gl_da_tell_me_item_type_name = rp.parseDialogActFromString('RequestTopicInfo(SendReceive(tell-me), ItemTypeName($20))')
