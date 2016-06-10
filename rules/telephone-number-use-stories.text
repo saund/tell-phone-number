@@ -979,11 +979,18 @@ S:  six five zero            InformTopicInfo(DataValue(DigitSequence
 
 -----------------------
 
+--------------------------------------
+--------------------------------------
+To Do
 
 Examples from people trying the tell phone number demo.
 
 
 -what's the whole number?
+-what's the entire phone number?
+-what's the complete phone number?
+
+
 -can you tell me the entire number
 -what's the rest of it?
 -yeah you told me that
@@ -1004,4 +1011,49 @@ Examples from people trying the tell phone number demo.
 -very nice
 
 -all at once
+
+---------------------
+
+
+
+
+-is that the area code?
+ when the digits were not the area code or another field
+
+-chunk size is messed up again 
+ok
+
+-six five what
+should reply with 
+six five zero not just zero
+
+-chunk sizing is messed up
+ "six three"
+  then it gives 
+  seven one two
+
+Output: Would you like to send or receive a phone number?
+Input: what is the phone number
+Output: six five zero
+Input: six
+Output: five
+Input: five 
+Output: zero
+Input: six five
+Output: I'll repeat that. zero
+Input: zero
+Output: six
+Input: six
+Output: three
+Input: six three
+Output: seven one two
+Input: okay
+Output: one two
+Input: quit
+Output: 
+
+
+what is six five zero?
+
+
 
