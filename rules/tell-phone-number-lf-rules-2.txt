@@ -700,6 +700,7 @@ ConfirmDialogManagement(affirmation-okay) <- ok
 ConfirmDialogManagement(affirmation-okay) <-> okay
 ConfirmDialogManagement(affirmation-okay) <- alright
 ConfirmDialogManagement(affirmation-yes) <-> yes
+ConfirmDialogManagement(affirmation-yes) <- yeah
 ConfirmDialogManagement(affirmation-yes) <- sure
 ConfirmDialogManagement(affirmation-yes) <- yup
 ConfirmDialogManagement(affirmation-yes) <- proceed
