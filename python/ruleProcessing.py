@@ -278,14 +278,14 @@ def compileStringToLFRuleDicts(rules_filepath):
 
     sortWordCategoryRulesByLength(gl_interpretation_word_category_rules)
     sortWordCategoryRulesByLength(gl_generator_word_category_rules)
-    print '\nInterpretation WordCategory rules:'
-    printAllWordCategoryRules(gl_interpretation_word_category_rules)
-    print '\nGenerator WordCategory rules:'
-    printAllWordCategoryRules(gl_generator_word_category_rules)
-    print '\nInterpretation DialogAct rules:'
-    printAllDialogActInterpretationRules()
-    print '\nGenerator DialogAct rules:'
-    printAllDialogActGeneratorRules()
+    print '\nInterpretation WordCategory rules: ' + str(len(gl_interpretation_word_category_rules)) + ' categories'
+    #printAllWordCategoryRules(gl_interpretation_word_category_rules)
+    print '\nGenerator WordCategory rules: ' + str(len(gl_generator_word_category_rules)) + ' categories'
+    #printAllWordCategoryRules(gl_generator_word_category_rules)
+    print '\nInterpretation DialogAct rules: ' + str(len(gl_first_word_string_to_interpretation_rule_dict)) + ' Intent forms'
+    #printAllDialogActInterpretationRules()
+    print '\nGenerator DialogAct rules: ' + str(len(gl_generator_dialog_act_rules)) + ' Intent forms'
+    #printAllDialogActGeneratorRules()
 
 
 
@@ -1181,12 +1181,12 @@ def generateTextFromDialogAct(gen_dialog_act):
             da_rule = this_da_rule
             arg_mapping = this_arg_mapping
     
-    print ' finally chose matching gen rule: ' + da_rule[0].getPrintString() + ' arg_mapping: ' + str(arg_mapping)
+    #print ' finally chose matching gen rule: ' + da_rule[0].getPrintString() + ' arg_mapping: ' + str(arg_mapping)
 
     word_list = []
     rhs = da_rule[1]
     rhs_list = rhs.split()
-    print 'rhs: ' + str(rhs)
+    #print 'rhs: ' + str(rhs)
     for word_or_word_category in rhs_list:
         if word_or_word_category[0] == '{':
             lsb_index = word_or_word_category.find('[')

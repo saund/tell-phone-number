@@ -82,7 +82,7 @@
 # $100 - $119  Grammar, Grammatical, Tense, etc.
 # $120 - $124  ConfirmDialogManagement        affirmation-yes
 # $125 - $129  CorrectionDialogManagement     negation, partner-correction#
-## XX$130         Augmentation        entire
+# ##
 # $131         Knowledge           possess, lack
 # $132         PersonRef           self, partner  (relative, not absolete, i.e. wrt who is speaking)
 # $140 - $144  Indexical           first, next, entire ...
@@ -699,7 +699,11 @@ InformDialogManagement(misaligned-digit-values) <-> we are out of sync about the
 ConfirmDialogManagement(affirmation-okay) <- ok
 ConfirmDialogManagement(affirmation-okay) <-> okay
 ConfirmDialogManagement(affirmation-okay) <- alright
+ConfirmDialogManagement(affirmation-okay) <- allright
+ConfirmDialogManagement(affirmation-okay) <- all right
+
 ConfirmDialogManagement(affirmation-yes) <-> yes
+ConfirmDialogManagement(affirmation-yes) <- yeah
 ConfirmDialogManagement(affirmation-yes) <- sure
 ConfirmDialogManagement(affirmation-yes) <- yup
 ConfirmDialogManagement(affirmation-yes) <- proceed
@@ -707,8 +711,6 @@ ConfirmDialogManagement(affirmation-yes) <- go on
 ConfirmDialogManagement(affirmation-yes) <- got it
 ConfirmDialogManagement(affirmation-yes) <- got it already
 ConfirmDialogManagement(affirmation-yes) <- got that
-ConfirmDialogManagement(affirmation-yes) <- allright
-ConfirmDialogManagement(affirmation-yes) <- all right
 ConfirmDialogManagement(affirmation-yes) <- i got it already
 ConfirmDialogManagement(affirmation-yes) <- i got that already
 
@@ -979,9 +981,11 @@ RequestDialogManagement(misalignment-request-repeat, FieldName($30)) <-> again p
 #and RequestDialogManagement; "was that the area code" comes under the latter
 #because it refers to a field name not a data value
 RequestDialogManagement(clarification-utterance, Grammar(past), FieldName($30)) <-> was that the {FieldNameCat[$30]}
+RequestDialogManagement(clarification-utterance, Grammar(past), FieldName($30)) <-> was that {ReallyCat[really]} the {FieldNameCat[$30]}
 RequestDialogManagement(clarification-utterance, Grammar(past), FieldName($30)) <-> did you just say the {FieldNameCat[$30]}
 RequestDialogManagement(clarification-utterance, Grammar(past), FieldName($30)) <-> did you just give the {FieldNameCat[$30]}
 RequestDialogManagement(clarification-utterance, Grammar(present), FieldName($30)) <-> is that the {FieldNameCat[$30]}
+RequestDialogManagement(clarification-utterance, Grammar(present), FieldName($30)) <-> is that {ReallyCat[really]} the {FieldNameCat[$30]}
 RequestDialogManagement(clarification-utterance, Grammar(present), FieldName($30)) <-> are those the {FieldNameCat[$30]}
 
 
@@ -1089,8 +1093,11 @@ GrammaticalBeIndicativeQuestionCat[present-plural-near] <-> are these
 GrammaticalBeIndicativeQuestionCat[past-plural-near] <-> were these
 
 GrammaticalBeIndicativeQuestionCat[present-singular-definite-far] <-> is that the
+GrammaticalBeIndicativeQuestionCat[present-singular-definite-far] <- is that {ReallyCat[really]} the
 GrammaticalBeIndicativeQuestionCat[past-singular-definite-far] <-> was that the
+GrammaticalBeIndicativeQuestionCat[past-singular-definite-far] <-> was that {ReallyCat[really]} the
 GrammaticalBeIndicativeQuestionCat[present-singular-definite-near] <-> is this the
+GrammaticalBeIndicativeQuestionCat[present-singular-definite-near] <-> is this {ReallyCat[really]}
 GrammaticalBeIndicativeQuestionCat[past-singular-definite-near] <-> was this the
 GrammaticalBeIndicativeQuestionCat[present-plural-definite-far] <-> are those the
 GrammaticalBeIndicativeQuestionCat[past-plural-definite-far] <-> were those the
@@ -1117,7 +1124,12 @@ GrammaticalBeIndicativeAssertionCat[past-plural-definite-near] <-> these were th
 
 
 GrammaticalBeIndicativeAssertionCat[present-singular-definite-far] <- so that was
+GrammaticalBeIndicativeAssertionCat[present-singular-definite-far] <- so that {ReallyCat[really]} was
 GrammaticalBeIndicativeAssertionCat[present-singular-definite-far] <- so that's
+
+ReallyCat[really] <-> really
+ReallyCat[really] <- actually
+ReallyCat[really] <- in fact
 
 
 #This is be replaced by IndexicalRelation[entire]

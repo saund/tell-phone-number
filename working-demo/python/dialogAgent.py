@@ -1143,8 +1143,8 @@ gl_da_tell_me_item_type_char_indexical = rp.parseDialogActFromString('RequestTop
 gl_da_tell_you_item_type_char_indexical = rp.parseDialogActFromString('RequestTopicInfo(SendReceive(tell-you), ItemTypeChar($25), Indexical($140))')
 
 #tell me the entire number
-gl_da_tell_me_item_type_char_grammar_indexical = rp.parseDialogActFromString('RequestTopicInfo(SendReceive(tell-me), ItemTypeChar($25), Indexical($140), GrammaticalIndicative($100), GrammaticalBe($101))')
-gl_str_da_tell_me_item_type_char_grammar_indexical = 'RequestTopicInfo(SendReceive(tell-me), ItemTypeChar($25), Indexical($140), GrammaticalIndicative($100), GrammaticalBe($101))'
+gl_da_tell_me_item_type_char_indexical_grammar = rp.parseDialogActFromString('RequestTopicInfo(SendReceive(tell-me), ItemTypeChar($25), Indexical($140), GrammaticalIndicative($100), GrammaticalBe($101))')
+gl_str_da_tell_me_item_type_char_indexical_grammar = 'RequestTopicInfo(SendReceive(tell-me), ItemTypeChar($25), Indexical($140), GrammaticalIndicative($100), GrammaticalBe($101))'
 
 
 
@@ -1161,8 +1161,8 @@ gl_da_tell_me_field_indexical = rp.parseDialogActFromString('RequestTopicInfo(Se
 gl_str_da_tell_me_field_indexical = 'RequestTopicInfo(SendReceive(tell-me), FieldName($30), Indexical($140))'
 
 #tell me the entire area code
-gl_da_tell_me_field_grammar_indexical = rp.parseDialogActFromString('RequestTopicInfo(SendReceive(tell-me), FieldName($30), Indexical($140), GrammaticalIndicative($100), GrammaticalBe($101))')
-gl_str_da_tell_me_field_grammar_indexical = 'RequestTopicInfo(SendReceive(tell-me), FieldName($30), Indexical($140), GrammaticalIndicative($100), GrammaticalBe($101))'
+gl_da_tell_me_field_indexical_grammar = rp.parseDialogActFromString('RequestTopicInfo(SendReceive(tell-me), FieldName($30), Indexical($140), GrammaticalIndicative($100), GrammaticalBe($101))')
+gl_str_da_tell_me_field_indexical_grammar = 'RequestTopicInfo(SendReceive(tell-me), FieldName($30), Indexical($140), GrammaticalIndicative($100), GrammaticalBe($101))'
 
 
 
@@ -1819,7 +1819,7 @@ def handleRequestTopicInfo_SendRole(da_list):
     field_name = None
     mapping = rp.recursivelyMapDialogRule(gl_da_tell_me_field_indexical, da_request_topic_info)
     if mapping == None:
-        mapping = rp.recursivelyMapDialogRule(gl_da_tell_me_field_grammar_indexical, da_request_topic_info)
+        mapping = rp.recursivelyMapDialogRule(gl_da_tell_me_field_indexical_grammar, da_request_topic_info)
     if mapping != None:
         field_name = mapping.get('30')
         indexical = mapping.get('140')
@@ -1829,7 +1829,7 @@ def handleRequestTopicInfo_SendRole(da_list):
     if mapping == None:
         mapping = rp.recursivelyMapDialogRule(gl_da_tell_me_item_type_char_indexical, da_request_topic_info)
         if mapping == None:
-            mapping = rp.recursivelyMapDialogRule(gl_da_tell_me_item_type_char_grammar_indexical, da_request_topic_info)
+            mapping = rp.recursivelyMapDialogRule(gl_da_tell_me_item_type_char_indexical_grammar, da_request_topic_info)
             print 'HHH mapping: ' + str(mapping)
         if mapping != None:
             num_name = mapping.get('25')
@@ -2160,12 +2160,11 @@ def handleRequestTopicInfo_BanterRole(da_list):
         mapping = rp.recursivelyMapDialogRule(gl_da_tell_me_field_grammar, da_request_topic_info)
     if mapping == None:
         mapping = rp.recursivelyMapDialogRule(gl_da_tell_me_field_indexical, da_request_topic_info)
-        indexical = mapping.get('140')
     if mapping == None:
         mapping = rp.recursivelyMapDialogRule(gl_da_tell_me_field_indexical_grammar, da_request_topic_info)
-        indexical = mapping.get('140')
     if mapping != None:
         field_name = mapping.get('30')
+        indexical = mapping.get('140')
     #handle "User: tell me the number"  
     #"number" can mean digit or telephone number. Here, the utterance does not include an indexical
     #like "third number", so we interpret it as the telephone number
@@ -2175,15 +2174,15 @@ def handleRequestTopicInfo_BanterRole(da_list):
             mapping = rp.recursivelyMapDialogRule(gl_da_tell_me_item_type_char_grammar, da_request_topic_info)
         if mapping == None:
             mapping = rp.recursivelyMapDialogRule(gl_da_tell_me_item_type_char_indexical, da_request_topic_info)
-            indexical = mapping.get('140')
         if mapping == None:
-            mapping = rp.recursivelyMapDialogRule(gl_da_tell_me_item_type_char_grammar_indexical, da_request_topic_info)
-            indexical = mapping.get('140')
+            mapping = rp.recursivelyMapDialogRule(gl_da_tell_me_item_type_char_indexical_grammar, da_request_topic_info)
         if mapping != None:
+            indexical = mapping.get('140')
             num_name = mapping.get('25')
             if num_name == 'digit':
                 field_name = 'telephone-number'
     if field_name == 'telephone-number':
+        print ' banter role indexical: ' + str(indexical)
         gl_agent.setRole('send', gl_default_phone_number)
         initializeStatesToSendPhoneNumberData(gl_agent)
         if indexical == 'entire':
