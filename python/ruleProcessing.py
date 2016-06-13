@@ -1260,7 +1260,7 @@ def recursivelyMapDialogRuleAux(rule_da, gen_da, arg_mapping):
     if gl_tell_map:
         print '\nrecurse'
         print 'rule_da: ' + rule_da.getPrintString()  + ' len(rule_da.arg_list): ' + str(len(rule_da.arg_list))
-        print 'gen_da: ' + gen_da.getPrintString()
+        print 'gen_da: ' + gen_da.getPrintString()  + ' len(gen_da.arg_list): ' + str(len(gen_da.arg_list))
 
     if type(rule_da) != type(gen_da):
         if gl_tell_map:
@@ -1272,10 +1272,10 @@ def recursivelyMapDialogRuleAux(rule_da, gen_da, arg_mapping):
         return False
 
     if rule_da.getPredicate() != gen_da.getPredicate():
-        d_index = rule_da.predicate.find('$')
+        d_index = rule_da.getPredicate().find('$')
         if d_index == 0:
-            arg_name = rule_da.predicate[1:]
-            arg_value = gen_da.predicate
+            arg_name = rule_da.getPredicate()[1:]
+            arg_value = gen_da.getPredicate()
             arg_mapping[arg_name] = arg_value
             if gl_tell_map:
                 print 'Match! adding mapping [' + arg_name + ']=' + arg_value
