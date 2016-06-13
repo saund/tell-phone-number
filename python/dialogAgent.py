@@ -1979,7 +1979,7 @@ def handleInformRoleInterpersonal(da_list):
     da0 = da_list[0]
     str_da0 = da0.getPrintString()
 
-    if str_da0 == gl_da_user_belief_yes or str_da0 == gl_da_user_belief_no or str_da0 == gl_da_user_belief_unsure:
+    if str_da0 == gl_str_da_user_belief_yes or str_da0 == gl_str_da_user_belief_no or str_da0 == gl_str_da_user_belief_unsure:
         ret_da_list = handleAnyPendingQuestion(da_list)
         if ret_da_list != None:
             return ret_da_list
@@ -3919,12 +3919,25 @@ def handleResponseToDialogInvitationQuestion(question_da, response_da_list):
     if str_response_da0 == gl_str_da_correction_ti_negation or \
             str_response_da0 == gl_str_da_user_belief_no or \
             str_response_da0 == gl_str_da_user_belief_unsure:
+
+        removeQuestionFromPendingQuestionList('self', gl_da_request_dm_invitation_receive)
+        removeQuestionFromPendingQuestionList('self', gl_da_request_dm_invitation_send_receive)
         return [ gl_da_affirmation_okay, gl_da_standing_by ]
 
     #User accepts invitation
     if str_response_da0 == gl_str_da_affirmation_yes or \
             str_response_da0 == gl_str_da_affirmation_okay or \
             str_response_da0 == gl_str_da_user_belief_yes:
+
+        #If the user not only gives an affirmation but makes a request, then clear the question and process the request.
+        removeQuestionFromPendingQuestionList('self', gl_da_request_dm_invitation_send_receive)
+        removeQuestionFromPendingQuestionList('self', gl_da_request_dm_invitation_receive)
+
+        #Working on this XXXX
+        #if len(response_da_list) > 1:
+        #    response_from_additional_das = $$
+        return []
+
         
         #If invitation was send_receive, tell tell partner that self is not able to receive a phone number yet,
         #would they like to receive a phone number?

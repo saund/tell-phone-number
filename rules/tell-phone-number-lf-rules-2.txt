@@ -376,6 +376,7 @@ InformRoleInterpersonal(user-belief-unsure) <- i am not sure
 InformRoleInterpersonal(user-belief-unsure) <-> not sure
 InformRoleInterpersonal(user-belief-unsure) <- I don't know about that
 InformRoleInterpersonal(user-belief-unsure) <- I don't know
+InformRoleInterpersonal(user-belief-unsure) <- maybe
 
 
 
