@@ -359,13 +359,30 @@ RequestTopicInfo(SendReceive(tell-me), ItemTypeName(agent-name-agent-perspective
 
 
 #Role & Interpersonal Relation: belief
-InformRoleInterpersonalTopicData(user-belief) <- I believe
-InformRoleInterpersonalTopicData(user-belief) <- I think
-InformRoleInterpersonalTopicData(agent-belief) -> I believe
+InformRoleInterpersonal(user-belief-yes) <- I believe
+InformRoleInterpersonal(user-belief-yes) <- I think
+InformRoleInterpersonal(user-belief-yes) <-> I think
 
-RequestRoleInterpersonalTopicData(agent-belief) <- Do you believe
-RequestRoleInterpersonalTopicData(agent-belief) <- Do you think
-RequestRoleInterpersonalTopicData(user-belief) -> Do you think
+InformRoleInterpersonal(agent-belief-yes) -> I believe
+
+InformRoleInterpersonal(user-belief-no) <- don't think so
+InformRoleInterpersonal(user-belief-no) <- i don't think
+InformRoleInterpersonal(user-belief-no) <-> i don't think so
+InformRoleInterpersonal(user-belief-no) <- i don't believe
+InformRoleInterpersonal(user-belief-no) <- i don't believe so
+
+InformRoleInterpersonal(user-belief-unsure) <- i'm not sure
+InformRoleInterpersonal(user-belief-unsure) <- i am not sure
+InformRoleInterpersonal(user-belief-unsure) <-> not sure
+InformRoleInterpersonal(user-belief-unsure) <- I don't know about that
+InformRoleInterpersonal(user-belief-unsure) <- I don't know
+
+
+
+
+RequestRoleInterpersonal(agent-belief) <- Do you believe
+RequestRoleInterpersonal(agent-belief) <- Do you think
+RequestRoleInterpersonal(user-belief) -> Do you think
 
 
 InformTopicInfo(SayIs(ItemTypeChar($25))) <-> the {ItemTypeCharCat[$25]} is 
@@ -686,10 +703,22 @@ InformTopicInfo(all-done) <-> We're all done
 #capitalization and punctuation means this can be processed as output only.
 InformDialogManagement(misaligned-roles) <-> Hello?
 
-#InformDialogManagement(dialog-invitation) <-> Would you like to send or receive a phone number?
+
+
+
+
 
 
 RequestDialogManagement(partner-desire, send-or-receive, telephone-number) <-> Would you like to send or receive a phone number?
+
+RequestDialogManagement(partner-desire, send, telephone-number) <-> Would you like to tell me a phone number?
+
+RequestDialogManagement(partner-desire, receive, telephone-number) <-> Would you like to get a phone number from me?
+
+InformDialogManagement(self-capability, not-able, receive, telephone-number) <-> I am not yet capable of taking a telephone number from you.
+
+InformDialogManagement(self-capability, able, send, telephone-number) <-> I able to tell you a telephone number.
+
 
 
 
@@ -885,8 +914,8 @@ InformDialogManagement(self-readiness) <-> i am ready
 InformDialogManagement(self-readiness) <- ready now
 InformDialogManagement(self-readiness) <- i'm ready now
 
-InformDialogManagement(standing-by) <-> standing by
-InformDialogManagement(standing-by) <- i'm standing by
+InformDialogManagement(standing-by) <- standing by
+InformDialogManagement(standing-by) <-> i'm standing by
 InformDialogManagement(standing-by) <- i will stand by
 InformDialogManagement(standing-by) <- i can stand by
 
