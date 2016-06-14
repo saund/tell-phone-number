@@ -378,6 +378,12 @@ InformRoleInterpersonal(user-belief-unsure) <- I don't know about that
 InformRoleInterpersonal(user-belief-unsure) <- I don't know
 InformRoleInterpersonal(user-belief-unsure) <- maybe
 
+InformRoleInterpersonal(thank-you) <-> thank you
+InformRoleInterpersonal(thank-you) <- thanks
+
+InformRoleInterpersonal(youre-welcome) <-> you're welcome.
+InformRoleInterpersonal(youre-welcome) <- you're welcome
+InformRoleInterpersonal(youre-welcome) <- you are welcome
 
 
 

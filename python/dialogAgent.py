@@ -1009,6 +1009,12 @@ gl_turn_history = []
 
 #A list of tuples for Request, Check, or possibly other DialogActs, that represent questions that are still pending.
 #The concept is borrowed from Otto.  Experimenting with it here.
+#
+#It may be that a pending question list should not be necessary because the question is in the 
+#gl_turn_history.
+#On the other hand, we might give pending questions different status than normal turn history because
+#they represent unfulfilled goals or discussion points in the conversation.
+#
 #(turn_number, speaker = 'self' or 'partner', DialogAct, utterance_word_tuple, question_response_options_tuple)
 #These are ordered by turn, most recent first.
 #Unlike gl_turn_history, there is only one DialogAct per tuple, so if a turn includes multiple
@@ -1016,7 +1022,7 @@ gl_turn_history = []
 #question_response_options_tuple is a tuple of LogicalForms which are acceptable responses to the question.
 #If handleAnyPendingQuestion(input_da_list) has input_da_list[0] match any acceptable responses to a pending
 #question, then the question handler will be called.
-gl_pending_question_list = []  
+gl_pending_question_list = []
 
 
 
@@ -1049,6 +1055,11 @@ def removeQuestionFromPendingQuestionList(speaker, da):
         new_ql.append(question_tuple)
     gl_pending_question_list = new_ql
 
+
+def clearPendingQuestions():
+    global gl_pending_question_list
+    gl_pending_question_list = []
+    
     
 
     
@@ -1163,6 +1174,10 @@ def generateResponseToInputDialog(user_da_list):
     #Determine if this response merits becoming the most recent data topic of discussion
     response_to_become_most_recent_data_topic_p = False
     for da in da_response:
+        
+        if type(da) is str:
+            print '!!!!! a string was passed as a DialogAct.  use the gl_da form, not gl_str_da   !!!!'
+
         if da.getPrintString().find('ItemValue') >= 0:
             response_to_become_most_recent_data_topic_p = True
             break
@@ -1471,24 +1486,32 @@ gl_str_da_standing_by = 'InformDialogManagement(standing-by)'
 
 #belief
 
-"i believe"
+#"i believe"
 gl_str_da_agent_belief_yes = 'InformRoleInterpersonal(agent-belief-yes)'
 gl_str_da_agent_belief_no = 'InformRoleInterpersonal(agent-belief-no)'
 gl_str_da_agent_belief_unsure = 'InformRoleInterpersonal(agent-belief-unsure)'
 
-"i think"
+#"i think"
 gl_da_user_belief_yes = rp.parseDialogActFromString('InformRoleInterpersonal(user-belief-yes)')
 gl_str_da_user_belief_yes = 'InformRoleInterpersonal(user-belief-yes)'
 
-"i don't think"
+#"i don't think"
 gl_da_user_belief_no = rp.parseDialogActFromString('InformRoleInterpersonal(user-belief-no)')
 gl_str_da_user_belief_no = 'InformRoleInterpersonal(user-belief-no)'
 
-"i'm not sure"
+#"i'm not sure"
 gl_da_user_belief_unsure = rp.parseDialogActFromString('InformRoleInterpersonal(user-belief-unsure)')
 gl_str_da_user_belief_unsure = 'InformRoleInterpersonal(user-belief-unsure)'
 
 
+#"thank you"
+gl_da_inform_irr_thank_you = rp.parseDialogActFromString('InformRoleInterpersonal(thank-you)')
+gl_str_da_inform_irr_thank_you = 'InformRoleInterpersonal(thank-you)'
+
+
+#"you're welcome"
+gl_da_inform_irr_youre_welcome = rp.parseDialogActFromString('InformRoleInterpersonal(youre-welcome)')
+gl_str_da_inform_irr_youre_welcome = 'InformRoleInterpersonal(youre-welcome)'
 
 
 
@@ -1748,7 +1771,7 @@ def handleInformTopicInfo_SendRole(da_list):
             return [gl_da_all_done];
 
         else:
-            return prepareAndSendNextDataChunkBasedOnDataBeliefComparisonAndIndexPointers()
+            return prepareNextDataChunkBasedOnDataBeliefComparisonAndIndexPointers()
 
     ret = [gl_da_inform_dm_repeat_intention]
     ret.extend(prepareNextDataChunk(gl_agent))
@@ -1928,7 +1951,7 @@ def handleInformDialogManagement_SendRole(da_list):
         #else:
         #    force_send_segment_name = False
         printAgentBeliefs()
-        da_next_data_chunk = prepareAndSendNextDataChunkBasedOnDataBeliefComparisonAndIndexPointers(True)
+        da_next_data_chunk = prepareNextDataChunkBasedOnDataBeliefComparisonAndIndexPointers(True)
         ret = [ gl_da_affirmation_okay]
         ret.extend(da_next_data_chunk)
         return ret
@@ -1984,12 +2007,29 @@ def handleInformRoleInterpersonal(da_list):
         if ret_da_list != None:
             return ret_da_list
 
+    if str_da0 == gl_str_da_inform_irr_thank_you:
+        if gl_agent.send_receive_role == 'banter':
+            return [ gl_da_inform_irr_youre_welcome ] 
+
+        #If partner says "thank you" while self is in Send mode and self has just transmitted
+        #information, then accept the thank you as a Confirmation
+        if gl_agent.send_receive_role == 'send':
+
+            #strip out the thank yous from the da list passed
+            da_list_no_thankyou = []
+            for da in da_list:
+                str_da = da.getPrintString();
+                if str_da.find(gl_str_da_inform_irr_thank_you) < 0:
+                    da_list_no_thankyou.append(da)
+
+            confirm_da_list = handleConfirmDialogManagement_SendRole(da_list_no_thankyou, True)
+            confirm_da_list.insert(0, gl_da_inform_irr_youre_welcome)
+            return confirm_da_list
+
     da_ret = [ gl_da_i_heard_you_say ]
     da_ret.extend(da_list)
     da_ret.append(gl_da_misalignment_self_hearing_or_understanding)
     return da_ret
-
-
 
 
 
@@ -2037,6 +2077,8 @@ def handleRequestTopicInfo_SendRole(da_list):
     print 'handleRequestTopicInfo da_list: '
     for da in da_list:
         da.printSelf()
+
+    clearPendingQuestions()
 
     #handle 'User: what is your name'
     #rp.setTellMap(True)
@@ -2412,6 +2454,8 @@ def handleRequestTopicInfo_BanterRole(da_list):
 
     da_request_topic_info = da_list[0]
 
+    clearPendingQuestions()
+
     #handle 'User: what is your name'
     #rp.setTellMap(True)
     mapping = rp.recursivelyMapDialogRule(gl_da_what_is_your_name, da_request_topic_info)
@@ -2549,6 +2593,8 @@ def handleRequestDialogManagement(da_list):
     for da in da_list:
         da.printSelf()
 
+    clearPendingQuestions()
+
     #handle readiness issues
     ret_da_list = handleReadinessIssues(da_list)
     if ret_da_list != None:
@@ -2556,7 +2602,6 @@ def handleRequestDialogManagement(da_list):
         for da in ret_da_list:
             print da.getPrintString()
         return ret_da_list
-
 
 
     #Determine if the utterance from partner merits becoming the most recent data topic of discussion
@@ -2971,7 +3016,9 @@ def handleConfirmDialogManagement(da_list):
 
 
 #When the data topic info sender receive a ConfirmDialogManagement DialogAct from the topic info recipient.
-def handleConfirmDialogManagement_SendRole(da_list):
+#This passes force_declare_segment_name on to prepareNextDataChunkBasedOnDataBeliefComparisonAndIndexPointers()
+#If True, then if a set of dialog acts containing more data is return, their data indices will be sent as well.
+def handleConfirmDialogManagement_SendRole(da_list, force_declare_segment_name=False):
     print 'handleConfirmDialogManagement_SendRole'
     for da in da_list:
         print '   ' + da.getPrintString()
@@ -3026,7 +3073,7 @@ def handleConfirmDialogManagement_SendRole(da_list):
     if len(da_list_remainder) > 0:
         return generateResponseToInputDialog(da_list_remainder)
 
-    return prepareAndSendNextDataChunkBasedOnDataBeliefComparisonAndIndexPointers()
+    return prepareNextDataChunkBasedOnDataBeliefComparisonAndIndexPointers(force_declare_segment_name)
 
 
 
@@ -3078,11 +3125,11 @@ def handleConfirmDialogManagement_BanterRole(da_list):
 #If however partner's data_model has a high confidence conflict with self's, or if the 
 #first unknown digit is not the start of the next consensus index pointer segment, then
 #this prepares a sequence of DialogActs that calls out the segment name explicitly.
-def prepareAndSendNextDataChunkBasedOnDataBeliefComparisonAndIndexPointers(force_send_segment_name=False):
+def prepareNextDataChunkBasedOnDataBeliefComparisonAndIndexPointers(force_declare_segment_name=False):
     global gl_agent
     (self_belief_partner_is_wrong_digit_indices, self_belief_partner_registers_unknown_digit_indices) = compareDataModelBeliefs()
 
-    print 'prepareAndSendNext... self data_index_pointer'
+    print 'prepareAndSendNext... self data_index_pointer  force_declare: ' + str(force_declare_segment_name)
     
     consensus_index_pointer = gl_agent.getConsensusIndexPointer()
     print 'consensus_index_pointer: ' + str(consensus_index_pointer)
@@ -3104,7 +3151,7 @@ def prepareAndSendNextDataChunkBasedOnDataBeliefComparisonAndIndexPointers(force
     print 'data_index_of_focus: ' + str(data_index_of_focus)
 
     #Most of the time, this will just hit on the next chunk of digits to send.
-    if consensus_index_pointer != None and consensus_index_pointer == data_index_of_focus and not force_send_segment_name:
+    if consensus_index_pointer != None and consensus_index_pointer == data_index_of_focus and not force_declare_segment_name:
         return prepareNextDataChunk(gl_agent)
 
     #$$ Need to do more here to catch mismatch
@@ -3252,6 +3299,8 @@ def handleRequestAction(da_list):
     print 'handleRequestAction'
     for da in da_list:
         print '    ' + da.getPrintString()
+
+    clearPendingQuestions()
 
     if da0.getPrintString() == gl_str_da_request_action_echo:
         data_list = collectDataValuesFromDialogActs(da_list)
@@ -3492,6 +3541,7 @@ def advanceSelfIndexPointer(agent, pointer_advance_count):
     agent.self_dialog_model.data_index_pointer.setAllConfidenceInOne(next_data_index_pointer_loc)
     print 'advancing self index pointer by : ' + str(pointer_advance_count) + ' to ' + str(next_data_index_pointer_loc)
     return 'middle'
+
 
 
 
@@ -3915,11 +3965,35 @@ def handleResponseToDialogInvitationQuestion(question_da, response_da_list):
     print '  str_question_da:  ' + str_question_da
     print '  str_response_da0: ' + str_response_da0
 
+    #If there's any DialogAct other than yes, no, or not sure, then disregard the yes, no, or not sure
+    #DialogActs and respond based on them.
+    #This is similar to handleConfirmDialogManagement_SendRole
+    #In case the yes/no/not-sure DialogAct is compounded with other DialogActs on this turn,
+    #strip out the yes/no/not-sure DialogActs and call generateResponseToInputDialog again recursively.
+    da_list_no_ynns = []
+    for da in response_da_list:
+        str_da = da.getPrintString();
+        if str_response_da0 != gl_str_da_correction_ti_negation and \
+                str_response_da0 != gl_str_da_user_belief_no and \
+                str_response_da0 != gl_str_da_user_belief_unsure and\
+                str_response_da0 != gl_str_da_affirmation_yes and \
+                str_response_da0 != gl_str_da_affirmation_okay and \
+                str_response_da0 != gl_str_da_user_belief_yes:
+            print 'no_ynns appending ' + str_da
+            da_list_no_ynns.append(da)
+
+    print 'len(da_list_no_ynns): ' + str(len(da_list_no_ynns)) + ' len(da_list): ' + str(len(response_da_list))
+    if len(da_list_no_ynns) > 0:
+        removeQuestionFromPendingQuestionList('self', gl_da_request_dm_invitation_receive)
+        removeQuestionFromPendingQuestionList('self', gl_da_request_dm_invitation_send_receive)
+        return generateResponseToInputDialog(da_list_no_confirm)
+    print 'hRTDIQ dropping through'
+
     #User declines invitation
     if str_response_da0 == gl_str_da_correction_ti_negation or \
             str_response_da0 == gl_str_da_user_belief_no or \
             str_response_da0 == gl_str_da_user_belief_unsure:
-
+        print 'decline'
         removeQuestionFromPendingQuestionList('self', gl_da_request_dm_invitation_receive)
         removeQuestionFromPendingQuestionList('self', gl_da_request_dm_invitation_send_receive)
         return [ gl_da_affirmation_okay, gl_da_standing_by ]
@@ -3928,17 +4002,12 @@ def handleResponseToDialogInvitationQuestion(question_da, response_da_list):
     if str_response_da0 == gl_str_da_affirmation_yes or \
             str_response_da0 == gl_str_da_affirmation_okay or \
             str_response_da0 == gl_str_da_user_belief_yes:
+        print 'accept'
 
         #If the user not only gives an affirmation but makes a request, then clear the question and process the request.
         removeQuestionFromPendingQuestionList('self', gl_da_request_dm_invitation_send_receive)
         removeQuestionFromPendingQuestionList('self', gl_da_request_dm_invitation_receive)
 
-        #Working on this XXXX
-        #if len(response_da_list) > 1:
-        #    response_from_additional_das = $$
-        return []
-
-        
         #If invitation was send_receive, tell tell partner that self is not able to receive a phone number yet,
         #would they like to receive a phone number?
         if str_question_da == gl_str_da_request_dm_invitation_send_receive:
