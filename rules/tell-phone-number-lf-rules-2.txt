@@ -722,9 +722,9 @@ RequestDialogManagement(partner-desire, send, telephone-number) <-> Would you li
 
 RequestDialogManagement(partner-desire, receive, telephone-number) <-> Would you like to get a phone number from me?
 
-InformDialogManagement(self-capability, not-able, receive, telephone-number) <-> I am not yet capable of taking a telephone number from you.
+InformDialogManagement(self-capability, not-able, receive, telephone-number) <-> I am not yet able to take a telephone number from you.
 
-InformDialogManagement(self-capability, able, send, telephone-number) <-> I able to tell you a telephone number.
+InformDialogManagement(self-capability, able, send, telephone-number) <-> I can tell you a telephone number.
 
 
 

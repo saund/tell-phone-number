@@ -2109,9 +2109,11 @@ def handleRequestTopicInfo_SendRole(da_list):
         #data transmission process, but return okay immediately.
         #do that later
         initializeStatesToSendPhoneNumberData(gl_agent)
-        return prepareNextDataChunk(gl_agent)
-        #return [gl_da_affirmation_okay]
-
+        str_da_segment_name = gl_str_da_field_name.replace('$30', 'area-code')
+        da_segment_name = rp.parseDialogActFromString(str_da_segment_name)
+        ret_da_list = [ da_segment_name ]
+        ret_da_list.extend(prepareNextDataChunk(gl_agent))
+        return ret_da_list
 
     #handle "User: what is the area code"
     #handle "User: tell me the area code"
@@ -2136,7 +2138,11 @@ def handleRequestTopicInfo_SendRole(da_list):
     if field_name == 'telephone-number':
         gl_agent.setRole('send', gl_default_phone_number)
         initializeStatesToSendPhoneNumberData(gl_agent)
-        return prepareNextDataChunk(gl_agent)
+        str_da_segment_name = gl_str_da_field_name.replace('$30', 'area-code')
+        da_segment_name = rp.parseDialogActFromString(str_da_segment_name)
+        ret_da_list = [ da_segment_name ]
+        ret_da_list.extend(prepareNextDataChunk(gl_agent))
+        return ret_da_list
     #handle 'User: what is the area code', etc.
     if field_name != None:
         if gl_agent.send_receive_role == 'send':
@@ -2176,7 +2182,11 @@ def handleRequestTopicInfo_SendRole(da_list):
         initializeStatesToSendPhoneNumberData(gl_agent)
         chunk_size = getChunkSizeForSegment('telephone-number')
         possiblyAdjustChunkSize(chunk_size)
-        return prepareNextDataChunk(gl_agent)
+        str_da_segment_name = gl_str_da_field_name.replace('$30', 'area-code')
+        da_segment_name = rp.parseDialogActFromString(str_da_segment_name)
+        ret_da_list = [ da_segment_name ]
+        ret_da_list.extend(prepareNextDataChunk(gl_agent))
+        return ret_da_list
 
     #handle 'User: what is the entire area code', etc.
     if field_name != None:
@@ -2485,7 +2495,11 @@ def handleRequestTopicInfo_BanterRole(da_list):
         #data transmission process, but return okay immediately.
         #do that later
         initializeStatesToSendPhoneNumberData(gl_agent)
-        return prepareNextDataChunk(gl_agent)
+        str_da_segment_name = gl_str_da_field_name.replace('$30', 'area-code')
+        da_segment_name = rp.parseDialogActFromString(str_da_segment_name)
+        ret_da_list = [ da_segment_name ]
+        ret_da_list.extend(prepareNextDataChunk(gl_agent))
+        return ret_da_list
 
     #handle "User: what is the area code"
     #handle "User: tell me the area code"
@@ -2886,7 +2900,9 @@ def collectDataValuesFromDialogActs(da_list):
 
 #This sets the self and partner data_index_pointer to the start of the segment
 #Returns a list of dialog-acts which could be empty.
-def handleSendSegmentChunkNameAndData(segment_chunk_name):
+#If say_field_is_p is True, then this introduces the field with "the [field-name] is",
+#If False, then simply [field-name]
+def handleSendSegmentChunkNameAndData(segment_chunk_name, say_field_is_p=True):
     global gl_agent
     chunk_indices = gl_agent.self_dialog_model.data_model.data_indices.get(segment_chunk_name)
     #This decision to reset belief in partner data_model now made by the caller.
@@ -2898,9 +2914,15 @@ def handleSendSegmentChunkNameAndData(segment_chunk_name):
     chunk_start_index = chunk_indices[0]
     gl_agent.self_dialog_model.data_index_pointer.setAllConfidenceInOne(chunk_start_index)
     gl_agent.partner_dialog_model.data_index_pointer.setAllConfidenceInOne(chunk_start_index)
-    str_da_say_field_is = gl_str_da_say_field_is.replace('$30', segment_chunk_name)
-    da_say_field_is = rp.parseDialogActFromString(str_da_say_field_is)
-    ret = [da_say_field_is]
+    
+    if say_field_is_p:
+        str_da_say_field_is = gl_str_da_say_field_is.replace('$30', segment_chunk_name)
+        da_say_field_is = rp.parseDialogActFromString(str_da_say_field_is)
+        ret = [da_say_field_is]
+    else:
+        str_da_field_name = gl_str_da_field_name.replace('$30', segment_chunk_name)
+        da_field_name = rp.parseDialogActFromString(str_da_field_name)
+        ret = [da_field_name]
 
     data_value_list = []
     for digit_i in range(chunk_indices[0], chunk_indices[1]+1):
@@ -2975,15 +2997,26 @@ gl_confidence_for_confirm_affirmation_of_data_value = .8
 #[Also used if the speaker is the information recipient but is taking authoritative
 # stance about and responsibility for their topic belief.]
 def handleConfirmDialogManagement(da_list):
+    global gl_agent
     da_confirm_dm = da_list[0]
     print 'handleConfirmDialogManagement'
     for da in da_list:
         print da.getPrintString()
 
+
+    #a confirmation indicates that partner is ready (unless the followup dialog acts say otherwise)
+    gl_agent.partner_dialog_model.readiness.setBeliefInTrue(1) 
+
     #A ConfirmDialogManagement dialog act might be an answer to a pending question
-    ret_da_list = handleAnyPendingQuestion(da_list)
-    if ret_da_list != None:
-        return ret_da_list
+    #Right now, only test the partner input is a single Confirm DialogAct.
+    #This is not structured completely well.  If the user says, 
+    #  A: "Would you like to send or receive a phone number"
+    #  U: "Yes.  Tell me a phone number", 
+    #then it is incorrect to respond with the full followup, "sorry I can only send"
+    if len(da_list) == 1:
+        ret_da_list = handleAnyPendingQuestion(da_list)
+        if ret_da_list != None:
+            return ret_da_list
 
     #printAgentBeliefs(False)
     print 'partner readiness: ' + str(gl_agent.partner_dialog_model.readiness.true_confidence)
@@ -3112,10 +3145,20 @@ def handleConfirmDialogManagement_BanterRole(da_list):
     pushQuestionToPendingQuestionList(gl_turn_number, 'self', gl_da_request_dm_invitation_send_receive, 
                                       gl_str_da_request_dm_invitation_send_receive, (possible_answers_to_invitation_question))
 
+    "Hello?  Would you like to send or recieve a telephone number?"
     return [gl_da_misaligned_roles, gl_da_request_dm_invitation_send_receive]
 
-    return None
 
+
+
+#$$ XX This needs to be re-written
+#1. Determine whether the next chunk of data is a topic continuation with the last topic info.
+#   If not, then the data index should be included, i.e. the segment name, or digit index.
+#   This will have something to do with the data_index_pointer.
+#   If data_index_pointer is 0, then introduce the first segment.
+#2. Determine if the handshaking level requires that data index be included.
+#
+# 
 
 
 #Compares self and partner data_model beliefs, and prepares a next set of DialogActs to send.
@@ -3151,13 +3194,17 @@ def prepareNextDataChunkBasedOnDataBeliefComparisonAndIndexPointers(force_declar
     print 'data_index_of_focus: ' + str(data_index_of_focus)
 
     #Most of the time, this will just hit on the next chunk of digits to send.
-    if consensus_index_pointer != None and consensus_index_pointer == data_index_of_focus and not force_declare_segment_name:
+    if consensus_index_pointer != None and \
+       consensus_index_pointer == data_index_of_focus and not \
+       force_declare_segment_name and\
+       consensus_index_pointer != 0:
         return prepareNextDataChunk(gl_agent)
 
     #$$ Need to do more here to catch mismatch
 
     #If we drop through to here, then say explicitly what chunk segment we're delivering next
     (segment_name, segment_start_index, chunk_size) = findSegmentNameAndChunkSizeForDataIndex(data_index_of_focus)
+
     return handleSendSegmentChunkNameAndData(segment_name)
 
     #This is broken. Do not say the segment_name and then call prepareNextDataChunk because the data chunk size might
