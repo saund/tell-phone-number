@@ -1062,3 +1062,59 @@ what is six five zero?
 -are you ready
 
 
+----------
+
+
+#this now handled by ConfirmDialogManagement(proceed-with-next)
+Output: Hello? Would you like to send or receive a phone number?
+Input: yeah what's the number
+Output: six five zero
+Input: okay
+Output: six three seven
+Input: okay
+Output: one two one two
+Input: what is the area code
+Output: the area code is six five zero
+Input: then what
+Output: the line number is one two one two
+Input: okay
+Output: We're all done
+Input: quit
+Output: 
+
+---------
+
+Output: Would you like to send or receive a phone number?
+Input: yes what is the number
+Output: six five zero
+Input: okay
+Output: six three seven
+Input: what is the area code
+Output: the area code is six five zero
+Input: okay
+Output: six three seven         <- should be   "then six three seven", or "then the exchange is six three seven"
+                                   to reflect that we had gotten off track and are now getting on track.
+Input: okay
+Output: one two one two
+Input: okay
+Output: We're all done
+Input: quit
+
+
+----------------------------
+
+Need to check if the user says a segment name as part of an InformTopicInfo
+
+Output: Would you like to send or receive a phone number?
+Input: yes what is the number
+Output: six five zero
+Input: area code six five zero
+Output: six three seven
+Input: area code six three seven
+Output: one two one two
+Input: area code one two one two
+Output: We're all done
+Input: quit
+Output: 
+
+

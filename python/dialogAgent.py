@@ -1341,6 +1341,12 @@ gl_da_affirmation_yes = rp.parseDialogActFromString('ConfirmDialogManagement(aff
 gl_str_da_affirmation_yes = 'ConfirmDialogManagement(affirmation-yes)'
 
 
+#"what's next"
+gl_da_affirmation_proceed_with_next = rp.parseDialogActFromString('ConfirmDialogManagement(proceed-with-next)')
+gl_str_da_affirmation_proceed_with_next = 'ConfirmDialogManagement(proceed-with-next)'
+
+
+
 #"yes" or "okay"
 gl_da_affirmation = rp.parseDialogActFromString('ConfirmDialogManagement($120)')
 
@@ -3052,6 +3058,7 @@ def handleConfirmDialogManagement(da_list):
 #This passes force_declare_segment_name on to prepareNextDataChunkBasedOnDataBeliefComparisonAndIndexPointers()
 #If True, then if a set of dialog acts containing more data is return, their data indices will be sent as well.
 def handleConfirmDialogManagement_SendRole(da_list, force_declare_segment_name=False):
+    global gl_agent
     print 'handleConfirmDialogManagement_SendRole'
     for da in da_list:
         print '   ' + da.getPrintString()
@@ -3106,6 +3113,13 @@ def handleConfirmDialogManagement_SendRole(da_list, force_declare_segment_name=F
     if len(da_list_remainder) > 0:
         return generateResponseToInputDialog(da_list_remainder)
 
+    #If the confirmation is specifically to proceed from the last chunk, then prepare the data chunk
+    #that follows it.  Here, we are not zeroing out partner's belief in this next chunk's data (if 
+    #they had previously confirmed it).
+    da0 = da_list[0]
+    if da0.getPrintString() == gl_str_da_affirmation_proceed_with_next:
+        return prepareNextDataChunk(gl_agent)
+    
     return prepareNextDataChunkBasedOnDataBeliefComparisonAndIndexPointers(force_declare_segment_name)
 
 
@@ -3163,7 +3177,7 @@ def handleConfirmDialogManagement_BanterRole(da_list):
 
 #Compares self and partner data_model beliefs, and prepares a next set of DialogActs to send.
 #Under a normal send situation, the delta in data_model beliefs will be the partner holding unknown (?)
-#data values for the next segment, as indicateb by the consensus index pointer.
+#data values for the next segment, as indicated by the consensus index pointer.
 #If this is the case, then just the data of the next segment are queued up as DialogActs.
 #If however partner's data_model has a high confidence conflict with self's, or if the 
 #first unknown digit is not the start of the next consensus index pointer segment, then
@@ -4081,7 +4095,7 @@ def handleResponseToDialogInvitationQuestion(question_da, response_da_list):
 
             ret_da_list = [ gl_da_affirmation_okay, da_say_phone_number_is ]
             #here we need to make sure the area code is introduced, but this should happen within
-            #prepareNextDataChunk noticing the handshake context
+            #prepareNextDataChunk noticing the handshake/topic-continuation context
             ret_da_list.extend(prepareNextDataChunk(gl_agent))
                         
             return ret_da_list

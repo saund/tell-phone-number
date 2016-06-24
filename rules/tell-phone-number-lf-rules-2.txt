@@ -756,19 +756,25 @@ ConfirmDialogManagement(affirmation-yes) <- i got it already
 ConfirmDialogManagement(affirmation-yes) <- i got that already
 
 
-#These should probably be broken out as request-for-next-chunk, which 
+#These are broken out as request-for-next-chunk, which 
 #would imply affirmation-yes but goes beyond that.
-##XXX These should be RequestDialogManagement(advance-indexical)
-ConfirmDialogManagement(affirmation-yes) <-> please go on
-ConfirmDialogManagement(affirmation-yes) <- keep going
-ConfirmDialogManagement(affirmation-yes) <- what else
-ConfirmDialogManagement(affirmation-yes) <- then what
-ConfirmDialogManagement(affirmation-yes) <- what's next
-ConfirmDialogManagement(affirmation-yes) <- what is next
-ConfirmDialogManagement(affirmation-yes) <- what comes next
-ConfirmDialogManagement(affirmation-yes) <- what's after that
-ConfirmDialogManagement(affirmation-yes) <- what is after that
-ConfirmDialogManagement(affirmation-yes) <- what comes after that
+ConfirmDialogManagement(proceed-with-next) <-> please go on
+ConfirmDialogManagement(proceed-with-next) <- keep going
+ConfirmDialogManagement(proceed-with-next) <- what else
+ConfirmDialogManagement(proceed-with-next) <- then what
+ConfirmDialogManagement(proceed-with-next) <- what's next
+ConfirmDialogManagement(proceed-with-next) <- what is next
+ConfirmDialogManagement(proceed-with-next) <- what comes next
+ConfirmDialogManagement(proceed-with-next) <- what's after that
+ConfirmDialogManagement(proceed-with-next) <- what is after that
+ConfirmDialogManagement(proceed-with-next) <- what comes after that
+
+
+ConfirmDialogManagement(good) <-> good 
+ConfirmDialogManagement(good) <-> very nice
+ConfirmDialogManagement(good) <-> nice
+ConfirmDialogManagement(good) <-> very good
+
 
 
 #i've got the area code
