@@ -176,7 +176,7 @@ def loopDialogMain():
             da_list = da_item[1]
             print '\nhandling input from ' + da_item[0] + ' ' + str(len(da_list)) + ' das:'
             for da in da_list:
-                da.printSelf()
+                print '    ' + da.getPrintString()
             print ' '
             response_da_list = generateResponseToInputDialog(da_list)
 
@@ -327,7 +327,7 @@ def printTurnHistory():
         utterance_text = getTextForDialogActList(da_list)
         print str(turn_number) + ' ' + speaker + ' da_list (below): ' + utterance_text
         for da in da_list:
-            print da.getPrintString()
+            print '    ' + da.getPrintString()
     print ' '
             
 
@@ -1889,7 +1889,7 @@ def handleInformTopicInfo_SendRole(da_list):
 def comparePartnerReportedDataAgainstSelfData(da_list):
     print 'comparePartnerReportedDataAgainstSelfData(da_list)'
     for da in da_list:
-        print da.getPrintString()
+        print '    ' + da.getPrintString()
 
     partner_digit_word_sequence = []
     partner_expresses_confusion_p = False
@@ -1938,8 +1938,9 @@ def comparePartnerReportedDataAgainstSelfData(da_list):
     #        print '   ' + da.getPrintString()
     #        print ' (False, 0, None, [])'
     #        return (False, 0, None, [])
-
+    
     last_sent_digit_value_list = collectDataValuesFromDialogActs(last_self_utterance_da_list)
+    # last self utterances that don't convey information
     self_data_index_pointer = gl_agent.self_dialog_model.data_index_pointer.getDominantValue()
 
     print 'last_sent_digit_value_list: ' + str(last_sent_digit_value_list) + ' partner_digit_word_sequence: ' + str(partner_digit_word_sequence)
@@ -1984,7 +1985,7 @@ def handleInformTopicInfo_BanterRole(da_list):
 def handleInformDialogManagement(da_list):
     global gl_turn_number
     da_inform_dm = da_list[0]
-
+    print 'handleInformDialogManagement'
 
     #handle readiness issues
     ret_da_list = handleReadinessIssues(da_list)
@@ -2090,6 +2091,11 @@ def handleInformDialogManagement_SendRole(da_list):
                 gl_agent.partner_dialog_model.data_model.setNthPhoneNumberDigit(data_index_pointer, '?', 1.0)
             return handleSendSegmentChunkNameAndData(misunderstood_field_name)
 
+    #handle "that was six five zero, right?"
+    for da in da_list:
+        if da.getPrintString() == gl_str_da_request_ti_request_confirmation:
+            return handleRequestTopicInfo_SendRole(da_list)
+
     return None
 
 
@@ -2186,7 +2192,7 @@ def handleRequestTopicInfo_SendRole(da_list):
 
     print 'handleRequestTopicInfo da_list: '
     for da in da_list:
-        da.printSelf()
+        print '     ' + da.getPrintString()
 
     clearPendingQuestions()
 
@@ -2459,17 +2465,16 @@ def handleRequestTopicInfo_SendRole(da_list):
     if len(data_value_list) > 0:
         (partner_expresses_confusion_p, match_count, check_match_segment_name, partner_digit_word_sequence) = \
                             comparePartnerReportedDataAgainstSelfData(da_list) 
-        if match_count == len(partner_digit_word_sequence):
-            actual_segment_names = findSegmentNameForDigitList(partner_digit_word_sequence)
-            if len(actual_segment_names) == 1:
-                segment_name = actual_segment_names[0]
-
-                str_da_say_is_field = gl_str_da_request_confirm_field.replace('$100', 'definite-present')
-                str_da_say_is_field = str_da_say_is_field.replace('$30', segment_name)
-                da_say_is_field = rp.parseDialogActFromString(str_da_say_is_field)
-                field_digit_sequence_lf = synthesizeLogicalFormForDigitOrDigitSequence(partner_digit_word_sequence)
-                res = [ field_digit_sequence_lf, da_say_is_field ]
-                return res
+        #if match_count == len(partner_digit_word_sequence):
+        actual_segment_names = findSegmentNameForDigitList(partner_digit_word_sequence)
+        if len(actual_segment_names) == 1:
+            segment_name = actual_segment_names[0]
+            str_da_say_is_field = gl_str_da_request_confirm_field.replace('$100', 'definite-present')
+            str_da_say_is_field = str_da_say_is_field.replace('$30', segment_name)
+            da_say_is_field = rp.parseDialogActFromString(str_da_say_is_field)
+            field_digit_sequence_lf = synthesizeLogicalFormForDigitOrDigitSequence(partner_digit_word_sequence)
+            res = [ field_digit_sequence_lf, da_say_is_field ]
+            return res
 
     ##This is now under handleInformDialogManagement
     #print 'str_da_request_dm: ' + str_da_request_dm
@@ -2583,7 +2588,7 @@ def handleRequestTopicInfo_ReceiveRole(da_list):
 def handleRequestTopicInfo_BanterRole(da_list):
     print 'handleRequestTopicInfo_BanterRole da_list: '
     for da in da_list:
-        da.printSelf()
+        print '    ' + da.getPrintString()
 
     da_request_topic_info = da_list[0]
 
@@ -2732,7 +2737,7 @@ def handleRequestDialogManagement(da_list):
 
     print 'handleRequestDialogManagement()'
     for da in da_list:
-        da.printSelf()
+        print '    ' + da.getPrintString()
 
     clearPendingQuestions()
 
@@ -2880,7 +2885,7 @@ def handleRequestDialogManagement(da_list):
 
     print 'handleRequestDialogManagement dropped through' 
     for da in da_list:
-        print da.getPrintString()
+        print '    ' + da.getPrintString()
 
     #handle 
 
@@ -2894,7 +2899,7 @@ def handleReadinessIssues(da_list):
     
     print 'handleReadinessIssues da_list: ' + str(len(da_list))
     for da in da_list:
-        print da.getPrintString()
+        print '   ' + da.getPrintString()
 
     printTurnHistory()
 
@@ -2998,10 +3003,10 @@ def findSegmentNameForDigitList(digit_list):
     
 #Runs through a list of DialogActs that might include InformTopicInfo(ItemValue( Digit or DigitSequence.
 #Collects up all of the digits in order and returns them in a list.
+#If even_non_inform_p is True, then this examimes all DialogActs in da_list
+#If even-non_inform_p is False, then this first checks to see if da_list contains dialog acts that indicate
+#not simply InformTopicInfo, but misalignment, confusion, or question
 def collectDataValuesFromDialogActs(da_list):
-    print 'collectDataValues: ' + str(da_list)
-    for da in da_list:
-        print '     ' + da.getPrintString()
     digit_value_list = []
     for da in da_list:
         da_print_string = da.getPrintString()
@@ -3128,7 +3133,7 @@ def handleConfirmDialogManagement(da_list):
     da_confirm_dm = da_list[0]
     print 'handleConfirmDialogManagement'
     for da in da_list:
-        print da.getPrintString()
+        print '    ' + da.getPrintString()
 
 
     #a confirmation indicates that partner is ready (unless the followup dialog acts say otherwise)
@@ -4121,6 +4126,7 @@ def registerCheckDataWithLastSaidDataAndDataModel(partner_check_digit_sequence, 
     print 'dd drop through'
 
     actual_segment_names = findSegmentNameForDigitList(partner_check_digit_sequence)
+    print 'actual_segment_names: ' + str(actual_segment_names)
     if actual_segment_names != None and len(actual_segment_names) == 1:
         actual_segment_name = actual_segment_names[0]
         return (0, actual_segment_name)
