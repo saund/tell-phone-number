@@ -1101,9 +1101,11 @@ Output: We're all done
 Input: quit
 
 
+
 ----------------------------
 
 Need to check if the user says a segment name as part of an InformTopicInfo
+Now handled in InformTopicInfo_SendRole
 
 Output: Would you like to send or receive a phone number?
 Input: yes what is the number
@@ -1118,3 +1120,30 @@ Input: quit
 Output: 
 
 
+
+
+
+----------------------------
+broken 6/24/2016
+
+Output: Would you like to send or receive a phone number?
+Input: what is the phone number
+Output: area code six five zero
+Input: six
+Output: five
+Input: five
+Output: zero
+Input: zero
+Output: six
+Input: what is six five zero
+Output: I heard you say, tell me six five zero . sorry, i did not understand that
+Input: what is six five zero
+Output: six five zero is the area code
+Input: okay
+Output: one
+Input: one what
+Output: I'll repeat that. one
+Input: one
+Output: two
+Input: quit
+Output: 

@@ -595,6 +595,15 @@ RequestTopicInfo(SendReceive(tell-me)) <-> {CommandCat[tell-me]}
 
 
 
+#RequestTopicInfo because these are K- epistemic stance,
+RequestTopicInfo(request-confirmation) <- is that
+RequestTopicInfo(request-confirmation) <- right
+RequestTopicInfo(request-affirmation) <- is that right
+RequestTopicInfo(request-affirmation) <-> is that correct
+
+
+
+
 
 RequestDialogManagement(StopProcess)) <-> {CommandCat[stop-process]}
 
@@ -822,7 +831,7 @@ InformDialogManagement(self-correction) <-> sorry
 
 
 #not sure about just plain no, it is so context-dependent
-CorrectionDialogManagement(negation) <- no
+CorrectionDialogManagement(negation) <-> no
 CorrectionDialogManagement(negation) <- no sorry
 CorrectionDialogManagement(negation) <- sorry no
 
@@ -834,12 +843,12 @@ CorrectionTopicInfo(negation) <- no sorry
 CorrectionTopicInfo(negation-polite) <-> sorry no
 CorrectionTopicInfo(negation-polite) <- no sorry
 
-CorrectionTopicInfo(partner-correction) <-> no that's
-CorrectionTopicInfo(partner-correction) <-> no that is
+CorrectionTopicInfo(partner-correction) <- no that's
+CorrectionTopicInfo(partner-correction) <- no that is
 CorrectionTopicInfo(partner-correction) <-> no it's
 CorrectionTopicInfo(negation-polite-partner-correction) <-> sorry no it's
-CorrectionTopicInfo(partner-correction) <-> no it is
-CorrectionTopicInfo(partner-correction) <-> no it was
+CorrectionTopicInfo(partner-correction) <- no it is
+CorrectionTopicInfo(partner-correction) <- no it was
 CorrectionTopicInfo(partner-correction) <- wrong that's
 CorrectionTopicInfo(partner-correction) <- wrong that is
 CorrectionTopicInfo(partner-correction) <- wrong it's
@@ -1359,14 +1368,6 @@ DesireQuestionCat[partner-positive-present] <-  would you prefer
 DesireQuestionCat[partner-positive-past] <-> did you want
 DesireQuestionCat[partner-positive-past] <- did you prefer
 
-
-
-
-#These should be fleshed out with arguments for checking different kinds of things
-CheckTopicInfo(request-confirmation) <- is that
-CheckTopicInfo(request-confirmation) <- right
-CheckTopicInfo(request-affirmation) <- is that right
-CheckTopicInfo(request-affirmation) <-> is that correct
 
 
 
