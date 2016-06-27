@@ -127,7 +127,7 @@ def loopDialog(use_debug_mode=False):
     loopDialogMain()
 
 
-#a list of tuples of Dialog Acts.  Each tuple is of the form,
+#a list of tuples of incoming Dialog Acts.  Each tuple is of the form,
 #  (originator, dialog_act_list)
 #Most of the time this will be empty.  The keyboard input, wait timeout,
 #and ASR threads all place things on the end.  The loop takes things off the front
@@ -537,7 +537,9 @@ class DialogModel():
         
         #for this application...
         self.data_model = None                   #A DataModel_USPhoneNumber
-        self.data_index_pointer = None           #An OrderedMultinomialBelief: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+
+        #This is being obsoleted 2016/06/25
+        #self.data_index_pointer = None           #An OrderedMultinomialBelief: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
                                                  #data_index_pointer is self's belief about which data item is being referred to.
                                                  #Ontologically, we use the "pretend objective" strategy, where we pretend that
                                                  #there is an objective state of data_index_pointer, and the distribution is over
@@ -547,7 +549,51 @@ class DialogModel():
                                                  #For an agent's partner_dialog_model, index_pointer can indicate either of two things:
                                                  #  -1. which digit the partner is referring to when they confirm data values
                                                  #  -2. which digit the partner is expecting to receive when self sends more data
-                            
+
+        self.dialog_act_data_index_referent_list = []  
+                                                  #A list of tuples whose purpose is to describe what item(s) in a data model
+                                                  #are being discussed in dialog acts. For example, which digit(s) in a 
+                                                  #telephone number are being referred to.
+                                                  # (turn, data_index_descriptor_for_dialog_acts)
+                                                  #
+                                                  #where 
+                                                  #
+                                                  #a turn a tuple that exists on the gl_turn_history: 
+                                                  # (turn_number, speaker = 'self' or 'partner', DialogAct list, utterance_word_tuple)
+                                                  #
+                                                  # data_index_descriptor_for_dialog_acts is a tuple:
+                                                  # ( data_index_descriptor_for_data_item, data_index_descriptor_for_data_item, ...)
+                                                  # that is, one data_index_descriptor_for_data_item per data item in the DialogAct list.
+                                                  #
+                                                  # a data_index_descriptor_for_data_item is a tuple
+                                                  #of the form, ((field, value)...(data_value, value))
+                                                  #This proceeds from a root of a tree to a field id for a leaf.
+                                                  #For the telephone number data, the data_index_pointer will be of the form,
+                                                  #  ((database_root, [database]),
+                                                  #      (person_name, [person_name]),
+                                                  #            (info_type, [info_type]),
+                                                  #                 (field_name, field_name),
+                                                  #                       (index_in_field, [index_in_field]),
+                                                  #                           (data_value, [data_value]))
+                                                  #
+                                                  #For telephone numbers, the data_value is a number word like,  'six'
+                                                  #leading to e.g.
+                                                  #  ((database_root, gl_contact_database),
+                                                  #      (person_name, Roger_Smith),
+                                                  #           (info_type, mobile_telephone),
+                                                  #               (field_name, area_code),
+                                                  #                   (index_in_field, 0), 
+                                                  #                       (data_value, six))
+                                                  #
+                                                  #However, a dialog_act_data_index_referent might also refer to a person,
+                                                  #a field, or any other topic of interest.
+                                                  #For a person, it might be,
+                                                  #  ((database_root, gl_contact_database),
+                                                  #      (person_name, Roger_Smith))
+                                                  #
+                                                  #The items in the dialog_act_data_index_referent_list will be newest first, 
+                                                  #oldest last, just like the gl_turn_history.
+                                                                              
 
         #should be generic for all data communication applications
         self.readiness = None                    #A BooleanBelief: 1 = ready, 0 = not
@@ -1003,7 +1049,7 @@ gl_turn_number = 0
 #each turn is a tuple: (turn_number, speaker = 'self' or 'partner', DialogAct list, utterance_word_tuple)
 #DialogAct list is a list of DialogAct instances, not their string versions
 #for now we may not be including the utterance word tuple because that has to be gotten from the ruleProcessing side
-#Each new turn is prepended to the front of the list so the most recent turn is [0]
+#Each new turn is prepended to the front of the list so the most recent turn is gl_turn_number[0]
 gl_turn_history = []
 
 
@@ -4306,7 +4352,7 @@ def handleTimingTick():
             resetCurrentTurnBeliefs()
 
     #If self is currently speaking or otherwise performing audio output, then reset turn beleifs to self.
-    if currently_performing_audio_output_p:
+    if gl_currently_performing_audio_output_p:
         resetCurrentTurnBeliefs()
         return 
 
@@ -4643,11 +4689,11 @@ def ttsSpeakText(tts_string):
 
     stopSpeechRunner()
 
-    currently_performing_audio_output_p = True
+    gl_currently_performing_audio_output_p = True
     print 'playMP3 start'
     playMP3(gl_tts_temp_file)
     print 'playMP3 done'
-    currently_performing_audio_output_p = False
+    gl_currently_performing_audio_output_p = False
     #start listening again
     startNewSpeechRecRunner()
 

@@ -359,13 +359,37 @@ RequestTopicInfo(SendReceive(tell-me), ItemTypeName(agent-name-agent-perspective
 
 
 #Role & Interpersonal Relation: belief
-InformRoleInterpersonalTopicData(user-belief) <- I believe
-InformRoleInterpersonalTopicData(user-belief) <- I think
-InformRoleInterpersonalTopicData(agent-belief) -> I believe
+InformRoleInterpersonal(user-belief-yes) <- I believe
+InformRoleInterpersonal(user-belief-yes) <- I think
+InformRoleInterpersonal(user-belief-yes) <-> I think
 
-RequestRoleInterpersonalTopicData(agent-belief) <- Do you believe
-RequestRoleInterpersonalTopicData(agent-belief) <- Do you think
-RequestRoleInterpersonalTopicData(user-belief) -> Do you think
+InformRoleInterpersonal(agent-belief-yes) -> I believe
+
+InformRoleInterpersonal(user-belief-no) <- don't think so
+InformRoleInterpersonal(user-belief-no) <- i don't think
+InformRoleInterpersonal(user-belief-no) <-> i don't think so
+InformRoleInterpersonal(user-belief-no) <- i don't believe
+InformRoleInterpersonal(user-belief-no) <- i don't believe so
+
+InformRoleInterpersonal(user-belief-unsure) <- i'm not sure
+InformRoleInterpersonal(user-belief-unsure) <- i am not sure
+InformRoleInterpersonal(user-belief-unsure) <-> not sure
+InformRoleInterpersonal(user-belief-unsure) <- I don't know about that
+InformRoleInterpersonal(user-belief-unsure) <- I don't know
+InformRoleInterpersonal(user-belief-unsure) <- maybe
+
+InformRoleInterpersonal(thank-you) <-> thank you
+InformRoleInterpersonal(thank-you) <- thanks
+
+InformRoleInterpersonal(youre-welcome) <-> you're welcome.
+InformRoleInterpersonal(youre-welcome) <- you're welcome
+InformRoleInterpersonal(youre-welcome) <- you are welcome
+
+
+
+RequestRoleInterpersonal(agent-belief) <- Do you believe
+RequestRoleInterpersonal(agent-belief) <- Do you think
+RequestRoleInterpersonal(user-belief) -> Do you think
 
 
 InformTopicInfo(SayIs(ItemTypeChar($25))) <-> the {ItemTypeCharCat[$25]} is 
@@ -571,6 +595,15 @@ RequestTopicInfo(SendReceive(tell-me)) <-> {CommandCat[tell-me]}
 
 
 
+#RequestTopicInfo because these are K- epistemic stance,
+RequestTopicInfo(request-confirmation) <- is that
+RequestTopicInfo(request-confirmation) <- right
+RequestTopicInfo(request-affirmation) <- is that right
+RequestTopicInfo(request-affirmation) <-> is that correct
+
+
+
+
 
 RequestDialogManagement(StopProcess)) <-> {CommandCat[stop-process]}
 
@@ -686,7 +719,24 @@ InformTopicInfo(all-done) <-> We're all done
 #capitalization and punctuation means this can be processed as output only.
 InformDialogManagement(misaligned-roles) <-> Hello?
 
-InformDialogManagement(dialog-invitation) <-> Would you like to send or receive a phone number?
+
+
+
+
+
+
+RequestDialogManagement(partner-desire, send-or-receive, telephone-number) <-> Would you like to send or receive a phone number?
+
+RequestDialogManagement(partner-desire, send, telephone-number) <-> Would you like to tell me a phone number?
+
+RequestDialogManagement(partner-desire, receive, telephone-number) <-> Would you like to get a phone number from me?
+
+InformDialogManagement(self-capability, not-able, receive, telephone-number) <-> I am not yet able to take a telephone number from you.
+
+InformDialogManagement(self-capability, able, send, telephone-number) <-> I can tell you a telephone number.
+
+
+
 
 InformDialogManagement(misaligned-index-pointer) <-> we are out of sync about which digit we're talking about
 
@@ -706,7 +756,7 @@ ConfirmDialogManagement(affirmation-yes) <-> yes
 ConfirmDialogManagement(affirmation-yes) <- yeah
 ConfirmDialogManagement(affirmation-yes) <- sure
 ConfirmDialogManagement(affirmation-yes) <- yup
-ConfirmDialogManagement(affirmation-yes) <- proceed
+#ConfirmDialogManagement(affirmation-yes) <- proceed   #under readiness
 ConfirmDialogManagement(affirmation-yes) <- go on
 ConfirmDialogManagement(affirmation-yes) <- got it
 ConfirmDialogManagement(affirmation-yes) <- got it already
@@ -715,19 +765,25 @@ ConfirmDialogManagement(affirmation-yes) <- i got it already
 ConfirmDialogManagement(affirmation-yes) <- i got that already
 
 
-#These should probably be broken out as request-for-next-chunk, which 
+#These are broken out as request-for-next-chunk, which 
 #would imply affirmation-yes but goes beyond that.
-##XXX These should be RequestDialogManagement(advance-indexical)
-ConfirmDialogManagement(affirmation-yes) <-> please go on
-ConfirmDialogManagement(affirmation-yes) <- keep going
-ConfirmDialogManagement(affirmation-yes) <- what else
-ConfirmDialogManagement(affirmation-yes) <- then what
-ConfirmDialogManagement(affirmation-yes) <- what's next
-ConfirmDialogManagement(affirmation-yes) <- what is next
-ConfirmDialogManagement(affirmation-yes) <- what comes next
-ConfirmDialogManagement(affirmation-yes) <- what's after that
-ConfirmDialogManagement(affirmation-yes) <- what is after that
-ConfirmDialogManagement(affirmation-yes) <- what comes after that
+ConfirmDialogManagement(proceed-with-next) <-> please go on
+ConfirmDialogManagement(proceed-with-next) <- keep going
+ConfirmDialogManagement(proceed-with-next) <- what else
+ConfirmDialogManagement(proceed-with-next) <- then what
+ConfirmDialogManagement(proceed-with-next) <- what's next
+ConfirmDialogManagement(proceed-with-next) <- what is next
+ConfirmDialogManagement(proceed-with-next) <- what comes next
+ConfirmDialogManagement(proceed-with-next) <- what's after that
+ConfirmDialogManagement(proceed-with-next) <- what is after that
+ConfirmDialogManagement(proceed-with-next) <- what comes after that
+
+
+ConfirmDialogManagement(good) <-> good 
+ConfirmDialogManagement(good) <-> very nice
+ConfirmDialogManagement(good) <-> nice
+ConfirmDialogManagement(good) <-> very good
+
 
 
 #i've got the area code
@@ -779,23 +835,20 @@ CorrectionDialogManagement(negation) <-> no
 CorrectionDialogManagement(negation) <- no sorry
 CorrectionDialogManagement(negation) <- sorry no
 
-
-#CorrectionTopicInfo(partner-correction) <-> no 
-#CorrectionTopicInfo(partner-correction) <-> sorry no
-#CorrectionTopicInfo(partner-correction) <-> no sorry
-
+#for interpretation, take "no" as CorrectionTopicInfo, although it is very context dependent
+#and could take a CorrectionDialogManagement meaning as well
 CorrectionTopicInfo(negation) <-> no
 CorrectionTopicInfo(negation) <- sorry no
 CorrectionTopicInfo(negation) <- no sorry
 CorrectionTopicInfo(negation-polite) <-> sorry no
 CorrectionTopicInfo(negation-polite) <- no sorry
 
-CorrectionTopicInfo(partner-correction) <-> no that's
-CorrectionTopicInfo(partner-correction) <-> no that is
+CorrectionTopicInfo(partner-correction) <- no that's
+CorrectionTopicInfo(partner-correction) <- no that is
 CorrectionTopicInfo(partner-correction) <-> no it's
 CorrectionTopicInfo(negation-polite-partner-correction) <-> sorry no it's
-CorrectionTopicInfo(partner-correction) <-> no it is
-CorrectionTopicInfo(partner-correction) <-> no it was
+CorrectionTopicInfo(partner-correction) <- no it is
+CorrectionTopicInfo(partner-correction) <- no it was
 CorrectionTopicInfo(partner-correction) <- wrong that's
 CorrectionTopicInfo(partner-correction) <- wrong that is
 CorrectionTopicInfo(partner-correction) <- wrong it's
@@ -874,20 +927,80 @@ RequestTopicInfo(request-confirmation, Tense($100), FieldName($30)) <-> {Grammat
 InformTopicInfo(GrammaticalBeIndicative($100)) <-> {GrammaticalBeIndicativeCat[$100]}
 
 
+#Readiness
+#many readinesss DialogActs take both Inform and Request forms,
+#both at the DialogManagement level.
 
 InformDialogManagement(self-readiness) <- i'm ready
 InformDialogManagement(self-readiness) <-> i am ready
+InformDialogManagement(self-readiness) <- ready now
+InformDialogManagement(self-readiness) <- i'm ready now
+
+InformDialogManagement(standing-by) <- standing by
+InformDialogManagement(standing-by) <-> i'm standing by
+InformDialogManagement(standing-by) <- i will stand by
+InformDialogManagement(standing-by) <- i can stand by
+
+
+RequestDialogManagement(self-readiness) <-> go ahead
+RequestDialogManagement(self-readiness) <- proceed
+
+InformDialogManagement(self-not-readiness) <-> sorry, i am not ready
 InformDialogManagement(self-not-readiness) <- i'm not ready
-InformDialogManagement(self-not-readiness) <-> i am not ready
-InformDialogManagement(self-not-readiness) <-> please wait
-InformDialogManagement(self-not-readiness) <- wait please 
+InformDialogManagement(self-not-readiness) <- i am not ready
+InformDialogManagement(self-not-readiness) <- i'm not ready yet
+InformDialogManagement(self-not-readiness) <- i am not ready yet
+InformDialogManagement(self-not-readiness) <- not ready yet
+
+RequestDialogManagement(self-not-readiness) <-> please wait a moment
+RequestDialogManagement(self-not-readiness) <- please wait
+RequestDialogManagement(self-not-readiness) <- wait
+RequestDialogManagement(self-not-readiness) <- wait please 
+RequestDialogManagement(self-not-readiness) <- wait a minute
+RequestDialogManagement(self-not-readiness) <- wait a minute while I 
+RequestDialogManagement(self-not-readiness) <- wait a moment
+RequestDialogManagement(self-not-readiness) <- wait a moment while I 
+RequestDialogManagement(self-not-readiness) <- wait a second
+RequestDialogManagement(self-not-readiness) <- wait a second while I 
+RequestDialogManagement(self-not-readiness) <- hold on
+RequestDialogManagement(self-not-readiness) <- hold on a second
+RequestDialogManagement(self-not-readiness) <- hold on a second while I
+RequestDialogManagement(self-not-readiness) <- hold on a minute
+RequestDialogManagement(self-not-readiness) <- hold on a minute while I
+RequestDialogManagement(self-not-readiness) <- hold on a moment
+RequestDialogManagement(self-not-readiness) <- hold on a moment while I
+
+InformDialogManagement(confirm-partner-not-ready) <-> i'll wait
+InformDialogManagement(confirm-partner-not-ready) <- i will wait
+InformDialogManagement(confirm-partner-not-ready) <- i can wait
+InformDialogManagement(confirm-partner-not-ready) <- i'm going to wait
+
+InformDialogManagement(declare-waiting-for-partner) <-> i am waiting for you to be ready
+InformDialogManagement(declare-waiting-for-partner) <- i am waiting for you
+InformDialogManagement(declare-waiting-for-partner) <- i am waiting
+InformDialogManagement(declare-waiting-for-partner) <- i'm waiting for you to be ready
+InformDialogManagement(declare-waiting-for-partner) <- i'm waiting for you
+InformDialogManagement(declare-waiting-for-partner) <- i'm waiting
+
+
+RequestDialogManagement(other-readiness) <-> are you ready
+RequestDialogManagement(other-readiness) <- are you there
+
+RequestDialogManagement(are-you-waiting) <-> are you waiting for me
+RequestDialogManagement(are-you-waiting) <- are you waiting
+RequestDialogManagement(are-you-waiting) <-> are you still waiting for me
+RequestDialogManagement(are-you-waiting) <- are you still waiting
+
+RequestDialogManagement(what-are-you-waiting-for) <-> what are you waiting for
+
+
+
+
 
 InformDialogManagement(repeat-intention) <-> I'll repeat that.
 InformDialogManagement(repeat-intention) <- I will repeat that.
 
 
-CheckDialogManagement(other-readiness) <-> are you ready
-CheckDialogManagement(other-readiness) <- are you there
 
 
 RequestDialogManagement(misalignment-start-again) <- start from the top
@@ -963,12 +1076,21 @@ RequestDialogManagement(misalignment-request-repeat, pronoun-ref) <- what's that
 RequestDialogManagement(misalignment-request-repeat) <- what did you say
 
 
+RequestDialogManagement(misalignment-request-repeat) <- would i like to what
+RequestDialogManagement(misalignment-request-repeat) <- would i like to do what
+RequestDialogManagement(misalignment-request-repeat) <- what are you asking me
+RequestDialogManagement(misalignment-request-repeat) <- what are you asking
+RequestDialogManagement(misalignment-request-repeat) <- what did you ask
+
+
+
 #Request repeat of last utterance containing topic info
 RequestDialogManagement(misalignment-request-repeat, pronoun-ref) <- what is it again
 RequestDialogManagement(misalignment-request-repeat, pronoun-ref) <- what is that again
 RequestDialogManagement(misalignment-request-repeat, pronoun-ref) <- what was it again
 RequestDialogManagement(misalignment-request-repeat, pronoun-ref) <-> what was that again
 RequestDialogManagement(misalignment-request-repeat, pronoun-ref) <- what were they again
+
 
 
 RequestDialogManagement(again) <-> again
@@ -987,6 +1109,11 @@ RequestDialogManagement(clarification-utterance, Grammar(past), FieldName($30)) 
 RequestDialogManagement(clarification-utterance, Grammar(present), FieldName($30)) <-> is that the {FieldNameCat[$30]}
 RequestDialogManagement(clarification-utterance, Grammar(present), FieldName($30)) <-> is that {ReallyCat[really]} the {FieldNameCat[$30]}
 RequestDialogManagement(clarification-utterance, Grammar(present), FieldName($30)) <-> are those the {FieldNameCat[$30]}
+
+
+
+
+
 
 
 GrammaticalUtteranceConfirmationCat[partner] <-> did you say
@@ -1244,14 +1371,6 @@ DesireQuestionCat[partner-positive-past] <- did you prefer
 
 
 
-#These should be fleshed out with arguments for checking different kinds of things
-CheckTopicInfo(request-confirmation) <- is that
-CheckTopicInfo(request-confirmation) <- right
-CheckTopicInfo(request-affirmation) <- is that right
-CheckTopicInfo(request-affirmation) <-> is that correct
-
-
-
 
 #Beyond the five basic DialogActs required for data communication,
 #RequestAction is for robot interaction, and also testing TTS.
@@ -1329,3 +1448,7 @@ RequestAction(speak) <-> echo
 #InformTopicInfo(info-type-past, ItemTypeChar($25)) <-> was the {ItemTypeCharCat[$25]}
 #InformTopicInfo(info-type-past, FieldName($30)) <-> was the {FieldNameCat[$30]}
 
+
+#CorrectionTopicInfo(partner-correction) <-> no 
+#CorrectionTopicInfo(partner-correction) <-> sorry no
+#CorrectionTopicInfo(partner-correction) <-> no sorry
