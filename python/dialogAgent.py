@@ -1717,9 +1717,13 @@ gl_str_da_what = 'RequestDialogManagement(what)'
 gl_da_dm_confirm_partner_not_ready = rp.parseDialogActFromString('InformDialogManagement(confirm-partner-not-ready)')
 gl_str_da_dm_confirm_partner_not_ready = 'InformDialogManagement(confirm-partner-not-ready)'
 
-
+#"I heard you say",  "you told me"
 gl_da_i_heard_you_say = rp.parseDialogActFromString('InformDialogManagement(Inform(partner, self), Tense(past))')
 gl_str_da_i_heard_you_say = 'InformDialogManagement(Inform(partner, self), Tense(past))'
+
+#"you told me that already"
+gl_da_inform_dm_past_indicative = rp.parseDialogActFromString('InformDialogManagement(Inform(partner, self), Tense(past), Grammatical(indicative))')
+gl_str_da_inform_dm_past_indicative= 'InformDialogManagement(Inform(partner, self), Tense(past), Grammatical(indicative))'
 
 
 #Covers a variety of InformDialogManagement misalignment conditions
@@ -2874,34 +2878,6 @@ def handleRequestTopicInfo_BanterRole(da_list):
         gl_agent.setControl('self')      #the main task, putting the computer agent in control
         return (ret_das, turn_topic)
 
-#    #handle 'User: what is the FieldName(X)?
-#    #handle 'User: tell me the FieldName(X)?
-#    mapping_tell_me_field = rp.recursivelyMapDialogRule(gl_da_tell_me_field, da_request_topic_info)
-#    #handle 'User: tell me the ItempTypeChar(X)?
-#    mapping_tell_me_item_type_char = rp.recursivelyMapDialogRule(gl_da_tell_me_item_type_char, da_request_topic_info)
-#    if mapping_tell_me_field != None:
-#        mapping = mapping_tell_me_field
-#    if mapping_tell_me_item_type_char != None:
-#        mapping = mapping_tell_me_item_type_char 
-#
-#    if mapping != None:
-#        print 'mapping: ' + str(mapping)
-#        if mapping.get('30') == 'telephone-number':
-#            gl_agent.setRole('send', gl_default_phone_number)
-#            initializeStatesToSendPhoneNumberData(gl_agent)
-#            return prepareNextDataChunk(gl_agent)
-#        #handle 'User: what is the area code', etc.
-#        elif mapping.get('2') in gl_agent.self_dialog_model.data_model.data_indices.keys():
-#            segment_chunk_name = mapping.get('2')
-#            if gl_agent.send_receive_role == 'send':
-#                #If partner is asking for a chunk, reset belief in partner data_model for this segment as unknown
-#                chunk_indices = gl_agent.self_dialog_model.data_model.data_indices.get(segment_chunk_name)
-#                for i in range(chunk_indices[0], chunk_indices[1] + 1):
-#                    data_index_pointer = gl_10_digit_index_list[i]
-#                    gl_agent.partner_dialog_model.data_model.setNthPhoneNumberDigit(data_index_pointer, '?', 1.0)
-#                return handleSendSegmentChunkNameAndData(segment_chunk_name)
-
-
     #handle 'User: take this phone number'
     mapping = rp.recursivelyMapDialogRule(gl_da_tell_you_phone_number, da_request_topic_info)
     if mapping != None:
@@ -3588,8 +3564,8 @@ def prepareNextDataChunkBasedOnDataBeliefComparisonAndIndexPointers(force_declar
 
     #Most of the time, this will just hit on the next chunk of digits to send.
     if consensus_index_pointer != None and \
-       consensus_index_pointer == data_index_of_focus and not \
-       force_declare_segment_name and\
+       consensus_index_pointer == data_index_of_focus and \
+       not force_declare_segment_name and\
        consensus_index_pointer != 0:
         return prepareNextDataChunk(gl_agent)
 
@@ -3597,6 +3573,7 @@ def prepareNextDataChunkBasedOnDataBeliefComparisonAndIndexPointers(force_declar
 
     #If we drop through to here, then say explicitly what chunk segment we're delivering next
     (segment_name, segment_start_index, chunk_size) = findSegmentNameAndChunkSizeForDataIndex(data_index_of_focus)
+    print 'dropping through ee, data_index_of_focus: ' + str(data_index_of_focus) + ' segment_name: ' + segment_name + ' chunk_size: ' + str(chunk_size)
 
     return handleSendSegmentChunkNameAndData(segment_name)
 
@@ -3796,6 +3773,7 @@ def initializeStatesToSendPhoneNumberData(agent):
 #Returns a tuple ( ret_das, turn_topic )
 # ret_das is a list of of DialogActs
 def prepareNextDataChunk(agent):
+    print 'prepareNextDataChunk'
     consensus_index_pointer = agent.getConsensusIndexPointer()
     if consensus_index_pointer == None:
         print 'prepareNextDataChunk encountered misaligned consensus_index_pointer, calling again with tell=True'

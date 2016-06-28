@@ -814,7 +814,7 @@ Use story 10.  (1)
 
 S:  six five zero            InformTopicInfo(DataValue(DigitSequence
 
-P:  six five zero            ConfirmTopicInfo(DataValue(DigitSequence  (incorrect)
+P:  six five zero            ConfirmTopicInfo(DataValue(DigitSequence  (correct)
 
 S:  seven eight three
 
@@ -971,7 +971,7 @@ Use story 23.
 
 S:  six five zero            InformTopicInfo(DataValue(DigitSequence
 
-P:  not that's six four zero            ConfirmTopicInfo(DataValue(DigitSequence (incorrect)
+P:  no that's six four zero      ConfirmTopicInfo(DataValue(DigitSequence (incorrect)
 
 S:  six five zero            InformTopicInfo(DataValue(DigitSequence
 
@@ -1190,4 +1190,60 @@ Input: okay
 Output: one two one two
 Input: okay
 Output: We're all done
+
+
+
+
+----------------------------
+Output: Would you like to send or receive a phone number?
+Input: yes what is the number?
+Output: area code six five zero
+Input: what is the line number?  <- TIR takes control and sets topic
+Output: one two one two
+Input: one 
+Output: two                      <- here stay on the topic that TIR has set
+Input: one what?
+Output: one two
+Input: okay
+Output: one two
+Input: okay                      <- TIR relinquishes control
+Output: the area code is six five zero   <- TIS takes control and sets topic to digits not gotten yet
+
+
+
+
+
+-------
+
+Principles:
+
+turn, control, topic, chunk size, handshaking
+
+
+topic is set by the control owner
+
+TIS can set topic to next mis-matching digit or segment only when they 
+get back control
+
+control can be seized by TIR by RequestTopicInfo
+
+control is handed back to TIS by Confirmation affirmation
+
+when control is handed back to TIS, then they should
+include an acknowledgement of either a "then" or else stating the
+full topic as well as the topic data
+
+
+
+
+
+
+ 
+
+
+
+
+
+
+
 

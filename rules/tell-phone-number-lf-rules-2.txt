@@ -1270,9 +1270,6 @@ ReallyCat[really] <- in fact
 #AugmentationCat[entire-item-post] <- without pausing
 
 
-#"I heard you say"
-InformDialogManagement(Inform(partner, self), Tense(past)) <-> I heard you say,
-
 
 
 #A way to allow an utterance to start with a GrammaticalBeIndicativeQuestionCat, 
@@ -1302,10 +1299,25 @@ ActionCat[send-info-present] <- tell
 ActionCat[send-info-past] <-> said
 ActionCat[send-info-past] <- told
 
-InformDialogManagement(Inform(self, partner), Tense(past)) <-> i told you
-InformDialogManagement(Inform(partner, self), Tense(past)) <-> you told me
-InformDialogManagement(Inform(self, partner), Tense(present)) <-> i tell you
+
+
+
+
+#"I heard you say"
+InformDialogManagement(Inform(partner, self), Tense(past)) <-> I heard you say,
+
+InformDialogManagement(Inform(partner, self), Tense(past)) <- you told me
+InformDialogManagement(Inform(partner, self), Tense(past), Grammatical(indicative)) <- you told me that 
+InformDialogManagement(Inform(partner, self), Tense(past), Grammatical(indicative)) <-> you told me that already
+InformDialogManagement(Inform(partner, self), Tense(past), Grammatical(indicative)) <- you already told me that
 InformDialogManagement(Inform(partner, self), Tense(present)) <-> you tell me
+
+InformDialogManagement(Inform(self, partner), Tense(past)) <-> i told you
+InformDialogManagement(Inform(self, partner), Tense(past), Grammatical(indicative)) <- i told you that 
+InformDialogManagement(Inform(self, partner), Tense(past), Grammatical(indicative)) <-> i told you that already
+InformDialogManagement(Inform(self, partner), Tense(past), Grammatical(indicative)) <- i already told you that
+InformDialogManagement(Inform(self, partner), Tense(present)) <-> i tell you
+
 
 
 #Contractions like "i've" for "i have" are dealt with in the larger rule 
