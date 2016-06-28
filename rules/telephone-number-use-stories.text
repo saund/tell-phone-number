@@ -1147,3 +1147,47 @@ Input: one
 Output: two
 Input: quit
 Output: 
+
+
+
+----------------------------
+not good 6/26/2016
+
+Output: Would you like to send or receive a phone number?
+Input: what is the phone number
+Output: area code six five zero
+Input: six
+Output: five
+Input: five
+Output: zero
+Input: zero
+Output: six
+Input: what is six five zero
+Output: six five zero is the area code
+Input: okay
+Output: one                       <- here we should return to following from the last topic which was the area code
+Input: one what
+Output: I'll repeat that. one
+Input: one
+Output: two
+Input: quit
+Output: 
+
+
+
+----------------------------
+Output: Would you like to send or receive a phone number?
+Input: yes what is the number
+Output: area code six five zero
+Input: yes
+Output: six three seven
+Input: what is the area code
+Output: the area code is six five zero
+Input: okay
+Output: six three seven                  <- this needs a transition "then six three seven" or "then the exchange is six three seven"
+                                            because we are getting back on track after a change of control
+Input: okay
+Output: one two one two
+Input: okay
+Output: We're all done
+
