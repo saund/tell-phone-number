@@ -1262,6 +1262,7 @@ ReallyCat[really] <- in fact
 #This is be replaced by IndexicalRelation[entire]
 #AugmentationCat[entire-item-adj] <-> entire
 #AugmentationCat[entire-item-adj] <- whole
+#AugmentationCat[entire-item-adj] <- full
 #AugmentationCat[entire-item-adj] <- complete
 
 #AugmentationCat[entire-item-post] <-> all at once

@@ -1204,10 +1204,12 @@ Input: one
 Output: two                      <- here stay on the topic that TIR has set
 Input: one what?
 Output: one two
-Input: okay
+Input: okay                      <- this Confirmation may be a relinquishing of control but TIS stays on topic
 Output: one two
 Input: okay                      <- TIR relinquishes control
 Output: the area code is six five zero   <- TIS takes control and sets topic to digits not gotten yet
+
+
 
 
 

@@ -558,7 +558,7 @@ class DialogModel():
         if previous_dialog_model != None:        #carry over the turn_topic_list from previous roles for this speaker
             self.turn_topic_list = previous_dialog_model.turn_topic_list
         else:
-            self.turn_topic_list = []                # A list of TurnTopic instances
+            self.turn_topic_list = []            # A list of TurnTopic instances
 
         #should be generic for all data communication applications
         self.readiness = None                    #A BooleanBelief: 1 = ready, 0 = not
@@ -591,6 +591,9 @@ class DialogModel():
 
     def addTurnTopic(self, turn_topic):
         self.turn_topic_list.append(turn_topic)
+
+    def getLastTurnTopic(self):
+        return self.turn_topic_list[len(self.turn_topic_list)-1]
 
     def printTurnTopics(self):
         for turn_topic in self.turn_topic_list:
@@ -1927,29 +1930,31 @@ def handleInformTopicInfo_SendRole(da_list):
     if last_da.getPrintString() == gl_str_da_tell_me:
         return handleRequestTopicInfo_SendRole(da_list)
 
-    (partner_expresses_confusion_p, match_count, check_match_segment_name,\
-         partner_digit_word_sequence) = comparePartnerReportedDataAgainstSelfData(da_list)
+    #(partner_expresses_confusion_p, match_count, check_match_segment_name, \
+    #                     partner_digit_word_sequence) = comparePartnerReportedDataAgainstSelfData(da_list)
+    (partner_expresses_confusion_p, last_topic_data_indices_matched_list, actual_segment_name, partner_digit_word_sequence) = \
+                        comparePartnerReportedDataAgainstSelfData_2(da_list)
 
-    self_data_index_pointer = gl_agent.self_dialog_model.data_index_pointer.getDominantValue()
+    #self_data_index_pointer = gl_agent.self_dialog_model.data_index_pointer.getDominantValue()
 
     #This is an easy out, to be made more sophisticated later
     if partner_expresses_confusion_p:
         #since we haven't advanced the self data index pointer, then actually we are re-sending the 
         #previous chunk.  We could adjust chunk size at this point also.
+        #(data_chunk_das, turn_topic) = prepareNextDataChunk(gl_agent)
         ret_das = [gl_da_inform_dm_repeat_intention]
-        (data_chunk_das, turn_topic) = prepareNextDataChunk(gl_agent)
-        ret_das.extend(data_chunk_das)
-        return (ret_das, turn_topic) 
+        last_self_utterance_tup = fetchLastUtteranceFromTurnHistory('self', [ 'InformTopicInfo' ])
+        last_self_utterance_da_list = last_self_utterance_tup[2]
+        last_self_turn_topic = gl_agent.self_dialog_model.getLastTurnTopic()
+        ret_das.extend(last_self_utterance_da_list)
+        return (ret_das, last_self_turn_topic)
 
-    #Set a local flag for whether this InformTopicIfno contains a request for confirmation, e.g.
+    #Check whether this InformTopicIfno contains a request for confirmation, e.g.
     #six three seven, right?
     #In such case, handle this as a RequestTopicInfo
-    #contains_request_confirmation_p = False
     for da in da_list:
         if da.getPrintString() == gl_str_da_request_ti_request_confirmation:
             return handleRequestTopicInfo_SendRole(da_list)
-            #contains_request_confirmation_p = True
-
 
     #Check to see if partner has named the segment themselves, and if it does not match the data they repeated
     #back, as in "area code six three seven"
@@ -1958,11 +1963,7 @@ def handleInformTopicInfo_SendRole(da_list):
         if mapping != None:
             stated_field_name = mapping.get('30')
             print 'stated_field_name: ' + stated_field_name
-            actual_segment_names = findSegmentNameForDigitList(partner_digit_word_sequence)
-            actual_segment_name = None
-            if len(actual_segment_names) == 1:
-                actual_segment_name = actual_segment_names[0]
-                #Partner has not repeated back the digits of a recognized segment, tell them the digits of the segment they named.
+            #Partner has not repeated back the digits of a recognized segment, tell them the digits of the segment they named.
             if actual_segment_name == None:
                 #"the area code is six five zero"
                 print 'calling handleSendSegmentChunkNameAndData(' + stated_field_name + ')'
@@ -1982,12 +1983,12 @@ def handleInformTopicInfo_SendRole(da_list):
     
     #Only if check-confirm match was validated against self's belief model, update self's model
     #for what partner believes about the data.
-    if match_count > 0:       
-        possiblyAdjustChunkSize(len(partner_digit_word_sequence))
+    if len(last_topic_data_indices_matched_list) > 0:
+        possiblyAdjustChunkSize(len(last_topic_data_indices_matched_list))
         #1.0 is full confidence that the partner's data belief is as self heard it
         partner_dm = gl_agent.partner_dialog_model
         newly_matched_digits = []
-        for digit_i in range(self_data_index_pointer, self_data_index_pointer + match_count):
+        for digit_i in last_topic_data_indices_matched_list:
             digit_belief = gl_agent.self_dialog_model.data_model.data_beliefs[digit_i]
             data_value_tuple = digit_belief.getHighestConfidenceValue()      #returns a tuple e.g. ('one', .8)
             correct_digit_value = data_value_tuple[0]
@@ -1996,42 +1997,44 @@ def handleInformTopicInfo_SendRole(da_list):
             partner_dm.data_index_pointer.setAllConfidenceInOne(digit_i+1)
 
         #printAgentBeliefs()
-        middle_or_at_end = advanceSelfIndexPointer(gl_agent, match_count)  
-        print 'after advanceSelfIndexPointer...'
+        #middle_or_at_end = advanceSelfIndexPointer(gl_agent, match_count)  
+        #print 'after advanceSelfIndexPointer...'
         #printAgentBeliefs()
+
         (self_belief_partner_is_wrong_digit_indices, self_belief_partner_registers_unknown_digit_indices) = compareDataModelBeliefs()
         #print 'self_belief_partner_is wrong...' + str(self_belief_partner_is_wrong_digit_indices) + ' self_belief unknown... ' +\
         #    str(self_belief_partner_registers_unknown_digit_indices)
 
-        if middle_or_at_end == 'at-end' and len(self_belief_partner_is_wrong_digit_indices) == 0 and\
-                len(self_belief_partner_registers_unknown_digit_indices) == 0:
+        if len(self_belief_partner_is_wrong_digit_indices) == 0 and len(self_belief_partner_registers_unknown_digit_indices) == 0:
+        #if middle_or_at_end == 'at-end' and len(self_belief_partner_is_wrong_digit_indices) == 0 and\
+        #      len(self_belief_partner_registers_unknown_digit_indices) == 0:
             gl_agent.setRole('banter')
             return ([gl_da_all_done], None)    #XX need to fill in the turn_topic
 
         else:
-            return prepareNextDataChunkBasedOnDataBeliefComparisonAndIndexPointers()
+            return prepareNextDataChunkBasedOnDataBeliefComparisonAndIndexPointers_2()
 
 
     #If partner has informed a set of digits that does not match what self has just said, but matches some
     #other segment in the data, then tell the user that.
     #Also set the data index pointer to this segment because that is what is now being discussed.
-    if check_match_segment_name != None:
-        segment_indices = gl_agent.self_dialog_model.data_model.data_indices.get(check_match_segment_name)
+    if actual_segment_name != None:
+        segment_indices = gl_agent.self_dialog_model.data_model.data_indices.get(actual_segment_name)
         segment_start_index = segment_indices[0]
         gl_agent.self_dialog_model.data_index_pointer.setAllConfidenceInOne(segment_start_index)
         gl_agent.partner_dialog_model.data_index_pointer.setAllConfidenceInOne(segment_start_index)
 
-        field_data_value_list = getDataValueListForField(gl_agent.self_dialog_model.data_model, check_match_segment_name)
+        field_data_value_list = getDataValueListForField(gl_agent.self_dialog_model.data_model, actual_segment_name)
         field_digit_sequence_lf = synthesizeLogicalFormForDigitOrDigitSequence(field_data_value_list)
         str_da_inform_be_indicative = gl_str_da_inform_be_indicative.replace('$100', 'definite-present')
         da_inform_be_indicative = rp.parseDialogActFromString(str_da_inform_be_indicative)
-        str_da_field_name = gl_str_da_field_name.replace('$30', check_match_segment_name)
+        str_da_field_name = gl_str_da_field_name.replace('$30', actual_segment_name)
         da_field_name = rp.parseDialogActFromString(str_da_field_name)
         ret_das = [ field_digit_sequence_lf, da_inform_be_indicative, da_field_name]
         return (ret_das, None)    #XX need to fill in the turn_topic
 
     ret_das = [gl_da_inform_dm_repeat_intention]
-    (data_chunk_das, turn_topic) = prepareNextDataChunk(gl_agent)
+    (data_chunk_das, turn_topic) = prepareNextDataChunkBasedOnDataBeliefComparisonAndIndexPointers_2()
     ret_das.extend(data_chunk_das)
     return (ret_das, turn_topic) 
 
@@ -2125,6 +2128,105 @@ def comparePartnerReportedDataAgainstSelfData(da_list):
     print 'CComparePartner returning: ' + str((partner_expresses_confusion_p, match_count, check_match_segment_name, partner_digit_word_sequence))
     
     return (partner_expresses_confusion_p, match_count, check_match_segment_name, partner_digit_word_sequence)
+
+
+
+
+
+
+
+
+#The partner is providing a turn containing a list of DialogActs that include information about digit data.
+#(The DialogActs are strung together from a single turn utterance.)
+#The DialogActs might also include indicators of confusion, such as what?
+#These DialogActs need to be compared with correct digit data, partly though alignment search.
+#This returns a tuple: 
+# (partner_expresses_confusion_p, last_topic_data_indices_matched_list, check_match_segment_name, partner_digit_word_sequence)
+#
+# -partner_expresses_confusion_p will be True if the word what? is used or something similar
+# -last_topic_indices_matched_list is a list of data index values from the last sent topic data digits that were matched by the partner utterance
+#  The first such data index value should be the one for the first data digit sent in the last topic info turn
+# -check_match_segment_name will be the name of any field that matches the reported digits, whether the previous turn 
+#   topic data or not
+# -partner_digit_word_sequence is the digits extracted from da_list
+#
+def comparePartnerReportedDataAgainstSelfData_2(da_list):
+    global gl_agent
+    print 'comparePartnerReportedDataAgainstSelfData_2(da_list)'
+    for da in da_list:
+        print '    ' + da.getPrintString()
+
+    partner_digit_word_sequence = []
+    partner_expresses_confusion_p = False
+
+    partner_digit_word_sequence = collectDataValuesFromDialogActs(da_list, True)
+    if '?' in partner_digit_word_sequence:
+        partner_expresses_confusion_p = True
+
+    #If the last self utterance turn does match the last turn_topic which contains inform topic info, then check
+    #whether the partner's utterance echoes that data
+    last_self_turn_topic = gl_agent.self_dialog_model.getLastTurnTopic()
+    last_self_turn_topic_turn_number = last_self_turn_topic.turn[0]
+    last_self_turn_topic_data_index_list = last_self_turn_topic.data_index_list
+    last_self_utterance_tup = fetchLastUtteranceFromTurnHistory('self', [ 'InformTopicInfo' ])
+    last_sent_digit_value_list = []
+    last_topic_data_indices_matched_list = []
+    print 'last_self_turn_topic_turn_number: ' + str(last_self_turn_topic_turn_number) + ' last_self_utterance_tup[0]: ' + str(last_self_utterance_tup[0])
+    if last_self_turn_topic_turn_number == last_self_utterance_tup[0]:
+        last_self_utterance_da_list = last_self_utterance_tup[2]
+        last_sent_digit_value_list = collectDataValuesFromDialogActs(last_self_utterance_da_list)
+        last_self_turn_topic_first_data_index = last_self_turn_topic.data_index_list[0]
+        print ' last_sent_digit_value_list: ' + str(last_sent_digit_value_list) + '  partner_digit_word_sequence: ' + str(partner_digit_word_sequence)
+        #If fewer digits were said by the partner than the last topic info, then partner should have started from the first one
+        if len(partner_digit_word_sequence) < len(last_sent_digit_value_list):
+            print 'JJ'
+            for i in range(0, len(partner_digit_word_sequence)):
+                if last_sent_digit_value_list[i] == partner_digit_word_sequence[i]:
+                    last_topic_data_indices_matched_list.append(last_self_turn_topic_first_data_index + i)
+                else: 
+                    break;
+
+        #If more digits were said by the partner than the last topic info, then see if they were reciting 
+        #not only the topic digits but some of the previous ones as well
+        elif len(last_sent_digit_value_list) < len(partner_digit_word_sequence):
+            print 'KK'
+            for i in range(0, len(partner_digit_word_sequence)):
+                ii = len(partner_digit_word_sequence) - 1 - i  #work backwards
+                digit_i = last_self_turn_topic_data_index_list[len(last_self_turn_topic_data_index_list)-1] - i
+                print 'i: ' + str(i) + ' ii: ' + str(ii) + ' digit_i: ' + str(digit_i)
+                if digit_i < 0:
+                    last_topic_data_indices_matched_list = []
+                    break;
+                self_digit_belief = gl_agent.self_dialog_model.data_model.data_beliefs[digit_i]
+                self_data_value_tuple = self_digit_belief.getHighestConfidenceValue()     
+                digit_value = self_data_value_tuple[0]
+                if digit_value == partner_digit_word_sequence[ii]:
+                    print 'ii: ' + str(ii) + ' ' + partner_digit_word_sequence[ii]
+                    last_topic_data_indices_matched_list.insert(0, digit_i)
+                else: 
+                    last_topic_data_indices_matched_list = []
+                    break;
+        #If equal number of digits were said by the partner as the last topic info, then they all must match
+        elif len(last_sent_digit_value_list) == len(partner_digit_word_sequence):
+            print 'LL'
+            for i in range(0, len(last_sent_digit_value_list)):
+                if last_sent_digit_value_list[i] == partner_digit_word_sequence[i]:
+                    last_topic_data_indices_matched_list.append(last_self_turn_topic_first_data_index + i)
+                else: 
+                    last_topic_data_indices_matched_list = []
+                    break;
+
+
+    #Next try to align partner's check digit word sequence with correct data that may not have been uttered yet.
+    actual_segment_names = findSegmentNameForDigitList(partner_digit_word_sequence)
+    actual_segment_name = None
+    if len(actual_segment_names) > 0:
+        actual_segment_name = actual_segment_names[0]
+    
+    print 'CComparePartner_2 returning: ' + str((partner_expresses_confusion_p, last_topic_data_indices_matched_list, actual_segment_name, partner_digit_word_sequence))
+    return (partner_expresses_confusion_p, last_topic_data_indices_matched_list, actual_segment_name, partner_digit_word_sequence)
+
+
 
 
         
@@ -2395,11 +2497,10 @@ def handleRequestTopicInfo_SendRole(da_list):
         #it would be best to spawn another thread to wait a beat then start the
         #data transmission process, but return okay immediately.
         #do that later
-        initializeStatesToSendPhoneNumberData(gl_agent)
         str_da_segment_name = gl_str_da_field_name.replace('$30', 'area-code')
         da_segment_name = rp.parseDialogActFromString(str_da_segment_name)
         ret_das = [ da_segment_name ]
-        (data_chunk_das, turn_topic) = prepareNextDataChunk(gl_agent)
+        (data_chunk_das, turn_topic) = initiateTopicAtSegmentAndPrepareDataChunk(gl_agent, 'area-code', True)
         ret_das.extend(data_chunk_das)
         gl_agent.setControl('self')      #start the main task, putting the computer agent in control
         return (ret_das, turn_topic)
@@ -2430,10 +2531,11 @@ def handleRequestTopicInfo_SendRole(da_list):
         str_da_segment_name = gl_str_da_field_name.replace('$30', 'area-code')
         da_segment_name = rp.parseDialogActFromString(str_da_segment_name)
         ret_das = [ da_segment_name ]
-        (data_chunk_das, turn_topic) = prepareNextDataChunk(gl_agent)
+        (data_chunk_das, turn_topic) = initiateTopicAtSegmentAndPrepareDataChunk(gl_agent, 'area-code', True)
         ret_das.extend(data_chunk_das)
-        gl_agent.setControl('self')      #the main task, putting the computer agent in control
+        gl_agent.setControl('self')      #start the main task, putting the computer agent in control
         return (ret_das, turn_topic)
+
     #handle 'User: what is the area code', etc.
     if field_name != None:
         if gl_agent.send_receive_role == 'send':
@@ -2472,14 +2574,12 @@ def handleRequestTopicInfo_SendRole(da_list):
     if field_name == 'telephone-number' and indexical == 'entire':
         gl_agent.setRole('send', gl_default_phone_number)
         initializeStatesToSendPhoneNumberData(gl_agent)
-        chunk_size = getChunkSizeForSegment('telephone-number')
-        possiblyAdjustChunkSize(chunk_size)
         str_da_segment_name = gl_str_da_field_name.replace('$30', 'area-code')
         da_segment_name = rp.parseDialogActFromString(str_da_segment_name)
         ret_das = [ da_segment_name ]
-        (data_chunk_das, turn_topic) = prepareNextDataChunk(gl_agent)
+        (data_chunk_das, turn_topic) = initiateTopicAtSegmentAndPrepareDataChunk(gl_agent, 'telephone-number', True)
         ret_das.extend(data_chunk_das)
-        gl_agent.setControl('partner')      #partner is dictating how to deliver the info, they have taken control
+        gl_agent.setControl('self')      #start the main task, putting the computer agent in control
         return (ret_das, turn_topic)
 
     #handle 'User: what is the entire area code', etc.
@@ -2828,10 +2928,11 @@ def handleRequestTopicInfo_BanterRole(da_list):
         str_da_segment_name = gl_str_da_field_name.replace('$30', 'area-code')
         da_segment_name = rp.parseDialogActFromString(str_da_segment_name)
         ret_das = [ da_segment_name ]
-        (data_chunk_das, turn_topic) = prepareNextDataChunk(gl_agent)
+        (data_chunk_das, turn_topic) = initiateTopicAtSegmentAndPrepareDataChunk(gl_agent, 'area-code', True)
         ret_das.extend(data_chunk_das)
-        gl_agent.setControl('self')      #the main task, putting the computer agent in control
+        gl_agent.setControl('self')      #start the main task, putting the computer agent in control
         return (ret_das, turn_topic)
+
 
     #handle "User: what is the area code"
     #handle "User: tell me the area code"
@@ -2873,9 +2974,12 @@ def handleRequestTopicInfo_BanterRole(da_list):
         str_da_segment_name = gl_str_da_field_name.replace('$30', 'area-code')
         da_segment_name = rp.parseDialogActFromString(str_da_segment_name)
         ret_das = [ da_segment_name ]
-        (data_chunk_das, turn_topic) = prepareNextDataChunk(gl_agent)
+        str_da_segment_name = gl_str_da_field_name.replace('$30', 'area-code')
+        da_segment_name = rp.parseDialogActFromString(str_da_segment_name)
+        #start with area code segment but use entire telephone number chunk size if 'entire' was used
+        (data_chunk_das, turn_topic) = initiateTopicAtSegmentAndPrepareDataChunk(gl_agent, 'area-code', False)
         ret_das.extend(data_chunk_das)
-        gl_agent.setControl('self')      #the main task, putting the computer agent in control
+        gl_agent.setControl('self')      #start the main task, putting the computer agent in control
         return (ret_das, turn_topic)
 
     #handle 'User: take this phone number'
@@ -2949,12 +3053,12 @@ def handleRequestDialogManagement(da_list):
     if str_da_request_dm == gl_str_da_misalignment_start_again:
         if gl_agent.send_receive_role == 'send':
             initializeStatesToSendPhoneNumberData(gl_agent)
-            str_da_say_the_area_code_is = gl_str_da_say_field_is.replace('$30', 'area-code')
-            da_say_the_area_code_is = rp.parseDialogActFromString(str_da_say_the_area_code_is)
-            ret_das = [ gl_da_affirmation_okay, da_say_the_area_code_is]
-            (data_chunk_das, turn_topic) = prepareNextDataChunk(gl_agent)
+            str_da_segment_name = gl_str_da_field_name.replace('$30', 'area-code')
+            da_segment_name = rp.parseDialogActFromString(str_da_segment_name)
+            ret_das = [ da_segment_name ]
+            (data_chunk_das, turn_topic) = initiateTopicAtSegmentAndPrepareDataChunk(gl_agent, 'area-code', True)
             ret_das.extend(data_chunk_das)
-            gl_agent.setControl('self')    #take control of the phone number task
+            gl_agent.setControl('self')      #start the main task, putting the computer agent in control
             return (ret_das, turn_topic)
 
     #handle what was it again?   pronoun_ref, repeat the last utterance containing topic info
@@ -3204,25 +3308,30 @@ def findSegmentNameForDigitList(digit_list):
 #If even_non_inform_p is True, then this examimes all DialogActs in da_list
 #If even-non_inform_p is False, then this first checks to see if da_list contains dialog acts that indicate
 #not simply InformTopicInfo, but misalignment, confusion, or question
-def collectDataValuesFromDialogActs(da_list):
+def collectDataValuesFromDialogActs(da_list, insert_qm_for_what_p=False):
+    global gl_digit_list
     digit_value_list = []
+
     for da in da_list:
-        da_print_string = da.getPrintString()
-        ds_index = da_print_string.find('ItemValue(DigitSequence(')
+        str_da = da.getPrintString()
+        ds_index = str_da.find('ItemValue(DigitSequence(')
         if ds_index >= 0:
             start_index = ds_index + len('ItemValue(DigitSequence(')
-            rp_index = da_print_string.find(')', start_index)
-            digit_value_list.extend(extractItemsFromCommaSeparatedListString(da_print_string[start_index:rp_index]))
+            rp_index = str_da.find(')', start_index)
+            digit_value_list.extend(extractItemsFromCommaSeparatedListString(str_da[start_index:rp_index]))
             continue
-        d_index = da_print_string.find('ItemValue(Digit(')
+        d_index = str_da.find('ItemValue(Digit(')
         if d_index >= 0:
             start_index = d_index + len('ItemValue(Digit(')
-            rp_index = da_print_string.find(')', start_index)
-            digit_value_list.append(da_print_string[start_index:rp_index])
+            rp_index = str_da.find(')', start_index)
+            digit_value_list.append(str_da[start_index:rp_index])
+            continue
+        #If insert_qm_for_what_p is True, then if partner said "what" among digits, add ? partner utterance explicitly into 
+        #the list of digits we heard them say, in order to pinpoint the index pointer for their indicated check-confusion.
+        if str_da not in gl_digit_list and str_da.find('RequestDialogManagement(what)') == 0 and insert_qm_for_what_p:
+            digit_value_list.append('?')
             continue
     return digit_value_list
-
-
 
 
 
@@ -3591,6 +3700,39 @@ def prepareNextDataChunkBasedOnDataBeliefComparisonAndIndexPointers(force_declar
 
 
 
+
+#Compares self and partner data_model beliefs, and prepares a next set of DialogActs to send.
+#Under a normal send situation, the delta in data_model beliefs will be the partner holding unknown (?)
+#data values for the next segment, as indicated by the consensus index pointer.
+#If this is the case, then just the data of the next segment are queued up as DialogActs.
+#If however partner's data_model has a high confidence conflict with self's, or if the 
+#first unknown digit is not the start of the next consensus index pointer segment, then
+#this prepares a sequence of DialogActs that calls out the segment name explicitly.
+def prepareNextDataChunkBasedOnDataBeliefComparisonAndIndexPointers_2():
+    global gl_agent
+    (self_belief_partner_is_wrong_digit_indices, self_belief_partner_registers_unknown_digit_indices) = compareDataModelBeliefs()
+
+    print 'prepareNextDataChunkBasedOnDataBeliefComparisonAndIndexPointers_2'
+
+    #Assume any wrong digits indices are in small-to-large order.
+    #If something is wrong, then restate the entire segment.
+    if len(self_belief_partner_is_wrong_digit_indices) > 0:
+        (segment_name, segment_start_index, chunk_size) = findSegmentNameAndChunkSizeForDataIndex(data_index_of_focus)
+        return handleSendSegmentChunkNameAndData(segment_name)
+
+    #Assume the unknown digits are in small-to-large order.
+    if len(self_belief_partner_registers_unknown_digit_indices) > 0:
+        next_data_index = self_belief_partner_registers_unknown_digit_indices[0]
+        return prepareNextDataChunk_2(next_data_index)
+        
+    #we're done actually
+    gl_agent.setRole('banter')
+    return ([gl_da_all_done], None)   #XX need to fill in the turn_topic
+
+
+
+
+
 #Returns a tuple (segment_name, start_index_pointer, chunk_size) for the data_pointer_index 
 #value passed based on the agent's data_model.  The data_index_pointer passed could be in the
 #middle of a chunk.
@@ -3842,6 +3984,136 @@ def prepareNextDataChunk(agent):
         turn_topic = TurnTopic()
         #turn_topic.field_name = ...   omitting mention of segment_name
         turn_topic.data_index_list = data_index_list
+        return ([digit_sequence_lf], turn_topic) 
+    else:
+        return None
+        
+
+
+
+
+
+#Returns a tuple ( ret_das, turn_topic )
+# ret_das is a list of of DialogActs
+def prepareNextDataChunk_2(start_data_index):
+    global gl_agent
+    print 'prepareNextDataChunk_2'
+
+    #this section of code is very similar to getDataValueListForField(data_model, segment_name), but
+    #it differs in that this uses a preferred chunk size and is not limited to the chunk size
+    #of the field/segment
+    #choose chunk size to advance to the next segment boundary (area-code, exchange, line-number)
+    min_chunk_size_to_end_of_segment = 100000
+    min_segment_name = None
+    for segment_name in gl_agent.self_dialog_model.data_model.data_indices.keys():
+        segment_indices = gl_agent.self_dialog_model.data_model.data_indices[segment_name]
+        segment_start_index = segment_indices[0]
+        segment_end_index = segment_indices[1]
+        if start_data_index < segment_start_index:
+            continue
+        elif start_data_index > segment_end_index:
+            continue
+        else:
+            chunk_size_to_end_of_segment = segment_end_index - start_data_index + 1
+            if chunk_size_to_end_of_segment < min_chunk_size_to_end_of_segment:
+                min_chunk_size_to_end_of_segment = chunk_size_to_end_of_segment
+                min_segment_name = segment_name
+            print 'UU in prepareNextDataChunk segment_name: ' + segment_name + ' start: ' + str(segment_start_index) + ' end: ' + str(segment_end_index) + ' consen: ' + str(start_data_index) + ' csteos: ' + str(chunk_size_to_end_of_segment)
+
+    chunk_size_to_end_of_segment = min_chunk_size_to_end_of_segment
+    segment_name = min_segment_name
+
+    pref_chunk_size_options = gl_agent.self_dialog_model.protocol_chunk_size.getTwoMostDominantValues()
+    print 'pref_chunk_size_options: ' + str(pref_chunk_size_options)
+    if pref_chunk_size_options[0][0] < chunk_size_to_end_of_segment and pref_chunk_size_options[1][0] < chunk_size_to_end_of_segment:
+        print ' aa' 
+        chunk_size = pref_chunk_size_options[0][0]
+    #Allow a chunk that crosses segment boundaries, but only if it takes to the end of another segment
+    #...but I'm taking a shortcut and not implementing that yet, just allow a larger chunk size if it's
+    #the size of the phone number chunk size
+    elif pref_chunk_size_options[0][0] > chunk_size_to_end_of_segment and pref_chunk_size_options[0][0] == 10:
+        print ' bb'
+        chunk_size = pref_chunk_size_options[0][0]
+    else:
+        print ' cc'
+        chunk_size = chunk_size_to_end_of_segment
+    
+    print 'pref_chunk_size_options: ' + str(pref_chunk_size_options) + ' segment_chunk_size: ' + str(chunk_size_to_end_of_segment)
+    print 'chunk_size: ' + str(chunk_size) + ' start_data_index: ' + str(start_data_index) + ' segment_name: ' + segment_name
+
+    data_value_list = []
+    total_num_digits = len(gl_agent.self_dialog_model.data_model.data_beliefs)
+    last_index_to_send = start_data_index + chunk_size
+    data_index_list = []
+    for digit_i in range(start_data_index, min(last_index_to_send, total_num_digits)):
+        digit_belief = gl_agent.self_dialog_model.data_model.data_beliefs[digit_i]
+        data_value_tuple = digit_belief.getHighestConfidenceValue()      #returns a tuple e.g. ('one', .8)
+        data_value = data_value_tuple[0]
+        data_value_list.append(data_value)
+        data_index_list.append(digit_i)
+
+    digit_sequence_lf = synthesizeLogicalFormForDigitOrDigitSequence(data_value_list)
+    if digit_sequence_lf != None:
+        turn_topic = TurnTopic()
+        #turn_topic.field_name = ...   omitting mention of segment_name
+        turn_topic.data_index_list = data_index_list
+        return ([digit_sequence_lf], turn_topic) 
+    else:
+        return None
+        
+
+
+
+
+
+
+
+#Returns a tuple ( ret_das, turn_topic )
+# ret_das is a list of of DialogActs
+def initiateTopicAtSegmentAndPrepareDataChunk(agent, segment_name, set_chunk_size_to_segment_chunk_size_p = True):
+    print 'initiateTopicAtSegmentAndPrepareDataChunk()'
+
+    #choose chunk size to the segment size, smaller than that, or the full phone number size
+    segment_indices = agent.self_dialog_model.data_model.data_indices[segment_name]
+    segment_start_index = segment_indices[0]
+    segment_end_index = segment_indices[1]
+
+    chunk_size_for_full_phone_number = getChunkSizeForSegment('telephone-number')
+    chunk_size_for_segment = getChunkSizeForSegment(segment_name)
+
+    if set_chunk_size_to_segment_chunk_size_p:
+        if chunk_size_for_segment == 3 or chunk_size_for_segment == 4:
+            gl_agent.self_dialog_model.protocol_chunk_size.setAllConfidenceInTwo(3, 4)
+            gl_agent.partner_dialog_model.protocol_chunk_size.setAllConfidenceInTwo(3, 4)
+        else:
+            agent.self_dialog_model.protocol_chunk_size.setAllConfidenceInOne(chunk_size_for_segment)
+            agent.partner_dialog_model.protocol_chunk_size.setAllConfidenceInOne(chunk_size_for_segment)
+
+    pref_chunk_size_options = agent.self_dialog_model.protocol_chunk_size.getTwoMostDominantValues()
+    if pref_chunk_size_options[0][0] == chunk_size_for_full_phone_number:
+        chunk_size = chunk_size_for_full_phone_number
+    elif pref_chunk_size_options[0][0] < chunk_size_for_segment and pref_chunk_size_options[1][0] < chunk_size_for_segment:
+        chunk_size = pref_chunk_size_options[0][0]
+    else:
+        chunk_size = chunk_size_for_segment
+
+    data_value_list = []
+    total_num_digits = len(agent.self_dialog_model.data_model.data_beliefs)
+    last_index_to_send = segment_start_index + chunk_size
+    data_index_list = []
+    for digit_i in range(segment_start_index, min(last_index_to_send, total_num_digits)):
+        digit_belief = agent.self_dialog_model.data_model.data_beliefs[digit_i]
+        data_value_tuple = digit_belief.getHighestConfidenceValue()      #returns a tuple e.g. ('one', .8)
+        data_value = data_value_tuple[0]
+        data_value_list.append(data_value)
+        data_index_list.append(digit_i)
+
+    digit_sequence_lf = synthesizeLogicalFormForDigitOrDigitSequence(data_value_list)
+    if digit_sequence_lf != None:
+        turn_topic = TurnTopic()
+        turn_topic.field_name = segment_name
+        turn_topic.data_index_list = data_index_list
+        print 'returning digits ' + str(data_value_list) + ' indices: ' + str(data_index_list)
         return ([digit_sequence_lf], turn_topic) 
     else:
         return None
