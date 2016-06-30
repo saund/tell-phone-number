@@ -467,6 +467,7 @@ CommandCat[tell-me] <-> tell me
 CommandCat[tell-me] <- give me
 CommandCat[tell-me] <- provide me
 CommandCat[tell-me] <- what is
+CommandCat[tell-me] <- what comes
 CommandCat[tell-me] <- is what
 CommandCat[tell-me] <- what's
 CommandCat[tell-me] <- i want to know
@@ -550,6 +551,7 @@ RequestTopicInfo(SendReceive(tell-me), FieldName($30), GrammaticalIndicative($10
 RequestTopicInfo(SendReceive(tell-me), ItemTypeName($20), Indexical($140), GrammaticalIndicative($100), GrammaticalBe($101)) <- \
       what {GrammaticalBeCat[$100]}{GrammaticalIndicativeCat[$3]}{IndexicalCat[$140]}{ItemTypeNameCat[$20]}
 
+
 #RequestTopicInfo(SendReceive(tell-me), ItemTypeName($20), Indexical($140), GrammaticalIndicative($100), GrammaticalBe($101)) <- \
 #      {GrammaticalIndicativeCat[$100]}{ItemTypeNameCat[$20]}{IndexicalCat[$140]}{GrammaticalBeCat[$101]} what
 #RequestTopicInfo(SendReceive(tell-me), ItemTypeName($20),Indexical($140), GrammaticalIndicative(definite), GrammaticalBe(present-singular)) <-> \
@@ -566,15 +568,19 @@ RequestTopicInfo(SendReceive(tell-me), ItemTypeChar($25), Indexical($140), Gramm
 RequestTopicInfo(SendReceive(tell-me), FieldName($30), Indexical($140), GrammaticalIndicative($100), GrammaticalBe($101)) <- \
        what {GrammaticalBeCat[$101]}{GrammaticalIndicativeCat[$100]}{IndexicalCat[$140]}{FieldNameCat[$30]}
 
+#"what is the entire area code?"
+RequestTopicInfo(SendReceive(tell-me), FieldName($30), Indexical($140), GrammaticalIndicative($100), GrammaticalBe(present-singular)) <- \
+       {CommandCat[$50]} {GrammaticalIndicativeCat[$100]}{IndexicalCat[$140]}{FieldNameCat[$30]}
+
+#"what is after the area code?"
+RequestTopicInfo(SendReceive(tell-me), FieldName($30), Indexical($140), GrammaticalIndicative($100), GrammaticalBe(present-singular)) <- \
+       {CommandCat[$50]} {IndexicalCat[$140]} {GrammaticalIndicativeCat[$100]} {FieldNameCat[$30]}
+
+
 #RequestTopicInfo(SendReceive(tell-me), FieldName($30), Indexical($140), GrammaticalIndicative($100), GrammaticalBe($101)) <- \
 #       {GrammaticalIndicativeCat[$100]}{IndexicalCat[$140]}{FieldNameCat[$30]}{GrammaticalBeCat[$101]} what
 #RequestTopicInfo(SendReceive(tell-me), FieldName($30), Indexical($140), GrammaticalIndicative(definite), GrammaticalBe(present-singular)) <-> \
 #       what is the {IndexicalCat[$140]}{FieldNameCat[$30]}
-
-
-
-
-
 
 
 
@@ -785,9 +791,9 @@ ConfirmDialogManagement(proceed-with-next) <- then what
 ConfirmDialogManagement(proceed-with-next) <- what's next
 ConfirmDialogManagement(proceed-with-next) <- what is next
 ConfirmDialogManagement(proceed-with-next) <- what comes next
-ConfirmDialogManagement(proceed-with-next) <- what's after that
-ConfirmDialogManagement(proceed-with-next) <- what is after that
-ConfirmDialogManagement(proceed-with-next) <- what comes after that
+#ConfirmDialogManagement(proceed-with-next) <- what's after that
+#ConfirmDialogManagement(proceed-with-next) <- what is after that
+#ConfirmDialogManagement(proceed-with-next) <- what comes after that
 ConfirmDialogManagement(proceed-with-next) <- continue
 
 

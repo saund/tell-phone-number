@@ -1161,17 +1161,27 @@ class TurnTopic():
     
 
 
-
-def getFieldRelativeToField(last_topic_field, rel):
+#rel should be -1 or 1 for previous to or next after the topic_field passed
+def getFieldRelativeToField(topic_field, rel):
     global gl_agent
+    target_start_index = -100
+    target_stop_index = -100
 
+    topic_field_start_stop_indices = gl_agent.self_dialog_model.data_model.data_indices.get(topic_field)
+    if rel == -1:
+        target_stop_index = topic_field_start_stop_indices[0] - 1
+    elif rel == 1:
+        target_start_index = topic_field_start_stop_indices[1] + 1
+
+    print ' getFieldRelativeToField(' + topic_field + ',' + str(rel) + ')'
     segment_names = gl_agent.self_dialog_model.data_model.data_indices.keys()
-    for segment_i in range(0, len(segment_names)):
-        if segment_names[segment_i] == last_topic_field:
-            relative_segment_i = segment_i + rel
-            if relative_segment_i < 0 or relative_segment_i >= len(segment_names):
-                return None
-            return segment_names[relative_segment_i]
+    for segment_name in segment_names:
+        segment_indices = gl_agent.self_dialog_model.data_model.data_indices[segment_name]
+        if segment_indices[0] == target_start_index:
+            return segment_name
+        if segment_indices[len(segment_indices)-1] == target_stop_index:
+            return segment_name
+
     return None
             
 
@@ -1502,6 +1512,7 @@ gl_str_da_tell_me_field_indexical = 'RequestTopicInfo(SendReceive(tell-me), Fiel
 #tell me the entire area code
 gl_da_tell_me_field_indexical_grammar = rp.parseDialogActFromString('RequestTopicInfo(SendReceive(tell-me), FieldName($30), Indexical($140), GrammaticalIndicative($100), GrammaticalBe($101))')
 gl_str_da_tell_me_field_indexical_grammar = 'RequestTopicInfo(SendReceive(tell-me), FieldName($30), Indexical($140), GrammaticalIndicative($100), GrammaticalBe($101))'
+
 
 
 #a lone indexical like previous, eight, next, ...
@@ -3115,12 +3126,16 @@ def handleRequestDialogManagement(da_list):
             gl_agent.setControl('partner')    #user takes control to gain clarification
             return (last_self_utterance_das_stripped, None)   #XX need to fill in the turn_topic?
 
-    #handle what? with something else
+    #handle "what comes after the area code" with something else
+
+
+    #handle "what comes after that" 
     if str_da_request_dm == gl_str_da_what and len(da_list) > 1:
         print 'A1 '
         for da_i in range(1, len(da_list)):
             da = da_list[da_i]
             print ' da: ' + da.getPrintString()
+            #any indexical like before, after
             mapping = rp.recursivelyMapDialogRule(gl_da_inform_ti_indexical, da)
             print 'mapping: ' + str(mapping)
             if mapping != None:
@@ -3135,8 +3150,16 @@ def handleRequestDialogManagement(da_list):
                 if rel != 0:
                     last_self_turn_topic = gl_agent.self_dialog_model.getLastTurnTopic()
                     last_topic_field = last_self_turn_topic.field_name
+                    print 'last_topic_field: ' + str(last_topic_field)
+                    if last_topic_field == None:
+                        last_digit_list = getDataValuesForDataIndices(last_self_turn_topic.data_index_list)
+                        last_topic_field_list = findSegmentNameForDigitList(last_digit_list)
+                        if len(last_topic_field_list) > 0:
+                            last_topic_field = last_topic_field_list[0]
+                    print 'last_topic_field: ' + str(last_topic_field)
                     if last_topic_field != None:
                         adjacent_field = getFieldRelativeToField(last_topic_field, rel)
+                        print 'adjacent_field: ' + str(rel) + ' ' + str(adjacent_field)
                         if adjacent_field != None:
                             return handleSendSegmentChunkNameAndData(adjacent_field)
                     else:
@@ -3443,7 +3466,7 @@ def collectDataValuesFromDialogActs(da_list, insert_qm_for_what_p=False):
 
 
 #This sets the self and partner data_index_pointer to the start of the segment
-#Returns a list of dialog-acts which could be empty.
+#Returns a tuple: (list of dialog-acts which could be empty, turn_topic)
 #If say_field_is_p is True, then this introduces the field with "the [field-name] is",
 #If False, then simply [field-name]
 def handleSendSegmentChunkNameAndData(segment_chunk_name, say_field_is_p=True):
@@ -3481,7 +3504,7 @@ def handleSendSegmentChunkNameAndData(segment_chunk_name, say_field_is_p=True):
         turn_topic.data_index_list = data_index_list
         return (ret_das, turn_topic)  
     else:
-        return None
+        return (None, None)
 
 
 
@@ -4210,6 +4233,19 @@ def getDataIndexListForField(data_model, segment_name):
     for i in range(segment_indices[0], segment_indices[1]+1):
         data_index_list.append(i)
     return data_index_list
+
+
+def getDataValuesForDataIndices(data_index_list):
+    global gl_agent
+    data_value_list = []
+    for digit_i in data_index_list:
+        digit_belief = gl_agent.self_dialog_model.data_model.data_beliefs[digit_i]
+        data_value_tuple = digit_belief.getHighestConfidenceValue()      #returns a tuple e.g. ('one', .8)
+        data_value = data_value_tuple[0]
+        data_value_list.append(data_value)
+    return data_value_list
+
+
 
 
 
