@@ -407,6 +407,11 @@ IndexicalCat[fourth] <-> fourth
 IndexicalCat[fifth] <-> fifth
 IndexicalCat[sixth] <-> sixth
 IndexicalCat[seventh] <-> seventh
+IndexicalCat[eighth] <-> eighth
+IndexicalCat[ninth] <-> ninth
+IndexicalCat[tenth] <-> tenth
+IndexicalCat[eleventh] <-> eleventh
+IndexicalCat[twelvth] <-> twelvth
 IndexicalCat[final] <-> final
 IndexicalCat[final] <- the final
 IndexicalCat[last] <-> last       #last has two meanings, final and previous, have to treat is special
@@ -505,10 +510,16 @@ RequestTopicInfo(SendReceive($50), FieldName($30)) <- {CommandCat[$50]} {FieldNa
 
 #command form: tell me the entire / tell you the entire X / what is the entire X
 #   tell me the next X / tell you the next X / what is the next X
+#   tell me the third digit / tell you the third digit / what is the third digit
 #These are interpretation only because they don't contain enough grammar for generation
 RequestTopicInfo(SendReceive($50), ItemTypeName($20), Indexical($140)) <- {CommandCat[$50]}{IndexicalCat[$140]}{ItemTypeNameCat[$20]}
 RequestTopicInfo(SendReceive($50), ItemTypeChar($25), Indexical($140)) <- {CommandCat[$50]}{IndexicalCat[$140]}{ItemTypeCharCat[$25]}
 RequestTopicInfo(SendReceive($50), FieldName($30), Indexical($140)) <- {CommandCat[$50]}{IndexicalCat[$140]}{FieldNameCat[$30]}
+
+
+#"what is the third digit of the exchange?"
+RequestTopicInfo(SendReceive($50), ItemTypeChar($25), Indexical($140), GrammaticalIndicative($100), Field($30)) <-> \
+            {CommandCat[$50]} {IndexicalCat[$140]} {ItemTypeCharCat[$25]} of {GrammaticalIndicativeCat[$100]} {FieldNameCat[$30]}
 
 
 #ItemTypeName is about your, my, and their, not inanimate GrammaticalIndicative

@@ -1162,7 +1162,18 @@ class TurnTopic():
 
 
 
+def getFieldRelativeToField(last_topic_field, rel):
+    global gl_agent
 
+    segment_names = gl_agent.self_dialog_model.data_model.data_indices.keys()
+    for segment_i in range(0, len(segment_names)):
+        if segment_names[segment_i] == last_topic_field:
+            relative_segment_i = segment_i + rel
+            if relative_segment_i < 0 or relative_segment_i >= len(segment_names):
+                return None
+            return segment_names[relative_segment_i]
+    return None
+            
 
 #
 #
@@ -1470,6 +1481,10 @@ gl_da_tell_you_item_type_char_indexical = rp.parseDialogActFromString('RequestTo
 gl_da_tell_me_item_type_char_indexical_grammar = rp.parseDialogActFromString('RequestTopicInfo(SendReceive(tell-me), ItemTypeChar($25), Indexical($140), GrammaticalIndicative($100), GrammaticalBe($101))')
 gl_str_da_tell_me_item_type_char_indexical_grammar = 'RequestTopicInfo(SendReceive(tell-me), ItemTypeChar($25), Indexical($140), GrammaticalIndicative($100), GrammaticalBe($101))'
 
+#what is the third digit of the exchange
+gl_da_tell_me_item_type_char_indexical_of_field = rp.parseDialogActFromString('RequestTopicInfo(SendReceive($50), ItemTypeChar($25), Indexical($140), GrammaticalIndicative($100), Field($30))')
+gl_str_da_tell_me_item_type_char_indexical_of_field = 'RequestTopicInfo(SendReceive($50), ItemTypeChar($25), Indexical($140), GrammaticalIndicative($100), Field($30))'
+
 
 
 
@@ -1489,7 +1504,9 @@ gl_da_tell_me_field_indexical_grammar = rp.parseDialogActFromString('RequestTopi
 gl_str_da_tell_me_field_indexical_grammar = 'RequestTopicInfo(SendReceive(tell-me), FieldName($30), Indexical($140), GrammaticalIndicative($100), GrammaticalBe($101))'
 
 
-
+#a lone indexical like previous, eight, next, ...
+gl_da_inform_ti_indexical = rp.parseDialogActFromString('InformTopicInfo(Indexical($140))')
+gl_str_da_inform_ti_indexical = 'InformTopicInfo(Indexical($140))'
 
                                                            
 
@@ -2504,9 +2521,10 @@ def handleRequestTopicInfo_SendRole(da_list):
     if mapping == None:
         mapping = rp.recursivelyMapDialogRule(gl_da_tell_me_field_indexical_grammar, da_request_topic_info)
     if mapping != None:
+        print ' found mapping WW'
         field_name = mapping.get('30')
         indexical = mapping.get('140')
-    #handle "User: tell me the entire number"  
+    #handle "User: tell me the entire number", "tell me the third digit"
     #"number" can mean digit or telephone number. Here, the utterance does not include an indexical
     #like "third number", so we interpret it as the telephone number
     if mapping == None:
@@ -2515,11 +2533,23 @@ def handleRequestTopicInfo_SendRole(da_list):
             mapping = rp.recursivelyMapDialogRule(gl_da_tell_me_item_type_char_indexical_grammar, da_request_topic_info)
             #print 'HHH mapping: ' + str(mapping)
         if mapping != None:
+            print ' found mapping YY'
             num_name = mapping.get('25')
             if num_name == 'digit':
                 field_name = 'telephone-number'
                 indexical = mapping.get('140')
 
+    if mapping == None:
+        print ' trying mapping   gl_da_tell_me_item_type_char_indexical_of_field '
+        #what is the third digit of the exchange?
+        mapping = rp.recursivelyMapDialogRule(gl_da_tell_me_item_type_char_indexical_of_field, da_request_topic_info)
+        if mapping != None:
+            num_name = mapping.get('25')
+            if num_name == 'digit':
+                field_name = mapping.get('30')
+                indexical = mapping.get('140')
+
+    #handle 'User: what is the entire telephone number?', etc.
     if field_name == 'telephone-number' and indexical == 'entire':
         gl_agent.setRole('send', gl_default_phone_number)
         initializeStatesToSendPhoneNumberData(gl_agent)
@@ -2542,6 +2572,37 @@ def handleRequestTopicInfo_SendRole(da_list):
             gl_agent.setControl('partner')      #a subtask driven by partner, they are taking control
             return handleSendSegmentChunkNameAndData(field_name)
 
+    #handle 'what is the third digit?', 'what is the third digit of the exchange?'
+    global gl_indexical_relative_map
+    if field_name != None and indexical in gl_indexical_relative_map.keys():
+        target_digit_ith = gl_indexical_relative_map.get(indexical)
+        target_digit_i = getDigitIndexForFieldRelativeIndex(field_name, target_digit_ith)
+        print 'GGG field_name: ' + field_name + ' target_digit_ith: ' + str(target_digit_ith) + ' ' + str(target_digit_i)
+        if target_digit_i < 0:
+            print 'handleRequestTopicInfo_SendRole indexical could not find a target_digit_i for field ' + field_name + ' ith ' + str(target_digit_ith)
+            return (None, None)
+        digit_belief = gl_agent.self_dialog_model.data_model.data_beliefs[target_digit_i]
+        data_value_tuple = digit_belief.getHighestConfidenceValue()
+        digit_value = data_value_tuple[0]
+        digit_lf = synthesizeLogicalFormForDigitOrDigitSequence([digit_value])
+        turn_topic = TurnTopic()
+        turn_topic.data_index_list = [target_digit_i]
+        return ( [digit_lf], turn_topic)
+
+
+    #handle 'what is the last digit?', 'what is the last digit of the exchange?'
+    global gl_indexical_relative_map
+    if field_name != None and (indexical == 'final' or indexical == 'last'):
+        segment_indices = gl_agent.self_dialog_model.data_model.data_indices[field_name]
+        segment_end_index = segment_indices[1]
+        digit_belief = gl_agent.self_dialog_model.data_model.data_beliefs[segment_end_index]
+        data_value_tuple = digit_belief.getHighestConfidenceValue()
+        digit_value = data_value_tuple[0]
+        digit_lf = synthesizeLogicalFormForDigitOrDigitSequence([digit_value])
+        turn_topic = TurnTopic()
+        turn_topic.data_index_list = [segment_end_index]
+        return ( [digit_lf], turn_topic)
+        
                     
     #handle 'User: take this phone number'
     mapping = rp.recursivelyMapDialogRule(gl_da_tell_you_phone_number, da_request_topic_info)
@@ -3053,6 +3114,46 @@ def handleRequestDialogManagement(da_list):
             last_self_utterance_das_stripped = possiblyStripLeadingDialogAct(last_self_utterance_das, 'confirmation-or-correction')
             gl_agent.setControl('partner')    #user takes control to gain clarification
             return (last_self_utterance_das_stripped, None)   #XX need to fill in the turn_topic?
+
+    #handle what? with something else
+    if str_da_request_dm == gl_str_da_what and len(da_list) > 1:
+        print 'A1 '
+        for da_i in range(1, len(da_list)):
+            da = da_list[da_i]
+            print ' da: ' + da.getPrintString()
+            mapping = rp.recursivelyMapDialogRule(gl_da_inform_ti_indexical, da)
+            print 'mapping: ' + str(mapping)
+            if mapping != None:
+                indexical = mapping.get('140')
+                print 'indexical: ' + str(indexical)
+                #handle what is before that?
+                rel = 0
+                if indexical == 'previous':
+                    rel = -1
+                elif indexical == 'next':
+                    rel = 1
+                if rel != 0:
+                    last_self_turn_topic = gl_agent.self_dialog_model.getLastTurnTopic()
+                    last_topic_field = last_self_turn_topic.field_name
+                    if last_topic_field != None:
+                        adjacent_field = getFieldRelativeToField(last_topic_field, rel)
+                        if adjacent_field != None:
+                            return handleSendSegmentChunkNameAndData(adjacent_field)
+                    else:
+                        last_topic_index0 = last_self_turn_topic.data_index_list[0]
+                        if last_topic_index0 > 0:
+                            target_digit_ith = last_topic_index0 + rel
+                            target_digit_i = getDigitIndexForFieldRelativeIndex('telephone-number', target_digit_ith)
+                            print 'target_digit_i: ' + str(target_digit_i)
+                            if target_digit_i < 0:
+                                return (None, None)
+                            digit_belief = gl_agent.self_dialog_model.data_model.data_beliefs[target_digit_i]
+                            data_value_tuple = digit_belief.getHighestConfidenceValue()
+                            digit_value = data_value_tuple[0]
+                            digit_lf = synthesizeLogicalFormForDigitOrDigitSequence([digit_value])
+                            turn_topic = TurnTopic()
+                            turn_topic.data_index_list = [target_digit_i]
+                            return ( [digit_lf], turn_topic)
 
     #handle "what?"      not a pronoun ref so just repeat the last utterance
     if str_da_request_dm == gl_str_da_what:
@@ -4701,7 +4802,19 @@ def spellOutDigits(text_string):
 
 
 
+gl_indexical_relative_map = {'first':0, 'second':1, 'third':2, 'fourth':3, 'fifth':4,\
+                             'sixth':5, 'seventh':6, 'eighth':7, 'ninth':8, 'tenth':9,\
+                             'eleventh':10, 'twelvth':11}
 
+
+
+#returns the index relative to the entire telephone number for the target_digit_ith relative to field_name
+#In other words, if you say, what is the first digit of the exchange, this returns 3
+def getDigitIndexForFieldRelativeIndex(field_name, target_digit_ith):
+    print 'getDigitIndexForFieldRelativeIndex(' + field_name + ' ' + str(target_digit_ith) + ')'
+    segment_indices = gl_agent.self_dialog_model.data_model.data_indices[field_name]
+    segment_start_index = segment_indices[0]
+    return segment_start_index + target_digit_ith
 
 
 

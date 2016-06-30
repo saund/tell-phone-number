@@ -1,5 +1,6 @@
 
 
+
 CommandCat[tell-me] <- what is
 
 ItemTypeCharCat[digit] <-> digit  
@@ -14,5 +15,5 @@ FieldNameCat[area-code] <-> exchange
 
 #"what is the third digit of the exchange?"
 RequestTopicInfo(SendReceive($50), ItemTypeChar($20), Indexical($140), GrammaticalIndicative($100), Field($30)) <- \
-            {CommandCat[$50]} {IndexicalCat[$140]} {ItemTypeCharCat[$20]} of {GrammaticalIndicativeCat[$100]} {FieldNameCat[$30]}
+            {CommandCat[$50]} {IndexicalCat[$140]} {ItemTypeNameCat[$20]} of {GrammaticalIndicativeCat[$100]} {FieldNameCat[$30]}
 
