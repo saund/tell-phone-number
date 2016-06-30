@@ -294,8 +294,8 @@ CheckDialogManagement
 ConfirmTopicInfo
 ConfirmDialogManagement
 
-CorrectTopicInfo
-CorrectDialogManagement
+CorrectionTopicInfo
+CorrectionDialogManagement
 
 
 ----------------------------------------
@@ -798,6 +798,98 @@ CheckDialogManagement(protcol-adjustment)
 CheckDialogManagement(readiness)
 
 
+-----------------------------------------------
+
+***Rule Guide as reflected in the code***
+
+*DialogAct types*
+
+InformTopicInfo
+InformDialogManagement
+InformRoleInterpersonal
+RequestTopicInfo
+RequestDialogManagement
+CheckTopicInfo
+CheckDialogManagement
+ConfirmTopicInfo
+ConfirmDialogManagement
+CorrectionTopicInfo
+CorrectionDialogManagement
+RequestAction
+
+
+Not implemented for SendRole
+handleInformTopicInfo_BanterRole  - not implemented
+handleInformTopicInfo_ReceiveRole  - not implemented
+handleInformDialogManagement_ReceiveRole  - not implemented
+handleInformDialogManagement_BanterRole - not implemented
+handleRequestTopicInfo_ReceiveRole - not implemented
+handleCheckTopicInfo   - not implemented
+handleCheckDialogManagement  - not implemented
+handleConfirmTopicInfo  - not implemented but handled by InformTopicInfo
+handleConfirmDialogManagement_ReceiveRole  - not implemented
+handleCorrectionDialogManagement   - not implemented
+
+Minimal implementation necessary
+handleCorrectionTopicInfo   - minimal
+
+
+handleInformTopicInfo_SendRole
+ (largely means handleCheckTopicInfo)
+XXX
+
+handleInformDialogManagement_SendRole
+XXX
+
+handleInformRoleInterpersonal
+XXX
+
+
+handleRequestTopicInfo_BanterRole
+XX
+
+handleRequestTopicInfo_SendRole
+XX
+
+handleRequestTopicInfo_RequestConfirmation **
+XX
+
+handleRequestDialogManagement
+XX
+
+handleConfirmDialogManagement_SendRole
+XX
+
+handleConfirmDialogManagement_BanterRole
+XX
+
+
+
+
+
+
+handleReadinessIssues
+handleAnyPendingQuestions
+
+
+
+
+
+
+
+
+
+
+
+
+
+*Parameters*
+CommunicationChannel
+Readiness
+TurnOwnership
+Control
+ChunkSize
+Handshake
 
 
 

@@ -777,6 +777,7 @@ ConfirmDialogManagement(proceed-with-next) <- what comes next
 ConfirmDialogManagement(proceed-with-next) <- what's after that
 ConfirmDialogManagement(proceed-with-next) <- what is after that
 ConfirmDialogManagement(proceed-with-next) <- what comes after that
+ConfirmDialogManagement(proceed-with-next) <- continue
 
 
 ConfirmDialogManagement(good) <-> good 
@@ -1011,11 +1012,18 @@ RequestDialogManagement(misalignment-start-again) <- start over again
 RequestDialogManagement(misalignment-start-again) <- start again
 RequestDialogManagement(misalignment-start-again) <-> let's start over
 
+
 #Very context dependent
 RequestDialogManagement(what) <- como
 RequestDialogManagement(what) <-> what
 
 
+
+RequestDialogManagement(misalignment-confusion) <- where are we
+InformDialogManagement(misalignment-confusion) <-> i'm confused
+InformDialogManagement(misalignment-confusion) <- i am confused
+InformDialogManagement(misalignment-confusion) <- i'm lost
+InformDialogManagement(misalignment-confusion) <- i am lost
 
 #i did not/do not  get/hear/understand  that 
 
@@ -1112,6 +1120,17 @@ RequestDialogManagement(clarification-utterance, Grammar(present), FieldName($30
 
 
 
+
+RequestDialogManagement(speed-slower) <-> slower
+RequestDialogManagement(speed-slower) <- slower please
+RequestDialogManagement(speed-slower) <- more slowly
+RequestDialogManagement(speed-slower) <- more slowly please
+RequestDialogManagement(speed-slower) <- please more slowly
+
+RequestDialogManagement(speed-faster) <-> faster
+RequestDialogManagement(speed-faster) <- faster please
+RequestDialogManagement(speed-faster) <- more quickly please
+RequestDialogManagement(speed-faster) <- please more quickly 
 
 
 
