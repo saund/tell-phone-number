@@ -2069,6 +2069,7 @@ def handleInformTopicInfo_SendRole(da_list):
     
     #Only if check-confirm match was validated against self's belief model, update self's model
     #for what partner believes about the data.
+    #Then send some more data.
     if len(last_topic_data_indices_matched_list) > 0:
         possiblyAdjustChunkSize(len(last_topic_data_indices_matched_list))
         #1.0 is full confidence that the partner's data belief is as self heard it
@@ -2088,12 +2089,27 @@ def handleInformTopicInfo_SendRole(da_list):
             #here complete the digits for the current topic before popping up to inform incorrect or unknown indices
             last_self_turn_topic = gl_agent.self_dialog_model.getLastTurnTopic()
             print 'last_self_turn_topic: ' + last_self_turn_topic.getPrintString()
-            ret_das_and_topic = prepareNextDataChunkBasedOnSegment(digit_i)
-            if ret_das_and_topic == None:
-                print 'reverting to prepareNextDataChunkBasedOnDataBeliefComparisonAndIndexPointers()'
-                ret_das_and_topic = prepareNextDataChunkBasedOnDataBeliefComparisonAndIndexPointers()
-            return ret_das_and_topic
+            (ret_das, turn_topic) = prepareNextDataChunkToContinueSegment(digit_i)
+            if ret_das != None:
+                return (ret_das, turn_topic)
 
+            #Determine whether the next field chunk follows directly from the previous field.
+            #If not, we'll need to state the field name.
+            print 'HITI_SR reverting to prepareNextDataChunkBasedOnDataBeliefComparisonAndIndexPointers()'
+            ( data_ret_das, turn_topic ) = prepareNextDataChunkBasedOnDataBeliefComparisonAndIndexPointers(True)
+            current_field_subsequent_to_previous_p = False
+            print 'turn_topic.field_name: ' + str(turn_topic.field_name) + '  last_self_turn_topic.field_name: ' + str(last_self_turn_topic.field_name)
+            if turn_topic.field_name != None and last_self_turn_topic.field_name != None:
+                next_field = getFieldSubsequentToField(last_self_turn_topic.field_name)
+                if next_field == turn_topic.field_name:
+                    current_field_subsequent_to_previous_p = True
+            ret_das = []
+            if turn_topic.field_name != None and current_field_subsequent_to_previous_p == False:
+                str_da_say_field_is = gl_str_da_say_field_is.replace('$30', turn_topic.field_name)
+                da_say_field_is = rp.parseDialogActFromString(str_da_say_field_is)
+                ret_das.append(da_say_field_is)
+            ret_das.extend(data_ret_das)
+            return (ret_das, turn_topic)
 
     #If partner has informed a set of digits that does not match what self has just said, but matches some
     #other segment in the data, then tell the user that.
@@ -2110,11 +2126,23 @@ def handleInformTopicInfo_SendRole(da_list):
         ret_das = [ field_digit_sequence_lf, da_inform_be_indicative, da_field_name]
         return (ret_das, None)    #XX need to fill in the turn_topic
 
-    ret_das = [gl_da_inform_dm_repeat_intention]
-    (data_chunk_das, turn_topic) = prepareNextDataChunkBasedOnDataBeliefComparisonAndIndexPointers()
-    ret_das.extend(data_chunk_das)
-    return (ret_das, turn_topic) 
 
+    print 'handleInformTopicInfo_SendRole() dropping through HITI_SR'
+    ret_das = [gl_da_inform_dm_repeat_intention]
+    
+    #This may not actually repeat what was said, e.g. if the user had shifted topic to the line number and then
+    #mis-stated the digits of it.
+    #(data_chunk_das, turn_topic) = prepareNextDataChunkBasedOnDataBeliefComparisonAndIndexPointers()
+
+    last_self_turn_topic = gl_agent.self_dialog_model.getLastTurnTopic()
+    print 'last_self_turn_topic: ' + last_self_turn_topic.getPrintString()
+    last_self_turn_topic_first_data_index = last_self_turn_topic.data_index_list[0]
+    print 'last_self_turn_topic_first_data_index: ' + str(last_self_turn_topic_first_data_index)
+    (segment_name, start_index_pointer, chunk_size) = findSegmentNameAndChunkSizeForDataIndex(last_self_turn_topic_first_data_index)
+    print 'last_turn_topic_segment: ' + str(segment_name)
+    (repeat_ret_das, turn_topic) = handleSendSegmentChunkNameAndData(segment_name)
+    ret_das.extend(repeat_ret_das)
+    return (ret_das, turn_topic) 
 
 
 
@@ -2398,7 +2426,8 @@ def handleInformRoleInterpersonal(da_list):
                 if str_da.find(gl_str_da_inform_irr_thank_you) < 0:
                     da_list_no_thankyou.append(da)
 
-            ret = handleConfirmDialogManagement_SendRole(da_list_no_thankyou, True)
+            #force_declare_segment_name = True, but is this really necessary?
+            ret = handleConfirmDialogManagement_SendRole(da_list_no_thankyou, True) 
             if ret == None:
                 return None
             confirm_da_list = ret[0]
@@ -3505,6 +3534,7 @@ def collectDataValuesFromDialogActs(da_list, insert_qm_for_what_p=False):
 #If False, then simply [field-name]
 def handleSendSegmentChunkNameAndData(segment_chunk_name, say_field_is_p=True):
     global gl_agent
+    print 'handleSendSegmentChunkNameAndData(' + segment_chunk_name + ', ' + str(say_field_is_p) + ')'
     chunk_indices = gl_agent.self_dialog_model.data_model.data_indices.get(segment_chunk_name)
     #This decision to reset belief in partner data_model now made by the caller.
     ##If partner is asking for a chunk, reset belief in partner data_model for this segment as unknown
@@ -3653,9 +3683,11 @@ def handleConfirmDialogManagement(da_list):
 
 
 
-#When the data topic info sender receive a ConfirmDialogManagement DialogAct from the topic info recipient.
-#This passes force_declare_segment_name on to prepareNextDataChunkBasedOnDataBeliefComparisonAndIndexPointers()
+#This is for when the data Topic Info Sender receives a ConfirmDialogManagement DialogAct from the topic info recipient,
+#e.g. "okay"
+#This allows the caller to pass force_declare_segment_name on to prepareNextDataChunkBasedOnDataBeliefComparisonAndIndexPointers()
 #If True, then if a set of dialog acts containing more data is return, their data indices will be sent as well.
+#But this function is only called other than from generateResponseToInputDialog(user_da_list) by handleInformRoleInterpersonal()
 def handleConfirmDialogManagement_SendRole(da_list, force_declare_segment_name=False):
     global gl_agent
     print 'handleConfirmDialogManagement_SendRole'
@@ -3737,6 +3769,7 @@ def handleConfirmDialogManagement_SendRole(da_list, force_declare_segment_name=F
     if len(da_list_remainder) > 0:
         return generateResponseToInputDialog(da_list_remainder)
 
+    #handle "what's next"
     #If the confirmation is specifically to proceed from the last chunk, then prepare the data chunk
     #that follows it.  Here, we are not zeroing out partner's belief in this next chunk's data (if 
     #they had previously confirmed it).
@@ -3755,19 +3788,35 @@ def handleConfirmDialogManagement_SendRole(da_list, force_declare_segment_name=F
     print 'last_self_turn_topic: ' + last_self_turn_topic.getPrintString()
     turn_topic_data_index_list = last_self_turn_topic.data_index_list
     last_data_index = turn_topic_data_index_list[len(turn_topic_data_index_list)-1]
-    ret_das_and_topic = prepareNextDataChunkBasedOnSegment(last_data_index)
-    if ret_das_and_topic != None:
-        return ret_das_and_topic
+    (ret_das, turn_topic) = prepareNextDataChunkToContinueSegment(last_data_index)
+    if ret_das != None:
+        return (ret_das, turn_topic)
 
     #Only regain control when done with the segment we were dealing with
+    #$$XX This needs a better idea of when to declare topic index
     regaining_control_p = False
     if current_control != 'self':
         regaining_control_p = True
         print 'returning control to self B' 
     gl_agent.setControl('self')    #gl_agent regains control
-    print 'reverting to prepareNextDataChunkBasedOnDataBeliefComparisonAndIndexPointers(' + str(regaining_control_p) + ')'
-    return prepareNextDataChunkBasedOnDataBeliefComparisonAndIndexPointers(regaining_control_p)
 
+    #Determine whether the next field chunk follows directly from the previous field.
+    #If not, we'll need to state the field name.
+    print 'CDM_SR calling prepareNextDataChunkBasedOnDataBeliefComparisonAndIndexPointers()'
+    ( data_ret_das, turn_topic ) = prepareNextDataChunkBasedOnDataBeliefComparisonAndIndexPointers()
+    current_field_subsequent_to_previous_p = False
+    print 'turn_topic.field_name: ' + str(turn_topic.field_name) + '  last_self_turn_topic.field_name: ' + str(last_self_turn_topic.field_name)
+    if turn_topic.field_name != None and last_self_turn_topic.field_name != None:
+        next_field = getFieldSubsequentToField(last_self_turn_topic.field_name)
+        if next_field == turn_topic.field_name:
+            current_field_subsequent_to_previous_p = True
+    ret_das = []
+    if turn_topic.field_name != None and current_field_subsequent_to_previous_p == False:
+        str_da_say_field_is = gl_str_da_say_field_is.replace('$30', turn_topic.field_name)
+        da_say_field_is = rp.parseDialogActFromString(str_da_say_field_is)
+        ret_das.append(da_say_field_is)
+    ret_das.extend(data_ret_das)
+    return (ret_das, turn_topic)
 
 
 def handleConfirmDialogManagement_ReceiveRole(da_list):
@@ -3820,7 +3869,7 @@ def handleConfirmDialogManagement_BanterRole(da_list):
 #If however partner's data_model has a high confidence conflict with self's, or if the 
 #first unknown digit is not the start of the next consensus index pointer segment, then
 #this prepares a sequence of DialogActs that calls out the segment name explicitly.
-def prepareNextDataChunkBasedOnDataBeliefComparisonAndIndexPointers(force_declare_segment_name=False):
+def prepareNextDataChunkBasedOnDataBeliefComparisonAndIndexPointers(reset_chunk_size_for_segment_p = False):
     global gl_agent
     (self_belief_partner_is_wrong_digit_indices, self_belief_partner_registers_unknown_digit_indices) = compareDataModelBeliefs()
 
@@ -3836,11 +3885,10 @@ def prepareNextDataChunkBasedOnDataBeliefComparisonAndIndexPointers(force_declar
     #Assume the unknown digits are in small-to-large order.
     if len(self_belief_partner_registers_unknown_digit_indices) > 0:
         next_data_index = self_belief_partner_registers_unknown_digit_indices[0]
-        if force_declare_segment_name:
-            (segment_name, segment_start_index, chunk_size) = findSegmentNameAndChunkSizeForDataIndex(next_data_index)
-            return handleSendSegmentChunkNameAndData(segment_name)
-
-        return prepareNextDataChunk(next_data_index)
+        #if force_declare_segment_name:
+        #    (segment_name, segment_start_index, chunk_size) = findSegmentNameAndChunkSizeForDataIndex(next_data_index)
+        #    return handleSendSegmentChunkNameAndData(segment_name)
+        return prepareNextDataChunk(next_data_index, reset_chunk_size_for_segment_p)
         
     #we're done actually
     gl_agent.setRole('banter')
@@ -3851,15 +3899,17 @@ def prepareNextDataChunkBasedOnDataBeliefComparisonAndIndexPointers(force_declar
 #last_digit_i is a confirmed digit index by partner 
 #check what segment this occurs in.  If not at the end of that segment,
 #prepare a da_list based on remaining digit indices in the segment, and chunk size
-def prepareNextDataChunkBasedOnSegment(last_digit_i):
+def prepareNextDataChunkToContinueSegment(last_digit_i):
     global gl_agent
-    print 'prepareNextDataChunkBasedOnSegment(' + str(last_digit_i) + ')'
+    print 'prepareNextDataChunkToContinueSegment(' + str(last_digit_i) + ')'
     
     (segment_name, segment_start_index, chunk_size) = findSegmentNameAndChunkSizeForDataIndex(last_digit_i)
+    #print '(' + segment_name + ', ' + str(segment_start_index) + ',' + str(chunk_size) + ')'
     segment_data_index_list = getDataIndexListForField(gl_agent.self_dialog_model.data_model, segment_name)
     if segment_data_index_list[len(segment_data_index_list)-1] == last_digit_i:
-        return None
-    print '  segment_data_index_list: ' + str(segment_data_index_list)
+        #print 'segment_data_index_list: ' + str(segment_data_index_list) + '[' + str(len(segment_data_index_list)-1) + '] =' + str(segment_data_index_list[len(segment_data_index_list)-1])
+        return (None, None)
+    #print '  segment_data_index_list: ' + str(segment_data_index_list)
 
     next_digit_i = None
     for i in range(0, len(segment_data_index_list)):
@@ -3868,15 +3918,23 @@ def prepareNextDataChunkBasedOnSegment(last_digit_i):
             break;
         print ' last_digit_i: ' + str(last_digit_i) + ' != segment_data_index_list[' + str(i) + ']:' + str(segment_data_index_list[i])
     if next_digit_i == None:
-        return None
+        return (None, None)
     return prepareNextDataChunk(next_digit_i)
 
 
 
 
+def getFieldSubsequentToField(field_name):
+    global gl_agent
 
-
-
+    field_indices = gl_agent.self_dialog_model.data_model.data_indices[field_name]
+    field_last_index = field_indices[1]
+    for segment_name in gl_agent.self_dialog_model.data_model.data_indices.keys():
+        segment_indices = gl_agent.self_dialog_model.data_model.data_indices[segment_name]
+        segment_start_index = segment_indices[0]
+        if field_last_index == segment_start_index - 1:
+            return segment_name
+    return None
 
 
 
@@ -4085,9 +4143,13 @@ def initializeStatesToSendPhoneNumberData(agent):
 
 #Returns a tuple ( ret_das, turn_topic )
 # ret_das is a list of of DialogActs
-def prepareNextDataChunk(start_data_index):
+def prepareNextDataChunk(start_data_index, reset_chunk_size_for_segment_p = False):
     global gl_agent
     print 'prepareNextDataChunk(' + str(start_data_index) + ')'
+
+    if reset_chunk_size_for_segment_p:
+        (segment_name, segment_start_index, chunk_size) = findSegmentNameAndChunkSizeForDataIndex(start_data_index)
+        possiblyAdjustChunkSize(getChunkSizeForSegment(segment_name))
 
     #this section of code is very similar to getDataValueListForField(data_model, segment_name), but
     #it differs in that this uses a preferred chunk size and is not limited to the chunk size
@@ -4149,6 +4211,12 @@ def prepareNextDataChunk(start_data_index):
         turn_topic = TurnTopic()
         #turn_topic.field_name = ...   omitting mention of segment_name
         turn_topic.data_index_list = data_index_list
+        for segment_name in gl_agent.self_dialog_model.data_model.data_indices.keys():
+            segment_indices = gl_agent.self_dialog_model.data_model.data_indices[segment_name]
+            segment_start_index = segment_indices[0]
+            segment_end_index = segment_indices[1]
+            if segment_start_index == data_index_list[0] and segment_end_index == data_index_list[len(data_index_list)-1]:
+                turn_topic.field_name = segment_name
         return ([digit_sequence_lf], turn_topic) 
     else:
         return None
@@ -4389,6 +4457,7 @@ def compareDataModelBeliefs():
             print 'compareDataModelBeliefs: ' + str(i) + ' self: ' + str(self_belief_tup) + ' partner: ' + str(partner_belief_tup)
             digits_out_of_agreement.append(i)
 
+    print 'compareDataModelBeliefs returns digits_out_of_agreement: ' + str(digits_out_of_agreement) + ' unknown: ' + str(digits_self_believes_partner_registers_unknown)
     return (digits_out_of_agreement, digits_self_believes_partner_registers_unknown)
 
 

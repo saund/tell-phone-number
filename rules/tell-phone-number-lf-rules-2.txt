@@ -1188,7 +1188,7 @@ RequestDialogManagement(proceed-to-completion, FieldNameCat(telephone-number)) <
 RequestDialogManagement(proceed-to-completion, FieldNameCat($30)) <- {CommandCat[tell-me]} the rest of the {FieldNameCat[$30]}
 RequestDialogManagement(proceed-to-completion, FieldNameCat($30)) <- {CommandCat[tell-me]} the remaining the {FieldNameCat[$30]}
 
-$"tell me more digits"
+#"tell me more digits"
 RequestDialogManagement(proceed-to-completion, FieldNameCat(telephone-number)) <- {CommandCat[tell-me]} more {ItemTypeCharCat[digit]}
 
 
