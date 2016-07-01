@@ -245,10 +245,15 @@ InformTopicInfo(ItemTypeChar($25)) <-> {ItemTypeCharCat[$25]}
 InformTopicInfo(FieldName($30)) <-> {FieldNameCat[$30]}
 
 
-#That is the area code
+#"that is the area code"
 InformTopicInfo(grammatical-be-indicative, Grammar($100), FieldName($30)) <-> {GrammaticalBeIndicativeAssertionCat[$100]} {FieldNameCat[$30]}
 
 
+#"there is nothing after the area code"
+InformTopicInfo(nothing-relative-to, Indexical($140), FieldName($30)) <-> there is nothing {IndexicalCat[$140]} the {FieldNameCat[$30]}
+
+#"there is nothing after that"
+InformTopicInfo(nothing-relative-to, Indexical($140)) <-> there is nothing {IndexicalCat[$140]} that
 
 
 
@@ -258,7 +263,9 @@ InformTopicInfo(grammatical-be-indicative, Grammar($100), FieldName($30)) <-> {G
 # ItemType[category of type]Cat
 
 ItemTypeCharCat[digit] <- number
+ItemTypeCharCat[digit] <- numbers
 ItemTypeCharCat[digit] <-> digit  
+ItemTypeCharCat[digit] <-> digits
 ItemTypeCharCat[alphabetic] <-> letter
 ItemTypeCharCat[alphanumeric] <-> character
 ItemTypeCharCat[alphanumeric] <- alphanumeric
@@ -415,10 +422,10 @@ IndexicalCat[twelvth] <-> twelvth
 IndexicalCat[final] <-> final
 IndexicalCat[final] <- the final
 IndexicalCat[last] <-> last       #last has two meanings, final and previous, have to treat is special
-IndexicalCat[previous] <- before
-IndexicalCat[previous] <-> previous
-IndexicalCat[next] <- after
-IndexicalCat[next] <-> next
+IndexicalCat[previous] <-> before
+IndexicalCat[previous] <- previous
+IndexicalCat[next] <-> after
+IndexicalCat[next] <- next
 IndexicalCat[next] <- then
 IndexicalCat[remainder] <-> rest
 IndexicalCat[remainder] <- remainder
@@ -464,6 +471,10 @@ InformDialogManagement(Alignment()) <-> fourth time
 
 CommandCat[tell-me] <- please tell me
 CommandCat[tell-me] <-> tell me
+CommandCat[tell-me] <-> tell me what is 
+CommandCat[tell-me] <-> tell me what comes
+CommandCat[tell-me] <-> please tell me what is 
+CommandCat[tell-me] <-> please tell me what comes
 CommandCat[tell-me] <- give me
 CommandCat[tell-me] <- provide me
 CommandCat[tell-me] <- what is
@@ -471,11 +482,15 @@ CommandCat[tell-me] <- what comes
 CommandCat[tell-me] <- is what
 CommandCat[tell-me] <- what's
 CommandCat[tell-me] <- i want to know
+CommandCat[tell-me] <- i want to know what is
 CommandCat[tell-me] <- i need to know
 CommandCat[tell-me] <- i want you to tell me
+CommandCat[tell-me] <- i want you to tell me what is
 CommandCat[tell-me] <- i need you to tell me
 CommandCat[tell-me] <- i would like you to tell me
+CommandCat[tell-me] <- i would like you to tell me what is
 CommandCat[tell-me] <- can you tell me
+CommandCat[tell-me] <- can you tell me what is
 CommandCat[tell-me] <- receive
 CommandCat[tell-me] <- get
 CommandCat[tell-me] <- look up
@@ -581,6 +596,14 @@ RequestTopicInfo(SendReceive(tell-me), FieldName($30), Indexical($140), Grammati
 #       {GrammaticalIndicativeCat[$100]}{IndexicalCat[$140]}{FieldNameCat[$30]}{GrammaticalBeCat[$101]} what
 #RequestTopicInfo(SendReceive(tell-me), FieldName($30), Indexical($140), GrammaticalIndicative(definite), GrammaticalBe(present-singular)) <-> \
 #       what is the {IndexicalCat[$140]}{FieldNameCat[$30]}
+
+#"what is after that?"
+RequestTopicInfo(SendReceive($50), Indexical($140), GrammaticalIndicative($100)) <- {CommandCat[$50]} {IndexicalCat[$140]} {GrammaticalIndicativeCat[$100]}
+#
+#(not these)
+#ConfirmDialogManagement(proceed-with-next) <- what's after that
+#ConfirmDialogManagement(proceed-with-next) <- what is after that
+#ConfirmDialogManagement(proceed-with-next) <- what comes after that
 
 
 
@@ -791,10 +814,10 @@ ConfirmDialogManagement(proceed-with-next) <- then what
 ConfirmDialogManagement(proceed-with-next) <- what's next
 ConfirmDialogManagement(proceed-with-next) <- what is next
 ConfirmDialogManagement(proceed-with-next) <- what comes next
-#ConfirmDialogManagement(proceed-with-next) <- what's after that
-#ConfirmDialogManagement(proceed-with-next) <- what is after that
-#ConfirmDialogManagement(proceed-with-next) <- what comes after that
 ConfirmDialogManagement(proceed-with-next) <- continue
+
+#see RequestDialogManagement below for "tell me the rest"
+
 
 
 ConfirmDialogManagement(good) <-> good 
@@ -819,7 +842,7 @@ InformDialogManagement(Knowledge(possess, PersonRef(self)), Tense($100), FieldNa
 InformDialogManagement(Knowledge(possess, PersonRef(self)), Tense(present), FieldName($30)) <- \
                                i've already got the {FieldNameCat[$30]}
 
-#i know the area code
+#"i know the area code"
 InformDialogManagement(Knowledge(possess, PersonRef(self)), Tense(present), FieldName($30)) <- \
                                i {KnowledgeCat[have-present]} the {FieldNameCat[$30]}
 InformDialogManagement(Knowledge(possess, PersonRef(self)), Tense(present), FieldName($30)) <- \
@@ -827,20 +850,29 @@ InformDialogManagement(Knowledge(possess, PersonRef(self)), Tense(present), Fiel
 InformDialogManagement(Knowledge(possess, PersonRef(self)), Tense(present), FieldName($30)) <- \
                                i already {KnowledgeCat[have-present]} the {FieldNameCat[$30]}
 
+#"i know that"
+InformDialogManagement(Knowledge(possess, PersonRef(self)), Tense(present), GrammaticalIndicative($100)) <-> \
+                               i {KnowledgeCat[have-present]} {GrammaticalIndicativeCat[$100]}
+InformDialogManagement(Knowledge(possess, PersonRef(self)), Tense(present), GrammaticalIndicative($100)) <- \
+                               i {KnowledgeCat[have-present]} {GrammaticalIndicativeCat[$100]} already
+InformDialogManagement(Knowledge(possess, PersonRef(self)), Tense(present), GrammaticalIndicative($100)) <- \
+                               i already {KnowledgeCat[have-present]} {GrammaticalIndicativeCat[$100]} 
 
-InformDialogManagement(ActionInform(self, partner), Tense(past), FieldName($30)) <-> i told you the {FieldNameCat[$30]}
-InformDialogManagement(ActionInform(self, partner), Tense(past), FieldName($30)) <-> i told you the {FieldNameCat[$30]} already
+
+
+InformDialogManagement(ActionInform(self, partner), Tense(past), FieldName($30)) <- i told you the {FieldNameCat[$30]}
+InformDialogManagement(ActionInform(self, partner), Tense(past), FieldName($30)) <- i told you the {FieldNameCat[$30]} already
 InformDialogManagement(ActionInform(self, partner), Tense(past), FieldName($30)) <-> i already told you the {FieldNameCat[$30]}
-InformDialogManagement(ActionInform(self, partner), Tense(past), FieldName($30)) <-> i said the {FieldNameCat[$30]}
-InformDialogManagement(ActionInform(self, partner), Tense(past), FieldName($30)) <-> i said the {FieldNameCat[$30]} already
-InformDialogManagement(ActionInform(self, partner), Tense(past), FieldName($30)) <-> i already said the {FieldNameCat[$30]}
+InformDialogManagement(ActionInform(self, partner), Tense(past), FieldName($30)) <- i said the {FieldNameCat[$30]}
+InformDialogManagement(ActionInform(self, partner), Tense(past), FieldName($30)) <- i said the {FieldNameCat[$30]} already
+InformDialogManagement(ActionInform(self, partner), Tense(past), FieldName($30)) <- i already said the {FieldNameCat[$30]}
 
-InformDialogManagement(ActionInform(partner, self), Tense(past), FieldName($30)) <-> you told me the {FieldNameCat[$30]}
-InformDialogManagement(ActionInform(partner, self), Tense(past), FieldName($30)) <-> you told me the {FieldNameCat[$30]} already
+InformDialogManagement(ActionInform(partner, self), Tense(past), FieldName($30)) <- you told me the {FieldNameCat[$30]}
+InformDialogManagement(ActionInform(partner, self), Tense(past), FieldName($30)) <- you told me the {FieldNameCat[$30]} already
 InformDialogManagement(ActionInform(partner, self), Tense(past), FieldName($30)) <-> you already told me the {FieldNameCat[$30]}
-InformDialogManagement(ActionInform(partner, self), Tense(past), FieldName($30)) <-> you said the {FieldNameCat[$30]}
-InformDialogManagement(ActionInform(partner, self), Tense(past), FieldName($30)) <-> you said the {FieldNameCat[$30]} already
-InformDialogManagement(ActionInform(partner, self), Tense(past), FieldName($30)) <-> you already said the {FieldNameCat[$30]}
+InformDialogManagement(ActionInform(partner, self), Tense(past), FieldName($30)) <- you said the {FieldNameCat[$30]}
+InformDialogManagement(ActionInform(partner, self), Tense(past), FieldName($30)) <- you said the {FieldNameCat[$30]} already
+InformDialogManagement(ActionInform(partner, self), Tense(past), FieldName($30)) <- you already said the {FieldNameCat[$30]}
 
 
 
@@ -1148,6 +1180,19 @@ RequestDialogManagement(speed-faster) <-> faster
 RequestDialogManagement(speed-faster) <- faster please
 RequestDialogManagement(speed-faster) <- more quickly please
 RequestDialogManagement(speed-faster) <- please more quickly 
+
+
+
+#"tell me the rest of the area code"
+RequestDialogManagement(proceed-to-completion, FieldNameCat(telephone-number)) <- {CommandCat[tell-me]} the rest
+RequestDialogManagement(proceed-to-completion, FieldNameCat($30)) <- {CommandCat[tell-me]} the rest of the {FieldNameCat[$30]}
+RequestDialogManagement(proceed-to-completion, FieldNameCat($30)) <- {CommandCat[tell-me]} the remaining the {FieldNameCat[$30]}
+
+$"tell me more digits"
+RequestDialogManagement(proceed-to-completion, FieldNameCat(telephone-number)) <- {CommandCat[tell-me]} more {ItemTypeCharCat[digit]}
+
+
+
 
 
 

@@ -1303,6 +1303,55 @@ Output: the area code is six five zero   <- TIS takes control and sets topic to 
 
 
 
+-------
+
+
+
+Input: tell me the phone number
+Output: area code six five zero
+Input: what is the last digit of the area code
+Output: zero
+Input: okay what's after the area code
+Output: the exchange is six three seven
+Input: I got it
+Output: six five zero                   <- need to say the topic
+Input: okay
+Output: one two one two                 <- need to say the topic
+Output: 
+
+
+
+-------
+
+*Problems 2016/06/30*
+
+tell me the rest
+
+tell me more digits
+
+tell me more of the numbers
+
+go faster
+
+tell me the rest of the phone number
+
+keep going 
+
+go ahead
+
+go on
+
+i know that
+
+you told me that
+
+you told me that aready
+
+please tell me what comes rest
+
+i heard the zero
+
+okay keep going with the rest
 
 
 

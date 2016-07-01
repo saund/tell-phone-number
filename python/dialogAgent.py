@@ -1457,6 +1457,9 @@ gl_str_da_your_name_is = 'InformTopicInfo(user-name-agent-perspective, Name($40)
 gl_da_tell_me = rp.parseDialogActFromString('RequestTopicInfo(SendReceive(tell-me))')
 gl_str_da_tell_me = 'RequestTopicInfo(SendReceive(tell-me))'
 
+#for detecting RequestTopicInfo dialog acts that start with SendReceive(tell-me) but then have more arguments
+gl_str_da_tell_me_initial = 'RequestTopicInfo(SendReceive(tell-me)'
+
 
 #Use gl_da_tell_me_field instead
 #tell me the telephone number
@@ -1498,27 +1501,41 @@ gl_str_da_tell_me_item_type_char_indexical_of_field = 'RequestTopicInfo(SendRece
 
 
 
-#tell me the area code, what is the area code
+#"tell me the area code"
+#"what is the area code"
 gl_da_tell_me_field = rp.parseDialogActFromString('RequestTopicInfo(SendReceive(tell-me), FieldName($30))')
 gl_str_da_tell_me_field = 'RequestTopicInfo(SendReceive(tell-me), FieldName($30))'
 
 gl_da_tell_me_field_grammar = rp.parseDialogActFromString('RequestTopicInfo(SendReceive(tell-me), FieldName($30), GrammaticalIndicative($100), GrammaticalBe($101))')
 gl_str_da_tell_me_field_grammar = 'RequestTopicInfo(SendReceive(tell-me), FieldName($30), GrammaticalIndicative($100), GrammaticalBe($101))'
 
-#tell me the entire area code
+#"tell me the entire area code"
 gl_da_tell_me_field_indexical = rp.parseDialogActFromString('RequestTopicInfo(SendReceive(tell-me), FieldName($30), Indexical($140))')
 gl_str_da_tell_me_field_indexical = 'RequestTopicInfo(SendReceive(tell-me), FieldName($30), Indexical($140))'
 
-#tell me the entire area code
+#"tell me the entire area code"
+#"what is the entire area code?"
+#"what is after the area code?"
 gl_da_tell_me_field_indexical_grammar = rp.parseDialogActFromString('RequestTopicInfo(SendReceive(tell-me), FieldName($30), Indexical($140), GrammaticalIndicative($100), GrammaticalBe($101))')
 gl_str_da_tell_me_field_indexical_grammar = 'RequestTopicInfo(SendReceive(tell-me), FieldName($30), Indexical($140), GrammaticalIndicative($100), GrammaticalBe($101))'
 
+#"what is after that?"
+gl_da_tell_me_indexical_indicative = rp.parseDialogActFromString('RequestTopicInfo(SendReceive($50), Indexical($140), GrammaticalIndicative($100))')
+gl_str_da_tell_me_indexical_indicative = 'RequestTopicInfo(SendReceive($50), Indexical($140), GrammaticalIndicative($100))'
 
 
 #a lone indexical like previous, eight, next, ...
 gl_da_inform_ti_indexical = rp.parseDialogActFromString('InformTopicInfo(Indexical($140))')
 gl_str_da_inform_ti_indexical = 'InformTopicInfo(Indexical($140))'
 
+
+#"there is nothing after the area code"
+gl_da_inform_ti_nothing_relative_to = rp.parseDialogActFromString('InformTopicInfo(nothing-relative-to, Indexical($140), FieldName($30))')
+gl_str_da_inform_ti_nothing_relative_to = 'InformTopicInfo(nothing-relative-to, Indexical($140), FieldName($30))'
+
+#"there is nothing after that"
+gl_da_inform_ti_nothing_relative_to_indicative = rp.parseDialogActFromString('InformTopicInfo(nothing-relative-to, Indexical($140))')
+gl_str_da_inform_ti_nothing_relative_to_indicative = 'InformTopicInfo(nothing-relative-to, Indexical($140))'
                                                            
 
 
@@ -2444,6 +2461,17 @@ def handleRequestTopicInfo_SendRole(da_list):
 
     clearPendingQuestions()
 
+    #handle tell me what is, which produces a RequestTopicInfo(SendReceive(tell-me)) that might be followed by a
+    #more specific RequestTopicInfo(SendReceive(tell-me) (one with arguments)
+    #In this case, strip off the first isolated RequestTopicInfo(SendReceive(tell-me))
+    if len(da_list) > 1:
+        if da_request_topic_info.getPrintString() == gl_str_da_tell_me:
+            da1 = da_list[1]
+            if da1.getPrintString().find(gl_str_da_tell_me_initial) == 0:
+                print 'stripped redundant RequestTopicInfo(SendRecieve(tell-me))'
+                da_list = da_list[1:]
+                da_request_topic_info = da_list[0]
+
     #handle 'User: what is your name'
     #rp.setTellMap(True)
     mapping = rp.recursivelyMapDialogRule(gl_da_what_is_your_name, da_request_topic_info)
@@ -2573,15 +2601,14 @@ def handleRequestTopicInfo_SendRole(da_list):
         return (ret_das, turn_topic)
 
     #handle 'User: what is the entire area code', etc.
-    if field_name != None:
-        if gl_agent.send_receive_role == 'send' and indexical == 'entire':
-            #If partner is asking for a chunk, reset belief in partner data_model for this segment as unknown
-            chunk_indices = gl_agent.self_dialog_model.data_model.data_indices.get(field_name)
-            for i in range(chunk_indices[0], chunk_indices[1] + 1):
-                data_index_pointer = gl_10_digit_index_list[i]
-                gl_agent.partner_dialog_model.data_model.setNthPhoneNumberDigit(data_index_pointer, '?', 1.0)
-            gl_agent.setControl('partner')      #a subtask driven by partner, they are taking control
-            return handleSendSegmentChunkNameAndData(field_name)
+    if field_name != None and indexical == 'entire':
+        #If partner is asking for a chunk, reset belief in partner data_model for this segment as unknown
+        chunk_indices = gl_agent.self_dialog_model.data_model.data_indices.get(field_name)
+        for i in range(chunk_indices[0], chunk_indices[1] + 1):
+            data_index_pointer = gl_10_digit_index_list[i]
+            gl_agent.partner_dialog_model.data_model.setNthPhoneNumberDigit(data_index_pointer, '?', 1.0)
+        gl_agent.setControl('partner')      #a subtask driven by partner, they are taking control
+        return handleSendSegmentChunkNameAndData(field_name)
 
     #handle 'what is the third digit?', 'what is the third digit of the exchange?'
     global gl_indexical_relative_map
@@ -2600,9 +2627,7 @@ def handleRequestTopicInfo_SendRole(da_list):
         turn_topic.data_index_list = [target_digit_i]
         return ( [digit_lf], turn_topic)
 
-
-    #handle 'what is the last digit?', 'what is the last digit of the exchange?'
-    global gl_indexical_relative_map
+    #handle "what is the last digit?", "what is the last digit of the exchange?"
     if field_name != None and (indexical == 'final' or indexical == 'last'):
         segment_indices = gl_agent.self_dialog_model.data_model.data_indices[field_name]
         segment_end_index = segment_indices[1]
@@ -2613,7 +2638,80 @@ def handleRequestTopicInfo_SendRole(da_list):
         turn_topic = TurnTopic()
         turn_topic.data_index_list = [segment_end_index]
         return ( [digit_lf], turn_topic)
-        
+
+    #handle "what is after the area code?"
+    if field_name != None and (indexical == 'previous' or indexical == 'next'):
+        print 'A1 '
+        rel = 0
+        if indexical == 'previous':
+            rel = -1
+        elif indexical == 'next':
+            rel = 1
+        if rel != 0:
+            adjacent_field = getFieldRelativeToField(field_name, rel)
+            print 'adjacent_field: ' + str(rel) + ' ' + str(adjacent_field)
+            if adjacent_field != None:
+                return handleSendSegmentChunkNameAndData(adjacent_field)
+            #nothing rel to field_name
+            str_da_nothing_rel_to = gl_str_da_inform_ti_nothing_relative_to.replace('$140', indexical)
+            str_da_nothing_rel_to = str_da_nothing_rel_to.replace('$30', field_name)
+            da_nothing_rel_to = rp.parseDialogActFromString(str_da_nothing_rel_to)
+            return ([ da_nothing_rel_to ], None)
+
+    #handle "what is after that?" 
+    mapping = rp.recursivelyMapDialogRule(gl_da_tell_me_indexical_indicative, da_request_topic_info)
+    if mapping != None:
+        tell_who = mapping.get('50')
+        indexical = mapping.get('140')
+        indicative = mapping.get('100')
+        if tell_who == 'tell-me':
+            print 'A2 '
+            rel = 0
+            if indexical == 'previous':
+                rel = -1
+            elif indexical == 'next':
+                rel = 1
+            if rel != 0:
+                last_self_turn_topic = gl_agent.self_dialog_model.getLastTurnTopic()
+                last_topic_field = last_self_turn_topic.field_name
+                print 'last_topic_field: ' + str(last_topic_field)
+                if last_topic_field == None:
+                    last_digit_list = getDataValuesForDataIndices(last_self_turn_topic.data_index_list)
+                    last_topic_field_list = findSegmentNameForDigitList(last_digit_list)
+                    if len(last_topic_field_list) > 0:
+                        last_topic_field = last_topic_field_list[0]
+                print 'last_topic_field: ' + str(last_topic_field)
+                #try to return previous or next with respect to topic field
+                if last_topic_field != None:
+                    adjacent_field = getFieldRelativeToField(last_topic_field, rel)
+                    print 'adjacent_field: ' + str(rel) + ' ' + str(adjacent_field)
+                    if adjacent_field != None:
+                        return handleSendSegmentChunkNameAndData(adjacent_field)
+                    #nothing rel to last_topic_field
+                    str_da_nothing_rel_to = gl_str_da_inform_ti_nothing_relative_to.replace('$140', indexical)
+                    str_da_nothing_rel_to = str_da_nothing_rel_to.replace('$30', last_topic_field)
+                    da_nothing_rel_to = rp.parseDialogActFromString(str_da_nothing_rel_to)
+                    return ([ da_nothing_rel_to ], None)
+
+                #if that fails, then return previous or next with respect to digit index
+                else:
+                    last_topic_index0 = last_self_turn_topic.data_index_list[0]
+                    if last_topic_index0 >= 0:
+                        target_digit_ith = last_topic_index0 + rel
+                        target_digit_i = getDigitIndexForFieldRelativeIndex('telephone-number', target_digit_ith)
+                        print 'target_digit_i: ' + str(target_digit_i)
+                        if target_digit_i < 0:
+                            str_da_nothing_rel_to_indicative = gl_str_da_inform_ti_nothing_relative_to_indicative.replace('$140', indexical)
+                            da_nothing_rel_to_indicative = rp.parseDialogActFromString(str_da_nothing_rel_to_indicative)
+                            return ([ da_nothing_rel_to_indicative ], None)
+                        digit_belief = gl_agent.self_dialog_model.data_model.data_beliefs[target_digit_i]
+                        data_value_tuple = digit_belief.getHighestConfidenceValue()
+                        digit_value = data_value_tuple[0]
+                        digit_lf = synthesizeLogicalFormForDigitOrDigitSequence([digit_value])
+                        turn_topic = TurnTopic()
+                        turn_topic.data_index_list = [target_digit_i]
+                        return ( [digit_lf], turn_topic)
+
                     
     #handle 'User: take this phone number'
     mapping = rp.recursivelyMapDialogRule(gl_da_tell_you_phone_number, da_request_topic_info)
@@ -2621,31 +2719,6 @@ def handleRequestTopicInfo_SendRole(da_list):
         gl_agent.setRole('receive')
         gl_agent.setControl('partner')      #partner will drive this task
         return ([gl_da_affirmation_okay, gl_da_self_ready], None)    #XX need to fill in the turn_topic
-
-
-    #handled below
-    #handle "is/was the area code six five zero"
-    #gl_str_da_request_confirm_field = 'RequestTopicInfo(request-confirmation, Tense($100), FieldName($30))'
-    #mapping = rp.recursivelyMapDialogRule(gl_da_request_confirm_field, da_request_topic_info)
-    #if mapping != None:
-    #    field_name = mapping.get('30')
-    #    data_value_list = collectDataValuesFromDialogActs(da_list)
-    #    correct_data_value_list = getDataValueListForField(gl_agent.self_dialog_model.data_model, field_name)
-    #    str_da_say_field_is = gl_str_da_say_field_is.replace('$30', field_name)
-    #    da_say_field_is = rp.parseDialogActFromString(str_da_say_field_is)
-    #    digit_sequence_lf = synthesizeLogicalFormForDigitOrDigitSequence(correct_data_value_list)
-    #    print 'correct_data_value_list for : ' + field_name + ' : ' + str(correct_data_value_list)
-    #    print 'data_value_list: ' + str(data_value_list)
-    #    if data_value_list == correct_data_value_list:
-    #        print ' returning affirmation yes ' + str(correct_data_value_list)
-    #        res = [ gl_da_affirmation_yes, da_say_field_is, digit_sequence_lf ]
-    #        return res
-    #    else:
-    #        print ' returning correction negation ' + str(correct_data_value_list)
-    #        res = [ gl_da_correction_dm_negation, da_say_field_is, digit_sequence_lf ]
-    #    return res
-
-    #print 'NNN'
 
 
     #handle "is/was six five zero the area code"
@@ -3126,66 +3199,6 @@ def handleRequestDialogManagement(da_list):
             gl_agent.setControl('partner')    #user takes control to gain clarification
             return (last_self_utterance_das_stripped, None)   #XX need to fill in the turn_topic?
 
-    #handle "what comes after the area code" with something else
-
-
-    #handle "what comes after that" 
-    if str_da_request_dm == gl_str_da_what and len(da_list) > 1:
-        print 'A1 '
-        for da_i in range(1, len(da_list)):
-            da = da_list[da_i]
-            print ' da: ' + da.getPrintString()
-            #any indexical like before, after
-            mapping = rp.recursivelyMapDialogRule(gl_da_inform_ti_indexical, da)
-            print 'mapping: ' + str(mapping)
-            if mapping != None:
-                indexical = mapping.get('140')
-                print 'indexical: ' + str(indexical)
-                #handle what is before that?
-                rel = 0
-                if indexical == 'previous':
-                    rel = -1
-                elif indexical == 'next':
-                    rel = 1
-                if rel != 0:
-                    last_self_turn_topic = gl_agent.self_dialog_model.getLastTurnTopic()
-                    last_topic_field = last_self_turn_topic.field_name
-                    print 'last_topic_field: ' + str(last_topic_field)
-                    if last_topic_field == None:
-                        last_digit_list = getDataValuesForDataIndices(last_self_turn_topic.data_index_list)
-                        last_topic_field_list = findSegmentNameForDigitList(last_digit_list)
-                        if len(last_topic_field_list) > 0:
-                            last_topic_field = last_topic_field_list[0]
-                    print 'last_topic_field: ' + str(last_topic_field)
-                    if last_topic_field != None:
-                        adjacent_field = getFieldRelativeToField(last_topic_field, rel)
-                        print 'adjacent_field: ' + str(rel) + ' ' + str(adjacent_field)
-                        if adjacent_field != None:
-                            return handleSendSegmentChunkNameAndData(adjacent_field)
-                    else:
-                        last_topic_index0 = last_self_turn_topic.data_index_list[0]
-                        if last_topic_index0 > 0:
-                            target_digit_ith = last_topic_index0 + rel
-                            target_digit_i = getDigitIndexForFieldRelativeIndex('telephone-number', target_digit_ith)
-                            print 'target_digit_i: ' + str(target_digit_i)
-                            if target_digit_i < 0:
-                                return (None, None)
-                            digit_belief = gl_agent.self_dialog_model.data_model.data_beliefs[target_digit_i]
-                            data_value_tuple = digit_belief.getHighestConfidenceValue()
-                            digit_value = data_value_tuple[0]
-                            digit_lf = synthesizeLogicalFormForDigitOrDigitSequence([digit_value])
-                            turn_topic = TurnTopic()
-                            turn_topic.data_index_list = [target_digit_i]
-                            return ( [digit_lf], turn_topic)
-
-    #handle "what?"      not a pronoun ref so just repeat the last utterance
-    if str_da_request_dm == gl_str_da_what:
-        last_self_utterance_tup = fetchLastUtteranceFromTurnHistory('self')
-        if last_self_utterance_tup != None:
-            last_self_utterance_das = last_self_utterance_tup[2]
-            last_self_utterance_das_stripped = possiblyStripLeadingDialogAct(last_self_utterance_das, 'confirmation-or-correction')
-            gl_agent.setControl('partner')    #user takes control to gain clarification
-            return (last_self_utterance_das_stripped, None)  #XX need to fill in the turn_topic?
 
     #handle what did you say?  no pronoun ref, so just repeat the last utterance
     #if str_da_request_dm == gl_str_da_misalignment_self_hearing_or_understanding:
@@ -3283,13 +3296,34 @@ def handleRequestDialogManagement(da_list):
         gl_agent.setControl('partner')    #user takes control 
         return handleRequestTopicInfo_RequestConfirmation(da_list)
 
+
+
+
+    #handle "what?"      not a pronoun ref so just repeat the last utterance, but only do so if there were not too many
+    #other dialog acts stacked up, which means that we didn't understand what was being asked
+    global gl_num_dialog_acts_following_what_indicating_confusion
+    if str_da_request_dm == gl_str_da_what:
+        if len(da_list) < gl_num_dialog_acts_following_what_indicating_confusion:
+            last_self_utterance_tup = fetchLastUtteranceFromTurnHistory('self')
+            if last_self_utterance_tup != None:
+                last_self_utterance_das = last_self_utterance_tup[2]
+                last_self_utterance_das_stripped = possiblyStripLeadingDialogAct(last_self_utterance_das, 'confirmation-or-correction')
+                gl_agent.setControl('partner')    #user takes control to gain clarification
+                return (last_self_utterance_das_stripped, None)  #XX need to fill in the turn_topic?
+        #too many dialog acts after what?, so we're confused
+        else:
+            ret_das = [ gl_da_i_heard_you_say ]
+            ret_das.extend(da_list)
+            ret_das.append(gl_da_misalignment_self_hearing_or_understanding)
+            return ( ret_das, None )
+
     print 'handleRequestDialogManagement dropped through' 
     for da in da_list:
         print '    ' + da.getPrintString()
 
     #handle 
 
-
+gl_num_dialog_acts_following_what_indicating_confusion = 2
 
 
 #Returns a tuple (da_list, turn_topic) if the input is about readiness, (None, None) if not
