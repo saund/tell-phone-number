@@ -39,6 +39,12 @@
 #  ->  generator only
 # <->  both interpretation and generator
 #
+#**                                                                 **
+#** NOTE: The text part of the Right Hand Side must be in lowercase **
+#**                                                                 **
+#In other words, write   <-> i would like to
+#not
+#In other words, write   <-> I would like to
 #
 #This version, tell-phone-number-lf-rules-2.txt, attempts to align with
 #the document, "Dialog Management for Data Communication", and with the
@@ -206,6 +212,8 @@ InformTopicInfo(ItemValue(DigitSequence($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
 #InformTopicInfo(ItemType(digit)) <-> number
 #InformTopicInfo(ItemType(area-code)) <-> area code
 #InformTopicInfo(ItemType(exchange)) <-> exchange
+#InformTopicInfo(ItemType(exchange)) <- middle numbers
+#InformTopicInfo(ItemType(exchange)) <- middle digits
 #InformTopicInfo(ItemType(exchange)) <-> prefix
 #InformTopicInfo(ItemType(line-number)) <-> line number
 #InformTopicInfo(ItemType(line-number)) <-> last four digits
@@ -285,6 +293,9 @@ FieldNameCat[telephone-number] <-> telephone number
 FieldNameCat[area-code] <-> area code
 FieldNameCat[exchange] <- prefix
 FieldNameCat[exchange] <-> exchange
+FieldNameCat[exchange] <- middle numbers
+FieldNameCat[exchange] <- middle digits
+FieldNameCat[exchange] <- middle part
 FieldNameCat[line-number] <-> line number
 FieldNameCat[line-number] <- last four digits
 FieldNameCat[line-number] <- last four numbers
@@ -366,11 +377,11 @@ RequestTopicInfo(SendReceive(tell-me), ItemTypeName(agent-name-agent-perspective
 
 
 #Role & Interpersonal Relation: belief
-InformRoleInterpersonal(user-belief-yes) <- I believe
-InformRoleInterpersonal(user-belief-yes) <- I think
-InformRoleInterpersonal(user-belief-yes) <-> I think
+InformRoleInterpersonal(user-belief-yes) <- i believe
+InformRoleInterpersonal(user-belief-yes) <- i think
+InformRoleInterpersonal(user-belief-yes) <-> i think
 
-InformRoleInterpersonal(agent-belief-yes) -> I believe
+InformRoleInterpersonal(agent-belief-yes) -> i believe
 
 InformRoleInterpersonal(user-belief-no) <- don't think so
 InformRoleInterpersonal(user-belief-no) <- i don't think
@@ -381,8 +392,8 @@ InformRoleInterpersonal(user-belief-no) <- i don't believe so
 InformRoleInterpersonal(user-belief-unsure) <- i'm not sure
 InformRoleInterpersonal(user-belief-unsure) <- i am not sure
 InformRoleInterpersonal(user-belief-unsure) <-> not sure
-InformRoleInterpersonal(user-belief-unsure) <- I don't know about that
-InformRoleInterpersonal(user-belief-unsure) <- I don't know
+InformRoleInterpersonal(user-belief-unsure) <- i don't know about that
+InformRoleInterpersonal(user-belief-unsure) <- i don't know
 InformRoleInterpersonal(user-belief-unsure) <- maybe
 
 InformRoleInterpersonal(thank-you) <-> thank you
@@ -427,6 +438,8 @@ IndexicalCat[previous] <- previous
 IndexicalCat[next] <-> after
 IndexicalCat[next] <- next
 IndexicalCat[next] <- then
+IndexicalCat[middle] <-> middle
+IndexicalCat[between] <-> between
 IndexicalCat[remainder] <-> rest
 IndexicalCat[remainder] <- remainder
 IndexicalCat[entire] <-> entire
@@ -469,15 +482,16 @@ InformDialogManagement(Alignment()) <-> fourth time
 
 
 
-CommandCat[tell-me] <- please tell me
-CommandCat[tell-me] <-> tell me
-CommandCat[tell-me] <-> tell me what is 
-CommandCat[tell-me] <-> tell me what comes
-CommandCat[tell-me] <-> please tell me what is 
-CommandCat[tell-me] <-> please tell me what comes
+CommandCat[tell-me] <- tell me
+CommandCat[tell-me] <-> please tell me
+CommandCat[tell-me] <- tell me what is 
+CommandCat[tell-me] <- tell me what comes
+CommandCat[tell-me] <- please tell me what is 
+CommandCat[tell-me] <- please tell me what comes
 CommandCat[tell-me] <- give me
 CommandCat[tell-me] <- provide me
 CommandCat[tell-me] <- what is
+CommandCat[tell-me] <- what are
 CommandCat[tell-me] <- what comes
 CommandCat[tell-me] <- is what
 CommandCat[tell-me] <- what's
@@ -610,20 +624,20 @@ RequestTopicInfo(SendReceive($50), Indexical($140), GrammaticalIndicative($100))
 
 
 #I'd like to send/receive X
-RequestTopicInfo(SendReceive($50), ItemTypeName($20)) <-> I would like to {CommandCat[$50]} {ItemTypeNameCat[$20]}
-RequestTopicInfo(SendReceive($50), ItemTypeName($20)) <- I'd like to {CommandCat[$50]} {ItemTypeNameCat[$20]}
-RequestTopicInfo(SendReceive($50), ItemTypeName($20)) <-> I would like to {CommandCat[$50]} {ItemTypeNameCat[$20]}
-RequestTopicInfo(SendReceive($50), ItemTypeName($20)) <- I'd like to {CommandCat[$50]} {ItemTypeNameCat[$20]}
+RequestTopicInfo(SendReceive($50), ItemTypeName($20)) <-> i would like to {CommandCat[$50]} {ItemTypeNameCat[$20]}
+RequestTopicInfo(SendReceive($50), ItemTypeName($20)) <- i'd like to {CommandCat[$50]} {ItemTypeNameCat[$20]}
+RequestTopicInfo(SendReceive($50), ItemTypeName($20)) <-> i would like to {CommandCat[$50]} {ItemTypeNameCat[$20]}
+RequestTopicInfo(SendReceive($50), ItemTypeName($20)) <- i'd like to {CommandCat[$50]} {ItemTypeNameCat[$20]}
 
-RequestTopicInfo(SendReceive($50), ItemTypeChar($25)) <-> I would like to {CommandCat[$50]} {ItemTypeCharCat[$25]}
-RequestTopicInfo(SendReceive($50), ItemTypeChar($25)) <- I'd like to {CommandCat[$50]} {ItemTypeCharCat[$25]}
-RequestTopicInfo(SendReceive($50), ItemTypeChar($25)) <-> I would like to {CommandCat[$50]} {ItemTypeCharCat[$25]}
-RequestTopicInfo(SendReceive($50), ItemTypeChar($25)) <- I'd like to {CommandCat[$50]} {ItemTypeCharCat[$25]}
+RequestTopicInfo(SendReceive($50), ItemTypeChar($25)) <-> i would like to {CommandCat[$50]} {ItemTypeCharCat[$25]}
+RequestTopicInfo(SendReceive($50), ItemTypeChar($25)) <- i'd like to {CommandCat[$50]} {ItemTypeCharCat[$25]}
+RequestTopicInfo(SendReceive($50), ItemTypeChar($25)) <-> i would like to {CommandCat[$50]} {ItemTypeCharCat[$25]}
+RequestTopicInfo(SendReceive($50), ItemTypeChar($25)) <- i'd like to {CommandCat[$50]} {ItemTypeCharCat[$25]}
 
-RequestTopicInfo(SendReceive($50), FieldName($30)) <-> I would like to {CommandCat[$50]} {FieldNameCat[$30]}
-RequestTopicInfo(SendReceive($50), FieldName($30)) <- I'd like to {CommandCat[$50]} {FieldNameCat[$30]}
-RequestTopicInfo(SendReceive($50), FieldName($30)) <-> I would like to {CommandCat[$50]} {FieldNameCat[$30]}
-RequestTopicInfo(SendReceive($50), FieldName($30)) <- I'd like to {CommandCat[$50]} {FieldNameCat[$30]}
+RequestTopicInfo(SendReceive($50), FieldName($30)) <-> i would like to {CommandCat[$50]} {FieldNameCat[$30]}
+RequestTopicInfo(SendReceive($50), FieldName($30)) <- i'd like to {CommandCat[$50]} {FieldNameCat[$30]}
+RequestTopicInfo(SendReceive($50), FieldName($30)) <-> i would like to {CommandCat[$50]} {FieldNameCat[$30]}
+RequestTopicInfo(SendReceive($50), FieldName($30)) <- i'd like to {CommandCat[$50]} {FieldNameCat[$30]}
 
 
 
@@ -771,9 +785,9 @@ RequestDialogManagement(partner-desire, send, telephone-number) <-> Would you li
 
 RequestDialogManagement(partner-desire, receive, telephone-number) <-> Would you like to get a phone number from me?
 
-InformDialogManagement(self-capability, not-able, receive, telephone-number) <-> I am not yet able to take a telephone number from you.
+InformDialogManagement(self-capability, not-able, receive, telephone-number) <-> i am not yet able to take a telephone number from you.
 
-InformDialogManagement(self-capability, able, send, telephone-number) <-> I can tell you a telephone number.
+InformDialogManagement(self-capability, able, send, telephone-number) <-> i can tell you a telephone number.
 
 
 
@@ -857,6 +871,19 @@ InformDialogManagement(Knowledge(possess, PersonRef(self)), Tense(present), Gram
                                i {KnowledgeCat[have-present]} {GrammaticalIndicativeCat[$100]} already
 InformDialogManagement(Knowledge(possess, PersonRef(self)), Tense(present), GrammaticalIndicative($100)) <- \
                                i already {KnowledgeCat[have-present]} {GrammaticalIndicativeCat[$100]} 
+
+#"i knew that"
+InformDialogManagement(Knowledge(possess, PersonRef(self)), Tense(past), GrammaticalIndicative($100)) <-> \
+                               i {KnowledgeCat[have-past]} {GrammaticalIndicativeCat[$100]}
+InformDialogManagement(Knowledge(possess, PersonRef(self)), Tense(past), GrammaticalIndicative($100)) <- \
+                               i {KnowledgeCat[have-past]} {GrammaticalIndicativeCat[$100]} already
+InformDialogManagement(Knowledge(possess, PersonRef(self)), Tense(past), GrammaticalIndicative($100)) <- \
+                               i already {KnowledgeCat[have-past]} {GrammaticalIndicativeCat[$100]} 
+
+
+#"i wanted to make sure"
+InformDialogManagement(Desire(self), Knowledge(self, high-confidence)) <-> i wanted to make sure you got it
+
 
 
 
@@ -1007,18 +1034,18 @@ RequestDialogManagement(self-not-readiness) <- please wait
 RequestDialogManagement(self-not-readiness) <- wait
 RequestDialogManagement(self-not-readiness) <- wait please 
 RequestDialogManagement(self-not-readiness) <- wait a minute
-RequestDialogManagement(self-not-readiness) <- wait a minute while I 
+RequestDialogManagement(self-not-readiness) <- wait a minute while i 
 RequestDialogManagement(self-not-readiness) <- wait a moment
-RequestDialogManagement(self-not-readiness) <- wait a moment while I 
+RequestDialogManagement(self-not-readiness) <- wait a moment while i 
 RequestDialogManagement(self-not-readiness) <- wait a second
-RequestDialogManagement(self-not-readiness) <- wait a second while I 
+RequestDialogManagement(self-not-readiness) <- wait a second while i 
 RequestDialogManagement(self-not-readiness) <- hold on
 RequestDialogManagement(self-not-readiness) <- hold on a second
-RequestDialogManagement(self-not-readiness) <- hold on a second while I
+RequestDialogManagement(self-not-readiness) <- hold on a second while i
 RequestDialogManagement(self-not-readiness) <- hold on a minute
-RequestDialogManagement(self-not-readiness) <- hold on a minute while I
+RequestDialogManagement(self-not-readiness) <- hold on a minute while i
 RequestDialogManagement(self-not-readiness) <- hold on a moment
-RequestDialogManagement(self-not-readiness) <- hold on a moment while I
+RequestDialogManagement(self-not-readiness) <- hold on a moment while i
 
 InformDialogManagement(confirm-partner-not-ready) <-> i'll wait
 InformDialogManagement(confirm-partner-not-ready) <- i will wait
@@ -1047,8 +1074,8 @@ RequestDialogManagement(what-are-you-waiting-for) <-> what are you waiting for
 
 
 
-InformDialogManagement(repeat-intention) <-> I'll repeat that.
-InformDialogManagement(repeat-intention) <- I will repeat that.
+InformDialogManagement(repeat-intention) <-> i'll repeat that.
+InformDialogManagement(repeat-intention) <- i will repeat that.
 
 
 
@@ -1113,7 +1140,20 @@ InformDialogManagement(misalignment-self-hearing-or-understanding, ItemTypeChar(
 InformDialogManagement(misalignment-partner-hearing-or-understanding) <-> you did not get that
 InformDialogManagement(misalignment-partner-hearing-or-understanding) <-> you didn't get that
 InformDialogManagement(misalignment-partner-hearing-or-understanding) <-> you did not hear 
-InformDialogManagement(misalignment-parnter-hearing-or-understanding) <-> you didn't hear 
+InformDialogManagement(misalignment-partner-hearing-or-understanding) <-> you didn't hear 
+
+
+
+InformDialogManagement(partner-confirm-partner-hearing-or-understanding) <-> i did get that
+InformDialogManagement(partner-confirm-partner-hearing-or-understanding) <- i did get it
+InformDialogManagement(partner-confirm-hearing-or-understanding) <- i did understand that
+InformDialogManagement(partner-confirm-hearing-or-understanding) <- i did understand it
+InformDialogManagement(partner-confirm-hearing-or-understanding) <- i heard you 
+InformDialogManagement(partner-confirm-hearing-or-understanding) <- i got that
+InformDialogManagement(partner-confirm-hearing-or-understanding) <- i got it
+
+
+
 
 #Request repeat of last utterance
 #This should also include 'what' but 'what' is so multi-purpose it gets its own predicate
@@ -1386,7 +1426,7 @@ ActionCat[send-info-past] <- told
 
 
 #"I heard you say"
-InformDialogManagement(Inform(partner, self), Tense(past)) <-> I heard you say,
+InformDialogManagement(Inform(partner, self), Tense(past)) <-> i heard you say,
 
 InformDialogManagement(Inform(partner, self), Tense(past)) <- you told me
 InformDialogManagement(Inform(partner, self), Tense(past), Grammatical(indicative)) <- you told me that 

@@ -1323,6 +1323,32 @@ Output:
 
 -------
 
+2016/07/04
+
+Output: Would you like to send or receive a phone number?
+Input: what is the phone number
+Output: area code six five zero
+Input: what is the last number of the exchange
+Output: seven
+Input: okay
+Output: the area code is six five zero
+Input: you told me that already
+Output: sorry
+Input: go on
+Output: 
+Input: what next
+Output: I heard you say, what after . sorry, i did not understand that
+Input: what is the rest of the phone number
+Output: 
+Input: quit
+Output: 
+
+
+-------
+
+
+
+
 *Problems 2016/06/30*
 
 tell me the rest
@@ -1354,6 +1380,15 @@ i heard the zero
 okay keep going with the rest
 
 
+what are the middle numbers
+what is the middle part
+what is the last part
+
+i know dumb computer
+
+receive
+
+
 
 
 -------
@@ -1375,6 +1410,7 @@ control is handed back to TIS by Confirmation affirmation
 when control is handed back to TIS, then they should
 include an acknowledgement of either a "then" or else stating the
 full topic as well as the topic data
+
 
 
 

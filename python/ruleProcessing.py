@@ -314,6 +314,7 @@ def parseRuleLHSRHS(rule_text):
     lhs = lhs.strip()
     rhs = rule_text[max_index+1:]
     rhs = rhs.strip()
+    #rhs = rhs.lower()  Cannot put lower here because that wipes out casing of Utterance Categories
     if both_index < big_number:
         return (lhs, rhs, '<->')
     elif leftarrow_index < big_number:
