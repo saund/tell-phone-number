@@ -2160,7 +2160,6 @@ def handleInformTopicInfo_SendRole(da_list):
             last_self_turn_topic = gl_agent.self_dialog_model.getLastTurnTopic()
             print 'last_self_turn_topic: ' + last_self_turn_topic.getPrintString()
             (ret_das, turn_topic) = prepareNextDataChunkToContinueSegment(digit_i)
-            #C1
             if ret_das != None:
                 updateBeliefInPartnerDataStateBasedOnDataValuesInDialogActs(ret_das, turn_topic, gl_confidence_in_partner_belief_for_tell_only)
                 return (ret_das, turn_topic)
@@ -2169,7 +2168,6 @@ def handleInformTopicInfo_SendRole(da_list):
             #If not, we'll need to state the field name.
             print 'HITI_SR reverting to prepareNextDataChunkBasedOnDataBeliefComparisonAndIndexPointers()'
             ( data_ret_das, turn_topic ) = prepareNextDataChunkBasedOnDataBeliefComparisonAndIndexPointers(True)
-            #C2
             updateBeliefInPartnerDataStateBasedOnDataValuesInDialogActs(data_ret_das, turn_topic, gl_confidence_in_partner_belief_for_tell_only)
             current_field_subsequent_to_previous_p = False
             print 'turn_topic.field_name: ' + str(turn_topic.field_name) + '  last_self_turn_topic.field_name: ' + str(last_self_turn_topic.field_name)
@@ -2218,7 +2216,6 @@ def handleInformTopicInfo_SendRole(da_list):
     (segment_name, start_index_pointer, chunk_size) = findSegmentNameAndChunkSizeForDataIndex(last_self_turn_topic_first_data_index)
     print 'last_turn_topic_segment: ' + str(segment_name)
     (repeat_ret_das, turn_topic) = handleSendSegmentChunkNameAndData(segment_name)
-    #C3
     updateBeliefInPartnerDataStateBasedOnDataValuesInDialogActs(repeat_ret_das, turn_topic, gl_confidence_in_partner_belief_for_tell_only)
     ret_das.extend(repeat_ret_das)
     return (ret_das, turn_topic) 
@@ -2431,9 +2428,8 @@ def handleInformDialogManagement_SendRole(da_list):
 
         updateBeliefInPartnerDataStateForDataField(field_name, gl_confidence_for_confirm_affirmation_of_data_value)
 
-        printAgentBeliefs()
+        #printAgentBeliefs()
         (data_chunk_das, turn_topic) = prepareNextDataChunkBasedOnDataBeliefComparisonAndIndexPointers(True)
-        #C4
         updateBeliefInPartnerDataStateBasedOnDataValuesInDialogActs(data_chunk_das, turn_topic, gl_confidence_in_partner_belief_for_tell_only)
         ret_das = [ gl_da_affirmation_okay]
         ret_das.extend(data_chunk_das)
@@ -2474,8 +2470,8 @@ def handleInformDialogManagement_SendRole(da_list):
         mapping = rp.recursivelyMapDialogRule(gl_da_inform_dm_past_indicative, da_inform_dm)
     if mapping != None:
         last_self_turn_topic = gl_agent.self_dialog_model.getLastTurnTopic()
-        print 'I know that already'
-        printAgentBeliefs(False)
+        #print 'I know that already'
+        #printAgentBeliefs(False)
         at_least_one_digit_low_confidence_p = False
         for digit_i in last_self_turn_topic.data_index_list:
             self_digit_belief = gl_agent.self_dialog_model.data_model.data_beliefs[digit_i]
@@ -2483,7 +2479,7 @@ def handleInformDialogManagement_SendRole(da_list):
             correct_digit_i_value = self_data_value_tuple[0]
             partner_digit_i_belief = gl_agent.partner_dialog_model.data_model.data_beliefs[digit_i]
             partner_correct_value_confidence = partner_digit_i_belief.getConfidenceInValue(correct_digit_i_value)
-            print 'correct_digit_i_value: ' + str(correct_digit_i_value) + ' partner_digit_i_belief: ' + partner_digit_i_belief.getPrintString() + ' partner_correct_value_confidence: ' + str(partner_correct_value_confidence)
+            #print 'correct_digit_i_value: ' + str(correct_digit_i_value) + ' partner_digit_i_belief: ' + partner_digit_i_belief.getPrintString() + ' partner_correct_value_confidence: ' + str(partner_correct_value_confidence)
             if partner_correct_value_confidence > 0 and partner_correct_value_confidence < gl_confidence_in_partner_belief_to_double_check:
                 at_least_one_digit_low_confidence_p = True
                 break
@@ -3508,7 +3504,6 @@ def handleRequestDialogManagement(da_list):
         last_data_index = turn_topic_data_index_list[len(turn_topic_data_index_list)-1]
         next_data_index = last_data_index + 1
         (ret_das, turn_topic) = prepareNextDataChunk(next_data_index)
-        #C5
         updateBeliefInPartnerDataStateBasedOnDataValuesInDialogActs(ret_das, turn_topic, gl_confidence_in_partner_belief_for_tell_only)
         return (ret_das, turn_topic)
         
@@ -3964,7 +3959,6 @@ def handleConfirmDialogManagement_SendRole(da_list, force_declare_segment_name_p
         last_data_index = turn_topic_data_index_list[len(turn_topic_data_index_list)-1]
         next_data_index = last_data_index + 1
         (ret_das, turn_topic) = prepareNextDataChunk(next_data_index)
-        #C5
         updateBeliefInPartnerDataStateBasedOnDataValuesInDialogActs(ret_das, turn_topic, gl_confidence_in_partner_belief_for_tell_only)
         return (ret_das, turn_topic)
 
@@ -3978,7 +3972,6 @@ def handleConfirmDialogManagement_SendRole(da_list, force_declare_segment_name_p
     if ret_das != None:
         updateBeliefInPartnerDataStateBasedOnDataValuesInDialogActs(ret_das, turn_topic, gl_confidence_in_partner_belief_for_tell_only)
         return (ret_das, turn_topic)
-    #C6
 
     #Only regain control when done with the segment we were dealing with
     #$$XX This needs a better idea of when to declare topic index
@@ -3992,7 +3985,6 @@ def handleConfirmDialogManagement_SendRole(da_list, force_declare_segment_name_p
     #If not, we'll need to state the field name.
     print 'CDM_SR calling prepareNextDataChunkBasedOnDataBeliefComparisonAndIndexPointers()'
     ( data_ret_das, turn_topic ) = prepareNextDataChunkBasedOnDataBeliefComparisonAndIndexPointers(True)
-    #C7
     updateBeliefInPartnerDataStateBasedOnDataValuesInDialogActs(data_ret_das, turn_topic, gl_confidence_in_partner_belief_for_tell_only)
     current_field_subsequent_to_previous_p = False
     print 'turn_topic.field_name: ' + str(turn_topic.field_name) + '  last_self_turn_topic.field_name: ' + str(last_self_turn_topic.field_name)
@@ -4192,16 +4184,16 @@ def possiblyAdjustChunkSize(target_chunk_size):
     (max_value, max_conf), (second_max_value, second_max_conf) =\
                                gl_agent.partner_dialog_model.protocol_chunk_size.getTwoMostDominantValues()
 
-    print str(((max_value, max_conf), (second_max_value, second_max_conf)))
+    #print str(((max_value, max_conf), (second_max_value, second_max_conf)))
     if target_chunk_size < max_value and target_chunk_size < second_max_value:
-        print '...setting to ' + str(target_chunk_size)
+        #print '...setting to ' + str(target_chunk_size)
         gl_agent.partner_dialog_model.protocol_chunk_size.setAllConfidenceInOne(target_chunk_size)
         gl_agent.self_dialog_model.protocol_chunk_size.setAllConfidenceInOne(target_chunk_size)
 
     #hardcode phone number area code and exchange chunk size of 3
     elif target_chunk_size == 3 or target_chunk_size == 4:
     #elif target_chunk_size > max_value and max_value < 3:
-        print '...setting to 3/4'
+        #print '...setting to 3/4'
         gl_agent.partner_dialog_model.protocol_chunk_size.setAllConfidenceInTwo(3, 4)
         gl_agent.self_dialog_model.protocol_chunk_size.setAllConfidenceInTwo(3, 4)
     else:

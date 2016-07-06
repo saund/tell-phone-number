@@ -526,6 +526,7 @@ CommandCat[tell-you] <- take down this
 
 CommandCat[stop-process] <- computer stop
 CommandCat[stop-process] <- stop computer
+CommandCat[stop-process] <- signing off 
 CommandCat[stop-process] <- stop process
 CommandCat[stop-process] <- stop processing
 CommandCat[stop-process] <- stop now
@@ -939,16 +940,6 @@ InformDialogManagement(Knowledge(possess, PersonRef(self)), Tense(past), Grammat
 InformDialogManagement(Knowledge(possess, PersonRef(self)), Tense(past), GrammaticalIndicative(definite-far)) <- i heard you 
 InformDialogManagement(Knowledge(possess, PersonRef(self)), Tense(past), GrammaticalIndicative(definite-far)) <- i got that
 InformDialogManagement(Knowledge(possess, PersonRef(self)), Tense(past), GrammaticalIndicative(definite-far)) <- i got it
-
-
-#InformDialogManagement(partner-confirm-partner-hearing-or-understanding) <-> 
-#InformDialogManagement(partner-confirm-partner-hearing-or-understanding) <- 
-#InformDialogManagement(partner-confirm-hearing-or-understanding) <- 
-#InformDialogManagement(partner-confirm-hearing-or-understanding) <- 
-#InformDialogManagement(partner-confirm-hearing-or-understanding) <- 
-#InformDialogManagement(partner-confirm-hearing-or-understanding) <- 
-#InformDialogManagement(partner-confirm-hearing-or-understanding) <- 
-
 
 
 
