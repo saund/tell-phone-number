@@ -1241,6 +1241,8 @@ def setTellMap(val):
     global gl_tell_map
     gl_tell_map = val
 
+
+
 #recursively checks all predicates and argugments of the template rule_da against the 
 #generated DialogAct gen_da.  
 #Fills in an argument map as it goes, leaving off the dollar signs.
