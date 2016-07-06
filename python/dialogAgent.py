@@ -23,9 +23,11 @@ import sys
 import copy
 import re
 import os
+import os.path
 import math
 import thread
 import time
+from os.path import expanduser
 import ruleProcessing as rp
 from gtts import gTTS
 
@@ -5465,10 +5467,10 @@ def extractItemsFromCommaSeparatedListString(str_comma_sep_items):
     return str_item_list
     
 
-
-gl_transcript_filepath = 'C:/temp/da-transcript.text'
+gl_home = expanduser("~")
+gl_transcript_filename = 'da-transcript.text'
+gl_transcript_filepath = os.path.join(gl_home, gl_transcript_filename)
 gl_transcript_file = None
-
 
 def openTranscriptFile(filepath=gl_transcript_filepath):
     global gl_transcript_file

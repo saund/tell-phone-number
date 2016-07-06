@@ -1,0 +1,68 @@
+
+
+How to run the tell-phone-number program.
+July 6, 2016
+
+
+The program runs either silently with a keyboard, or through a microphone and speaker.
+
+
+1. Download the git project, 
+   https://github.com/saund/tell-phone-number, to a directory, e.g.
+   C:\git-projects\dialogue\tell-phone-number
+
+2. Make sure you have python 2.7 installed on your computer.
+
+3. cd to tell-phone-number/python
+
+4. > python
+
+5. 
+>>> import dialogAgent as da
+
+6. To run silently in keyboard mode:
+
+>>> da.loopDialog(True)
+
+   To run with a microphone and speaker:
+
+>>> da.loopDialog()
+
+
+The program prints out a lot of debugging and diagnosis output to the screen.
+
+7. In keyboard mode, read the program's output as "gen:..."
+
+example:
+
+gen: Would you like to send or receive a phone number?
+
+
+8. Right now, the program is capable only of sending a telephone number to the user.
+You can start by typing or saying,
+"Tell me the telephone number"
+
+
+9. To quit the program, 
+-type "quit" at the keyboard
+
+>>> quit
+
+or if in mic/speaker mode,
+-say "stop processing"
+     "stop computer"
+     "stop listening"
+     "stop now"
+
+To exit python, type
+quit()
+
+
+When you quit the running program, a transcript file, "transcript-da.text", is written to your home directory.
+
+
+
+
+
+
+
