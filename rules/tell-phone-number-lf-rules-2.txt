@@ -395,6 +395,7 @@ IndexicalCat[entire] <- complete
 InformTopicInfo(digit, IndexicalPosition($1)) <- {IndexicalCat[$1]} number
 InformTopicInfo(digit, IndexicalPosition($1)) <-> {IndexicalCat[$1]} digit
 
+#an isolated indexical, e.g. "then", "next"
 InformTopicInfo(Indexical($140)) <-> {IndexicalCat[$140]}
 
 
@@ -508,9 +509,13 @@ RequestTopicInfo(SendReceive(tell-me), ItemTypeName($20), GrammaticalIndicative(
 #what is the X
 RequestTopicInfo(SendReceive(tell-me), ItemTypeChar($25), GrammaticalIndicative($100), GrammaticalBe($101)) <- \
        what {GrammaticalBeCat[$101]}{GrammaticalIndicativeCat[$100]}{ItemTypeCharCat[$25]}
+RequestTopicInfo(SendReceive(tell-me), ItemTypeChar($25), GrammaticalIndicative(definite), GrammaticalBe(present-singular)) <- \
+       what's the {ItemTypeCharCat[$25]}
 
 RequestTopicInfo(SendReceive(tell-me), FieldName($30), GrammaticalIndicative($100), GrammaticalBe($101)) <- \
        what {GrammaticalBeCat[$101]}{GrammaticalIndicativeCat[$100]}{FieldNameCat[$30]}
+RequestTopicInfo(SendReceive(tell-me), FieldName($30), GrammaticalIndicative(definite), GrammaticalBe(present-singular)) <- \
+       what's the {FieldNameCat[$30]}
 
 
 
@@ -518,6 +523,9 @@ RequestTopicInfo(SendReceive(tell-me), FieldName($30), GrammaticalIndicative($10
 #what is the next X, what is the entire X  
 RequestTopicInfo(SendReceive(tell-me), ItemTypeName($20), Indexical($140), GrammaticalIndicative($100), GrammaticalBe($101)) <- \
       what {GrammaticalBeCat[$100]}{GrammaticalIndicativeCat[$3]}{IndexicalCat[$140]}{ItemTypeNameCat[$20]}
+
+RequestTopicInfo(SendReceive(tell-me), ItemTypeName($20), Indexical($140), GrammaticalIndicative($100), GrammaticalBe($101)) <- \
+      what's the {IndexicalCat[$140]}{ItemTypeNameCat[$20]}
 
 #"what is the entire number?"
 RequestTopicInfo(SendReceive(tell-me), ItemTypeChar($25), Indexical($140), GrammaticalIndicative($100), GrammaticalBe($101)) <- \
@@ -607,7 +615,7 @@ RequestTopicInfo(repeat) <-> {RepeatCat[repeat]}
 
 #"what does line number mean?"
 RequestTopicInfo(meaning-of, FieldName($30)) <-> what does {FieldNameCat[$30]} mean
-
+RequestTopicInfo(meaning-of, FieldName($30)) <-> what does {FieldNameCat[$30]} even mean
 
 
 

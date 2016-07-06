@@ -28,6 +28,12 @@ The program runs either silently with a keyboard, or through a microphone and sp
 
 >>> da.loopDialog()
 
+Note: The ASR and TTS are done by a google service.  This is very good but not
+perfect.  Try to speak clearly and not too fast.   Double check the ASR by looking 
+at the screen printout.   The system cannot listen at the same time it is speaking.  
+You may have to give a split-second for the program to start listening to your speech 
+again after it speaks.
+
 
 The program prints out a lot of debugging and diagnosis output to the screen.
 
@@ -59,6 +65,9 @@ quit()
 
 
 When you quit the running program, a transcript file, "transcript-da.text", is written to your home directory.
+
+
+
 
 
 

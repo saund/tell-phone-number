@@ -69,7 +69,7 @@ r.dynamic_energy_threshold = False
 r.energy_threshold = val  (100 is good for this with the logitech mic on jarmela)
 r.pause_threshold = .3
 r.non_speaking_duration = min(r.non_speaking_duration, r.pause_threshold)
-
+Z
 This is not too too bad about printing out a speech recognition result fairly promptly.
 
 
@@ -102,6 +102,20 @@ tell-phone-number-lf-rules-2.txt
 2016/07/06
 
 I think stable enough for alpha testing within the group.
+
+
+Objectives for alpha testing:
+
+1. Bugs 
+   Does it crash, produce error printout?.
+
+2. Assess naturalness.
+   Is this interaction effective, fun, annoying?
+
+3. Assess coverage.
+   What utterances and paths does it not know about but should?
+
+
 
 
 

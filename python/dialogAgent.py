@@ -1566,7 +1566,6 @@ gl_da_inform_ti_nothing_relative_to_indicative = rp.parseDialogActFromString('In
 gl_str_da_inform_ti_nothing_relative_to_indicative = 'InformTopicInfo(nothing-relative-to, Indexical($140))'
 
 
-
 #"what does line number mean?"
 gl_da_request_ti_meaning_of_field = rp.parseDialogActFromString('RequestTopicInfo(meaning-of, FieldName($30))')
 gl_str_da_request_ti_meaning_of_field = 'RequestTopicInfo(meaning-of, FieldName($30))'
@@ -2112,6 +2111,8 @@ def handleInformTopicInfo(da_list):
 #candidate DialogActs with different intents.
 def handleInformTopicInfo_SendRole(da_list):
     global gl_agent
+    da_inform_ti = da_list[0]
+    str_da_inform_ti = da_inform_ti.getPrintString()
 
     print 'handleInformTopicInfo_SendRole'
     #printAgentBeliefs()
@@ -2145,6 +2146,19 @@ def handleInformTopicInfo_SendRole(da_list):
     for da in da_list:
         if da.getPrintString() == gl_str_da_request_ti_request_confirmation:
             return handleRequestTopicInfo_SendRole(da_list)
+
+    #Check whether this InformTopicIfno contains an isolated "then" or "next" preceeding a request.
+    #If so, strip it off and process the request
+    mapping = rp.recursivelyMapDialogRule(gl_da_inform_ti_indexical, da_inform_ti)
+    if mapping != None:
+        indexical = mapping.get('140')
+        if indexical == 'next':
+            if len(da_list) > 1:
+                if da_list[1].intent == 'RequestTopicInfo':
+                    return handleRequestTopicInfo_SendRole(da_list[1:])
+                if da_list[1].intent == 'RequestDialogManagement':
+                    return handleRequestDialogManagement(da_list[1:])
+
 
     #Check to see if partner has named the segment themselves, and if it does not match the data they repeated
     #back, as in "area code six three seven"
@@ -4984,7 +4998,8 @@ gl_time_tick_ms = 100
 
 #how much to adjust turn confidence toward self, per time tick
 #10 time ticks per second * .01 = 10 seconds to move turn all the way to self
-gl_time_tick_turn_delta = .01
+#gl_time_tick_turn_delta = .01 
+gl_time_tick_turn_delta = .02
 
 
 #If self's turn confidence gets to this value after waiting for partner's response,
