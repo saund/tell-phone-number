@@ -291,6 +291,7 @@ ItemTypeCharCat[punctuation-dash] <-> dash
 FieldNameCat[telephone-number] <- phone number
 FieldNameCat[telephone-number] <-> telephone number
 FieldNameCat[area-code] <-> area code
+FieldNameCat[area-code] <- first part
 FieldNameCat[exchange] <- prefix
 FieldNameCat[exchange] <-> exchange
 FieldNameCat[exchange] <- middle numbers
@@ -299,6 +300,7 @@ FieldNameCat[exchange] <- middle part
 FieldNameCat[line-number] <-> line number
 FieldNameCat[line-number] <- last four digits
 FieldNameCat[line-number] <- last four numbers
+FieldNameCat[line-number] <- last part
 FieldNameCat[country-code] <-> country code
 FieldNameCat[extension] <-> extension
 
@@ -469,6 +471,12 @@ InformTopicInfo(Indexical($140)) <-> {IndexicalCat[$140]}
 #InformTopicInfo(IndexicalRelation(entire)) <-> whole
 #InformTopicInfo(IndexicalRelation(entire)) <-> complete
 
+
+
+#"line number is the last four digits of the telephone number"
+InformTopicInfo(meaning-of, FieldName(area-code)) <-> the area code is the first three digits of the telephone number.
+InformTopicInfo(meaning-of, FieldName(exchange)) <-> the exchange is the second three digits of the telephone number.
+InformTopicInfo(meaning-of, FieldName(line-number)) <-> the line number is the last four digits of the telephone number.
 
 
 
@@ -657,6 +665,14 @@ RequestTopicInfo(request-affirmation) <-> is that correct
 
 
 
+#"what does line number mean?"
+RequestTopicInfo(meaning-of, FieldName($30)) <-> what does {FieldNameCat[$30]} mean
+
+
+
+
+
+
 
 
 RequestDialogManagement(StopProcess)) <-> {CommandCat[stop-process]}
@@ -810,25 +826,52 @@ ConfirmDialogManagement(affirmation-yes) <-> yes
 ConfirmDialogManagement(affirmation-yes) <- yeah
 ConfirmDialogManagement(affirmation-yes) <- sure
 ConfirmDialogManagement(affirmation-yes) <- yup
-#ConfirmDialogManagement(affirmation-yes) <- proceed   #under readiness
-ConfirmDialogManagement(affirmation-yes) <- go on
 ConfirmDialogManagement(affirmation-yes) <- got it
-ConfirmDialogManagement(affirmation-yes) <- got it already
-ConfirmDialogManagement(affirmation-yes) <- got that
-ConfirmDialogManagement(affirmation-yes) <- i got it already
-ConfirmDialogManagement(affirmation-yes) <- i got that already
+
+#Now under RequestDialogManagement(proceed-with-next)
+#ConfirmDialogManagement(affirmation-yes) <- proceed 
+#ConfirmDialogManagement(affirmation-yes) <- go on
+
+#Now under InformDialogManagement(Knowledge(possess, PersonRef(self)), Tense(past), GrammaticalIndicative(definite-far))
+#ConfirmDialogManagement(affirmation-yes) <- got it already
+#ConfirmDialogManagement(affirmation-yes) <- got that
+#ConfirmDialogManagement(affirmation-yes) <- i got it already
+#ConfirmDialogManagement(affirmation-yes) <- i got that already
 
 
 #These are broken out as request-for-next-chunk, which 
 #would imply affirmation-yes but goes beyond that.
-ConfirmDialogManagement(proceed-with-next) <-> please go on
-ConfirmDialogManagement(proceed-with-next) <- keep going
-ConfirmDialogManagement(proceed-with-next) <- what else
-ConfirmDialogManagement(proceed-with-next) <- then what
-ConfirmDialogManagement(proceed-with-next) <- what's next
-ConfirmDialogManagement(proceed-with-next) <- what is next
-ConfirmDialogManagement(proceed-with-next) <- what comes next
-ConfirmDialogManagement(proceed-with-next) <- continue
+#These are RequestDialogManagement
+#ConfirmDialogManagement(proceed-with-next) <-> please go on
+#ConfirmDialogManagement(proceed-with-next) <- keep going
+#ConfirmDialogManagement(proceed-with-next) <- what else
+#ConfirmDialogManagement(proceed-with-next) <- then what
+#ConfirmDialogManagement(proceed-with-next) <- what's next
+#ConfirmDialogManagement(proceed-with-next) <- what next
+#ConfirmDialogManagement(proceed-with-next) <- what else
+#ConfirmDialogManagement(proceed-with-next) <- what is next
+#ConfirmDialogManagement(proceed-with-next) <- what comes next
+#ConfirmDialogManagement(proceed-with-next) <- continue
+#ConfirmDialogManagement(proceed-with-next) <- proceed 
+#ConfirmDialogManagement(proceed-with-next) <- go on
+
+
+RequestDialogManagement(proceed-with-next) <-> please go on
+RequestDialogManagement(proceed-with-next) <- keep going
+RequestDialogManagement(proceed-with-next) <- what else
+RequestDialogManagement(proceed-with-next) <- then what
+RequestDialogManagement(proceed-with-next) <- what's next
+RequestDialogManagement(proceed-with-next) <- what next
+RequestDialogManagement(proceed-with-next) <- what is next
+RequestDialogManagement(proceed-with-next) <- what comes next
+RequestDialogManagement(proceed-with-next) <- continue
+RequestDialogManagement(proceed-with-next) <- proceed 
+RequestDialogManagement(proceed-with-next) <- go on
+
+#These are proceed-with-next
+#RequestDialogManagement(self-readiness) <-> go ahead
+#RequestDialogManagement(self-readiness) <- proceed
+
 
 #see RequestDialogManagement below for "tell me the rest"
 
@@ -880,9 +923,39 @@ InformDialogManagement(Knowledge(possess, PersonRef(self)), Tense(past), Grammat
 InformDialogManagement(Knowledge(possess, PersonRef(self)), Tense(past), GrammaticalIndicative($100)) <- \
                                i already {KnowledgeCat[have-past]} {GrammaticalIndicativeCat[$100]} 
 
+#"i got that"
+InformDialogManagement(Knowledge(possess, PersonRef(self)), Tense(past), GrammaticalIndicative(definite-far)) <- got it already
+InformDialogManagement(Knowledge(possess, PersonRef(self)), Tense(past), GrammaticalIndicative(definite-far)) <- got that
+InformDialogManagement(Knowledge(possess, PersonRef(self)), Tense(past), GrammaticalIndicative(definite-far)) <- got that already
+InformDialogManagement(Knowledge(possess, PersonRef(self)), Tense(past), GrammaticalIndicative(definite-far)) <- i got it already
+InformDialogManagement(Knowledge(possess, PersonRef(self)), Tense(past), GrammaticalIndicative(definite-far)) <-> i got that already
+InformDialogManagement(Knowledge(possess, PersonRef(self)), Tense(past), GrammaticalIndicative(definite-far)) <- i already got it
+InformDialogManagement(Knowledge(possess, PersonRef(self)), Tense(past), GrammaticalIndicative(definite-far)) <- i already got that
+
+InformDialogManagement(Knowledge(possess, PersonRef(self)), Tense(past), GrammaticalIndicative(definite-far)) <- i did get that
+InformDialogManagement(Knowledge(possess, PersonRef(self)), Tense(past), GrammaticalIndicative(definite-far)) <- i did get it
+InformDialogManagement(Knowledge(possess, PersonRef(self)), Tense(past), GrammaticalIndicative(definite-far)) <- i did understand that
+InformDialogManagement(Knowledge(possess, PersonRef(self)), Tense(past), GrammaticalIndicative(definite-far)) <- i did understand it
+InformDialogManagement(Knowledge(possess, PersonRef(self)), Tense(past), GrammaticalIndicative(definite-far)) <- i heard you 
+InformDialogManagement(Knowledge(possess, PersonRef(self)), Tense(past), GrammaticalIndicative(definite-far)) <- i got that
+InformDialogManagement(Knowledge(possess, PersonRef(self)), Tense(past), GrammaticalIndicative(definite-far)) <- i got it
+
+
+#InformDialogManagement(partner-confirm-partner-hearing-or-understanding) <-> 
+#InformDialogManagement(partner-confirm-partner-hearing-or-understanding) <- 
+#InformDialogManagement(partner-confirm-hearing-or-understanding) <- 
+#InformDialogManagement(partner-confirm-hearing-or-understanding) <- 
+#InformDialogManagement(partner-confirm-hearing-or-understanding) <- 
+#InformDialogManagement(partner-confirm-hearing-or-understanding) <- 
+#InformDialogManagement(partner-confirm-hearing-or-understanding) <- 
+
+
+
+
+
 
 #"i wanted to make sure"
-InformDialogManagement(Desire(self), Knowledge(self, high-confidence)) <-> i wanted to make sure you got it
+InformDialogManagement(Desire(self), Knowledge(self, high-confidence)) <-> i wanted to make sure you got it.
 
 
 
@@ -1018,10 +1091,6 @@ InformDialogManagement(standing-by) <-> i'm standing by
 InformDialogManagement(standing-by) <- i will stand by
 InformDialogManagement(standing-by) <- i can stand by
 
-
-RequestDialogManagement(self-readiness) <-> go ahead
-RequestDialogManagement(self-readiness) <- proceed
-
 InformDialogManagement(self-not-readiness) <-> sorry, i am not ready
 InformDialogManagement(self-not-readiness) <- i'm not ready
 InformDialogManagement(self-not-readiness) <- i am not ready
@@ -1144,16 +1213,6 @@ InformDialogManagement(misalignment-partner-hearing-or-understanding) <-> you di
 
 
 
-InformDialogManagement(partner-confirm-partner-hearing-or-understanding) <-> i did get that
-InformDialogManagement(partner-confirm-partner-hearing-or-understanding) <- i did get it
-InformDialogManagement(partner-confirm-hearing-or-understanding) <- i did understand that
-InformDialogManagement(partner-confirm-hearing-or-understanding) <- i did understand it
-InformDialogManagement(partner-confirm-hearing-or-understanding) <- i heard you 
-InformDialogManagement(partner-confirm-hearing-or-understanding) <- i got that
-InformDialogManagement(partner-confirm-hearing-or-understanding) <- i got it
-
-
-
 
 #Request repeat of last utterance
 #This should also include 'what' but 'what' is so multi-purpose it gets its own predicate
@@ -1224,12 +1283,12 @@ RequestDialogManagement(speed-faster) <- please more quickly
 
 
 #"tell me the rest of the area code"
-RequestDialogManagement(proceed-to-completion, FieldNameCat(telephone-number)) <- {CommandCat[tell-me]} the rest
-RequestDialogManagement(proceed-to-completion, FieldNameCat($30)) <- {CommandCat[tell-me]} the rest of the {FieldNameCat[$30]}
-RequestDialogManagement(proceed-to-completion, FieldNameCat($30)) <- {CommandCat[tell-me]} the remaining the {FieldNameCat[$30]}
+RequestDialogManagement(proceed-to-completion, FieldName(telephone-number)) <- {CommandCat[tell-me]} the rest
+RequestDialogManagement(proceed-to-completion, FieldName($30)) <- {CommandCat[tell-me]} the rest of the {FieldNameCat[$30]}
+RequestDialogManagement(proceed-to-completion, FieldName($30)) <- {CommandCat[tell-me]} the remaining the {FieldNameCat[$30]}
 
 #"tell me more digits"
-RequestDialogManagement(proceed-to-completion, FieldNameCat(telephone-number)) <- {CommandCat[tell-me]} more {ItemTypeCharCat[digit]}
+RequestDialogManagement(proceed-to-completion, FieldName(telephone-number)) <- {CommandCat[tell-me]} more {ItemTypeCharCat[digit]}
 
 
 
@@ -1289,9 +1348,8 @@ RequestDialogManagement(clarification-utterance, ItemValue(DigitSequence($1, $2,
 
 
 
-
-
-
+#"why"
+RequestDialogManagement(why) <-> why
 
 
 
