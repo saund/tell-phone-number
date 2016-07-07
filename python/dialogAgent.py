@@ -2147,7 +2147,7 @@ def handleInformTopicInfo_SendRole(da_list):
         if da.getPrintString() == gl_str_da_request_ti_request_confirmation:
             return handleRequestTopicInfo_SendRole(da_list)
 
-    #Check whether this InformTopicIfno contains an isolated "then" or "next" preceeding a request.
+    #Check whether this InformTopicInfo contains an isolated "then" or "next" preceeding a request.
     #If so, strip it off and process the request
     mapping = rp.recursivelyMapDialogRule(gl_da_inform_ti_indexical, da_inform_ti)
     if mapping != None:
@@ -2254,6 +2254,7 @@ def handleInformTopicInfo_SendRole(da_list):
 
 
     print 'handleInformTopicInfo_SendRole() dropping through HITI_SR'
+    #"I'll repeat that."  gets annoying
     ret_das = [gl_da_inform_dm_repeat_intention]
     
     #This may not actually repeat what was said, e.g. if the user had shifted topic to the line number and then
@@ -3217,19 +3218,31 @@ def handleRequestTopicInfo_RequestConfirmation(da_list):
 
     #since we haven't advanced the self data index pointer, then actually we are re-sending the 
     #previous chunk. 
-    #XXXIssue polite correction to the request: "sorry no it's"
+    #Issue polite correction to the request: "sorry no it's"
     #Issue correction to the request: "no it's"
     ret_das = [ gl_da_correction_topic_info ]
     last_self_utterance_tup = fetchLastUtteranceFromTurnHistory('self', [ 'InformTopicInfo' ])
     last_self_utterance_da_list = last_self_utterance_tup[2]
+    #if the field name was said in the last utterance, say "no"
+    #if the field name was not said in the last utterance, say "no it's"
+    field_name_stated_p = False
+    for da in last_self_utterance_da_list:
+        mapping = rp.recursivelyMapDialogRule(gl_da_say_field_is, da)
+        if mapping != None:
+            field_name_stated_p = True
+            break
+    if field_name_stated_p:
+        ret_das = [ gl_da_correction_dm_negation ]
+    else: 
+        ret_das = [ gl_da_correction_topic_info ]
     #don't repeat repeat_intention
     last_self_utterance_da_list = stripDialogActsOfType(last_self_utterance_da_list,\
-                                                        [ gl_str_da_inform_dm_repeat_intention, gl_str_da_correction_topic_info ])
+                                                        [ gl_str_da_inform_dm_repeat_intention, gl_str_da_correction_topic_info, \
+                                                          gl_str_da_affirmation_yes ])
     last_self_turn_topic = gl_agent.self_dialog_model.getLastTurnTopic()
     ret_das.extend(last_self_utterance_da_list)
     gl_agent.setControl('partner')      #partner has taken control by requesting confirmation
     return (ret_das, last_self_turn_topic)
-
 
 
 
@@ -3588,15 +3601,19 @@ def handleRequestDialogManagement(da_list):
     #other dialog acts stacked up, which means that we didn't understand what was being asked
     global gl_num_dialog_acts_following_what_indicating_confusion
     if str_da_request_dm == gl_str_da_what:
-        if len(da_list) < gl_num_dialog_acts_following_what_indicating_confusion:
+        if len(da_list)-1 < gl_num_dialog_acts_following_what_indicating_confusion:
             last_self_utterance_tup = fetchLastUtteranceFromTurnHistory('self')
             if last_self_utterance_tup != None:
                 last_self_utterance_das = last_self_utterance_tup[2]
                 last_self_utterance_das_stripped = possiblyStripLeadingDialogAct(last_self_utterance_das, 'confirmation-or-correction')
                 gl_agent.setControl('partner')    #user takes control to gain clarification
+                print 'len(da_list)-1 ' + str(len(da_list)-1) + ' < ' + str(gl_num_dialog_acts_following_what_indicating_confusion) + \
+                    'so returning CCD'
                 return (last_self_utterance_das_stripped, None)  #XX need to fill in the turn_topic?
         #too many dialog acts after what?, so we're confused
         else:
+            print 'len(da_list)-1 ' + str(len(da_list)-1) + ' >= ' + str(gl_num_dialog_acts_following_what_indicating_confusion) + \
+                'so returning CCE'
             ret_das = [ gl_da_i_heard_you_say ]
             ret_das.extend(da_list)
             ret_das.append(gl_da_misalignment_self_hearing_or_understanding)
