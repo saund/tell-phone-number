@@ -27,6 +27,7 @@ import os.path
 import math
 import thread
 import time
+import getpass
 from os.path import expanduser
 import ruleProcessing as rp
 from gtts import gTTS
@@ -100,6 +101,7 @@ def loopDialog(use_debug_mode=False):
         startNewSpeechRecRunner()
 
     #rp.setTell(True)
+    setTranscriptFilepath()
     openTranscriptFile()
 
     da_issue_dialog_invitation = generateDialogInvitation('send-receive')
@@ -5504,9 +5506,24 @@ gl_transcript_filename = 'da-transcript.text'
 gl_transcript_filepath = os.path.join(gl_home, gl_transcript_filename)
 gl_transcript_file = None
 
-def openTranscriptFile(filepath=gl_transcript_filepath):
+
+def setTranscriptFilepath():
+    global gl_transcript_filename
+    global gl_transcript_filepath
+    username = getpass.getuser()
+    str_date = time.strftime('%Y_%m_%d')
+    gl_transcript_filename = 'da-transcript_' + username + '_' + str_date + '.text'
+    gl_transcript_filepath = os.path.join(gl_home, gl_transcript_filename)
+    print 'gl_transcript_filepath: ' + gl_transcript_filepath
+
+
+def openTranscriptFile():
+    global gl_transcript_filepath
     global gl_transcript_file
-    gl_transcript_file = open(filepath, 'w')
+    gl_transcript_file = open(gl_transcript_filepath, 'a+')
+    str_date = time.strftime('%Y/%m/%d')
+    str_time = time.strftime('%H:%m:%d')
+    gl_transcript_file.write('\n' + str_date + ' ' + str_time + '\n')
 
 def writeToTranscriptFile(text_string):
     global gl_transcript_file
