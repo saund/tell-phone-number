@@ -24,6 +24,7 @@ import copy
 import re
 import os
 import os.path
+import platform
 import math
 import thread
 import time
@@ -4428,8 +4429,12 @@ def handleCorrectionDialogManagement(da_list):
 #Used for testing TTS
 #
 
+gl_home = expanduser("~")
 #gl_tts_temp_file = 'C:/tmp/audio/gtts-out.wav'
-gl_tts_temp_file = 'C:/tmp/audio/gtts-out.mp3'
+#gl_tts_temp_file = 'C:/tmp/audio/gtts-out.mp3'
+gl_tts_temp_file = os.path.join(gl_home, 'temp-gtts-out.mp3')
+
+
 
 #RequestAction
 #Reiterate or affirm/disaffirm topic information.
@@ -5351,6 +5356,8 @@ def spellOutDigits(text_string):
     text_string = text_string.replace('7', ' seven ')
     text_string = text_string.replace('8', ' eight ')
     text_string = text_string.replace('9', ' nine ')
+    text_string = text_string.replace('wright', ' right ')
+    text_string = text_string.replace('Wright', ' right ')
     #print 'spell out digits output: ' + text_string
     return text_string
 
@@ -5423,21 +5430,37 @@ def ttsSpeakText(tts_string):
 # for full license details.
  
 from ctypes import *;
- 
-winmm = windll.winmm
- 
-def mciSend(s):
-   i=winmm.mciSendStringA(s,0,0,0)
-   if i<>0:
-      print "Error %d in mciSendString %s" % ( i, s )
- 
-def playMP3(mp3Name):
-   mciSend("Close All")
-   mciSend("Open \"%s\" Type MPEGVideo Alias theMP3" % mp3Name)
-   mciSend("Play theMP3 Wait")
-   mciSend("Close theMP3")
- 
 
+gl_platform = platform.platform()
+
+if gl_platform.find('Windows') == 0:
+
+    winmm = windll.winmm
+ 
+    def mciSend(s):
+        i=winmm.mciSendStringA(s,0,0,0)
+        if i<>0:
+            print "Error %d in mciSendString %s" % ( i, s )
+ 
+    def playMP3(mp3Name):
+        mciSend("Close All")
+        mciSend("Open \"%s\" Type MPEGVideo Alias theMP3" % mp3Name)
+        mciSend("Play theMP3 Wait")
+        mciSend("Close theMP3")
+
+
+if gl_platform.find('Darwin') == 0:
+
+    #http://stackoverflow.com/questions/3498313/how-to-trigger-from-python-playing-of-a-wav-or-mp3-audio-file-on-a-mac
+    import subprocess
+    def playMP3(mp3Name):
+        subprocess.call(["afplay", mp3Name])
+
+
+
+
+
+   
 
 #But guess what, google tts apparenly only outputs an mp3 file, not a wav file.
 #http://stackoverflow.com/questions/6951046/pyaudio-help-play-a-file
@@ -5501,7 +5524,7 @@ def extractItemsFromCommaSeparatedListString(str_comma_sep_items):
     return str_item_list
     
 
-gl_home = expanduser("~")
+
 gl_transcript_filename = 'da-transcript.text'
 gl_transcript_filepath = os.path.join(gl_home, gl_transcript_filename)
 gl_transcript_file = None
