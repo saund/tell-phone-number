@@ -43,10 +43,13 @@ import wave
 import speech_recognition_tpn as sr
 
 
+gl_home = expanduser("~")
+
 
 
 #Test just the rules in isolated-rules-test.txt
 def loopDialogTest():
+    getTelephoneNumberToSend()
     rp.initLFRules('isolated-rules-test.txt')
     loopDialogMain()
 
@@ -101,9 +104,11 @@ def loopDialog(use_debug_mode=False):
         initializeASR(gl_energy_threshold)
         startNewSpeechRecRunner()
 
+    getTelephoneNumberToSend()
     #rp.setTell(True)
     setTranscriptFilepath()
     openTranscriptFile()
+
 
     da_issue_dialog_invitation = generateDialogInvitation('send-receive')
     da_generated_word_list = rp.generateTextFromDialogAct(da_issue_dialog_invitation)
@@ -377,13 +382,13 @@ def stripDialogActsOfType(da_list, str_da_filter_list):
         str_da = da.getPrintString()
         okay_p = True
         for filter_str_da in str_da_filter_list:
-            print ' stripDialogActsOfType ' + str_da + ' filter: ' + filter_str_da
+            #print ' stripDialogActsOfType ' + str_da + ' filter: ' + filter_str_da
             if str_da.find(filter_str_da) >= 0:
                 okay_p = False
                 break
         if okay_p:
             ok_da_list.append(da)
-    print 'strip returning ' + str(len(ok_da_list))
+    print 'stripDialogActsOfType returning ' + str(len(ok_da_list))
     for da in ok_da_list:
         print '   ' + da.getPrintString()
     return ok_da_list
@@ -514,7 +519,10 @@ class DialogAgent():
     #will be responsible for obtaining the phone number they speak to the DialogAgent, 
     #and the DialogAgent will start off with no information about the phone number.
     def setRole(self, send_or_receive, send_phone_number=None):
+        global gl_phone_number_to_send
         self.send_receive_role = send_or_receive
+        if send_phone_number == None:
+            send_phone_number = gl_phone_number_to_send
         if send_or_receive == 'banter':
             self.self_dialog_model = initBanterDialogModel('self', self.self_dialog_model)
             self.partner_dialog_model = initBanterDialogModel('partner', self.partner_dialog_model) 
@@ -649,10 +657,41 @@ class DialogModel():
 
 
 
-gl_default_phone_number = '6506371212'
+gl_default_phone_number_to_send = '6506371212'
+gl_phone_number_to_send = gl_default_phone_number_to_send
+
+gl_send_phone_number_filename = 'tpn-telephone-number.text'
+
+def getTelephoneNumberToSend(filepath=None):
+    global gl_phone_number_to_send
+    if filepath == None:
+        username = getpass.getuser()
+        filepath = os.path.join(gl_home, gl_send_phone_number_filename)
+
+    if os.path.isfile(filepath):
+        file = open(filepath, 'rU')
+        text_line = file.readline()
+        while text_line.find('#') == 0:
+            text_line = file.readline()
+            
+        gl_phone_number_to_send = text_line
+        gl_phone_number_to_send = gl_phone_number_to_send.replace('(', '')
+        gl_phone_number_to_send = gl_phone_number_to_send.replace(')', '')
+        gl_phone_number_to_send = gl_phone_number_to_send.replace(' ', '')
+        gl_phone_number_to_send = gl_phone_number_to_send.replace('-', '')
+        gl_phone_number_to_send = gl_phone_number_to_send.replace('\n', '')
+        file.close()
+    else:
+        gl_phone_number_to_send = gl_default_phone_number_to_send
+
+    print 'gl_phone_number_to_send: ' + gl_phone_number_to_send            
+
+
+
+
+
 
 def initSendReceiveDataDialogModel(self_or_partner, send_or_receive, send_phone_number=None, previous_dialog_model=None):
-    global gl_default_phone_number
     global gl_10_digit_index_list
     global gl_turn_mnb
     global gl_control_mnb
@@ -679,7 +718,6 @@ def initSendReceiveDataDialogModel(self_or_partner, send_or_receive, send_phone_
 
 
 def initBanterDialogModel(self_or_partner, previous_dialog_model=None):
-    global gl_default_phone_number
     dm = DialogModel(previous_dialog_model)
     dm.model_for = self_or_partner
     dm.data_model = DataModel_USPhoneNumber()
@@ -1404,7 +1442,7 @@ def generateResponseToInputDialog(user_da_list):
             gl_agent.self_dialog_model.addTurnTopic(turn_topic)
         gl_turn_number += 1
 
-    print 'datt_response: ' + str(datt_response)
+    #print 'datt_response: ' + str(datt_response)
 
 
     #Determine if this response merits becoming the most recent data topic of discussion
@@ -2721,7 +2759,7 @@ def handleRequestTopicInfo_SendRole(da_list):
     mapping = rp.recursivelyMapDialogRule(gl_da_tell_me_phone_number, da_request_ti)
     #print 'mapping: ' + str(mapping)
     if mapping != None:
-        gl_agent.setRole('send', gl_default_phone_number)
+        gl_agent.setRole('send')
         #it would be best to spawn another thread to wait a beat then start the
         #data transmission process, but return okay immediately.
         #do that later
@@ -2754,7 +2792,7 @@ def handleRequestTopicInfo_SendRole(da_list):
                 field_name = 'telephone-number'
     print 'TTTT field_name: ' + str(field_name) + ' mapping: ' + str(mapping)
     if field_name == 'telephone-number':
-        gl_agent.setRole('send', gl_default_phone_number)
+        gl_agent.setRole('send')
         initializeStatesToSendPhoneNumberData(gl_agent)
         str_da_segment_name = gl_str_da_field_name.replace('$30', 'area-code')
         da_segment_name = rp.parseDialogActFromString(str_da_segment_name)
@@ -2826,7 +2864,7 @@ def handleRequestTopicInfo_SendRole(da_list):
 
     #handle 'User: what is the entire telephone number?', etc.
     if field_name == 'telephone-number' and indexical == 'entire':
-        gl_agent.setRole('send', gl_default_phone_number)
+        gl_agent.setRole('send')
         initializeStatesToSendPhoneNumberData(gl_agent)
         str_da_segment_name = gl_str_da_field_name.replace('$30', 'area-code')
         da_segment_name = rp.parseDialogActFromString(str_da_segment_name)
@@ -3295,7 +3333,7 @@ def handleRequestTopicInfo_BanterRole(da_list):
     #rp.setTellMap(True)
     mapping = rp.recursivelyMapDialogRule(gl_da_tell_me_phone_number, da_request_ti)
     if mapping != None:
-        gl_agent.setRole('send', gl_default_phone_number)
+        gl_agent.setRole('send')
         #it would be best to spawn another thread to wait a beat then start the
         #data transmission process, but return okay immediately.
         #do that later
@@ -3341,7 +3379,7 @@ def handleRequestTopicInfo_BanterRole(da_list):
                 field_name = 'telephone-number'
     if field_name == 'telephone-number':
         print ' banter role indexical: ' + str(indexical)
-        gl_agent.setRole('send', gl_default_phone_number)
+        gl_agent.setRole('send')
         initializeStatesToSendPhoneNumberData(gl_agent)
         if indexical == 'entire':
             chunk_size = getChunkSizeForSegment('telephone-number')
@@ -3459,7 +3497,7 @@ def handleRequestDialogManagement(da_list):
     if str_da_request_dm == gl_str_da_misalignment_start_again:
         #sometimes a user will say "let's start again" after we're all done and back in banter role
         if gl_agent.send_receive_role == 'banter':
-            gl_agent.setRole('send', gl_default_phone_number)
+            gl_agent.setRole('send')
         if gl_agent.send_receive_role == 'send':
             initializeStatesToSendPhoneNumberData(gl_agent)
             str_da_segment_name = gl_str_da_field_name.replace('$30', 'area-code')
@@ -3763,7 +3801,7 @@ def findSegmentNameForDigitList(digit_list):
         segment_start_index = segment_indices[0]
         segment_end_index = segment_indices[1]
 
-        print 'testing segment_name ' + segment_name
+        #print 'testing segment_name ' + segment_name
         test_digit_i = 0
         match_p = True
         for segment_i in range(segment_start_index, segment_end_index+1):
@@ -3778,12 +3816,12 @@ def findSegmentNameForDigitList(digit_list):
                 break
             test_digit_value = digit_list[test_digit_i]
             if segment_data_value != test_digit_value:
-                print 'XX segment_data_value ' + segment_data_value + ' != test_digit_value ' + test_digit_value
+                #print 'XX segment_data_value ' + segment_data_value + ' != test_digit_value ' + test_digit_value
                 match_p = False
                 break
             elif segment_i == segment_end_index:
                 if test_digit_i+1 < len(digit_list):
-                    print 'test_digit_i ' + str(test_digit_i) + ' < ' + 'len(test_digit_value_list): ' + str(len(digit_list))
+                    #print 'test_digit_i ' + str(test_digit_i) + ' < ' + 'len(test_digit_value_list): ' + str(len(digit_list))
                     match_p = False
                 break
             test_digit_i += 1
@@ -4338,7 +4376,7 @@ def possiblyAdjustChunkSize(target_chunk_size):
     else:
         gl_agent.partner_dialog_model.protocol_chunk_size.setAllConfidenceInOne(target_chunk_size)
         gl_agent.self_dialog_model.protocol_chunk_size.setAllConfidenceInOne(target_chunk_size)
-        print '...setting chunk_size to ' + str(target_chunk_size)
+        #print '...setting chunk_size to ' + str(target_chunk_size)
 
 
 def adjustChunkSize(increase_or_decrease):
@@ -4429,7 +4467,7 @@ def handleCorrectionDialogManagement(da_list):
 #Used for testing TTS
 #
 
-gl_home = expanduser("~")
+
 #gl_tts_temp_file = 'C:/tmp/audio/gtts-out.wav'
 #gl_tts_temp_file = 'C:/tmp/audio/gtts-out.mp3'
 gl_tts_temp_file = os.path.join(gl_home, 'temp-gtts-out.mp3')
@@ -4529,7 +4567,7 @@ def prepareNextDataChunk(start_data_index, reset_chunk_size_for_segment_p = Fals
     segment_name = min_segment_name
 
     pref_chunk_size_options = gl_agent.self_dialog_model.protocol_chunk_size.getTwoMostDominantValues()
-    print 'pref_chunk_size_options: ' + str(pref_chunk_size_options)
+    #print 'pref_chunk_size_options: ' + str(pref_chunk_size_options)
     if pref_chunk_size_options[0][0] < chunk_size_to_end_of_segment and pref_chunk_size_options[1][0] < chunk_size_to_end_of_segment:
         print ' aa' 
         chunk_size = pref_chunk_size_options[0][0]
@@ -4543,8 +4581,8 @@ def prepareNextDataChunk(start_data_index, reset_chunk_size_for_segment_p = Fals
         print ' cc'
         chunk_size = chunk_size_to_end_of_segment
     
-    print 'pref_chunk_size_options: ' + str(pref_chunk_size_options) + ' segment_chunk_size: ' + str(chunk_size_to_end_of_segment)
-    print 'chunk_size: ' + str(chunk_size) + ' start_data_index: ' + str(start_data_index) + ' segment_name: ' + segment_name
+    #print 'pref_chunk_size_options: ' + str(pref_chunk_size_options) + ' segment_chunk_size: ' + str(chunk_size_to_end_of_segment)
+    #print 'chunk_size: ' + str(chunk_size) + ' start_data_index: ' + str(start_data_index) + ' segment_name: ' + segment_name
 
     data_value_list = []
     total_num_digits = len(gl_agent.self_dialog_model.data_model.data_beliefs)
@@ -4557,7 +4595,7 @@ def prepareNextDataChunk(start_data_index, reset_chunk_size_for_segment_p = Fals
         data_value_list.append(data_value)
         data_index_list.append(digit_i)
 
-    print ' data_value_list: ' + str(data_value_list)
+    #print ' data_value_list: ' + str(data_value_list)
 
     digit_sequence_lf = synthesizeLogicalFormForDigitOrDigitSequence(data_value_list)
     if digit_sequence_lf != None:
@@ -4794,7 +4832,7 @@ def updateBeliefInPartnerDataStateBasedOnDataValuesInDialogActs(da_list, turn_to
         print 'updateBeliefInPartnerDataStateBasedOnDataValuesInDialogActs() found a None da_list'
         return
 
-    print 'da_list: ' + str(da_list)
+    #print 'da_list: ' + str(da_list)
     digit_list = collectDataValuesFromDialogActs(da_list)
     digit_index_list = turn_topic.data_index_list
 

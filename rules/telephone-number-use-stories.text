@@ -1218,6 +1218,7 @@ Output:
 
 ----------------------------
 broken 6/24/2016
+now fixed
 
 Output: Would you like to send or receive a phone number?
 Input: what is the phone number
@@ -1351,6 +1352,7 @@ Output:
 
 
 *Problems 2016/06/30*
+now mostly fixed
 
 tell me the rest
 
@@ -1445,6 +1447,23 @@ U: six three seven one two one two
 
 651 634 1212
 (User confirms incorrectly prior to focus field line number)
+
+
+
+
+-------
+
+2016/07/08
+
+Output: five five six
+Input: five
+Output: five
+Input: five again?
+or 
+Input two fives?
+Output: six     <-  should be, "yes five again", or "yes the exchange starts five five"
+
+
 
 
 

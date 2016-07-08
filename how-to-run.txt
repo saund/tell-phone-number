@@ -1,7 +1,7 @@
 
 
 How to run the tell-phone-number program.
-July 6, 2016
+July 8, 2016
 
 
 The program runs either silently with a keyboard, or through a microphone and speaker.
@@ -69,7 +69,19 @@ You can start by typing or saying,
 "Tell me the telephone number"
 
 
-10. To quit the program, 
+10.
+You can change the telephone number it tells you. 
+Put the phone number you want to use on a single line in a file in your home directory:
+
+<your-homedir>/tpn-telephone-number.text
+
+e.g. 
+(415) 556-3342
+
+
+
+
+11. To quit the program, 
 -type "quit" at the keyboard
 
 >>> quit
