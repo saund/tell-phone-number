@@ -3531,7 +3531,7 @@ def handleRequestDialogManagement(da_list):
     if str_da_request_dm == gl_str_da_misalignment_request_repeat:
         #sometimes a user will say "repeat the phone number" after we're all done and back in banter role
         if gl_agent.send_receive_role == 'banter':   
-            gl_agent.setRole('send', gl_default_phone_number)
+            gl_agent.setRole('send')
         last_self_utterance_tup = fetchLastUtteranceFromTurnHistory('self')
         print 'last_self_utterance_tup: ' + str(last_self_utterance_tup)
         if last_self_utterance_tup != None:
@@ -3558,7 +3558,7 @@ def handleRequestDialogManagement(da_list):
     if mapping != None:
         #sometimes a user will say "repeat the phone number" after we're all done and back in banter role
         if gl_agent.send_receive_role == 'banter':   
-            gl_agent.setRole('send', gl_default_phone_number)
+            gl_agent.setRole('send')
         misunderstood_field_name = mapping.get('30')
         if misunderstood_field_name in gl_agent.self_dialog_model.data_model.data_indices.keys():
             #If partner is asking for a chunk, reset belief in partner data_model for this segment as unknown
@@ -3763,7 +3763,7 @@ def handleConfusionIssues(da_list):
     if str_da0.find(gl_str_da_request_dm_misalignment_confusion) >= 0 or \
        str_da0.find(gl_str_da_inform_dm_misalignment_confusion) >= 0:
 
-        gl_agent.setRole('send', gl_default_phone_number)
+        gl_agent.setRole('send')
         initializeStatesToSendPhoneNumberData(gl_agent)
         str_da_say_telephone_number_is = gl_str_da_say_field_is.replace('$30', 'telephone-number')
         da_say_telephone_number_is = rp.parseDialogActFromString(str_da_say_telephone_number_is)
@@ -5000,7 +5000,7 @@ def handleResponseToDialogInvitationQuestion(question_da, response_da_list):
 
             removeQuestionFromPendingQuestionList('self', gl_da_request_dm_invitation_receive)
 
-            gl_agent.setRole('send', gl_default_phone_number)
+            gl_agent.setRole('send')
             initializeStatesToSendPhoneNumberData(gl_agent)
             
             str_da_say_phone_number_is = gl_str_da_say_field_is.replace('$30', 'telephone-number')
@@ -5018,7 +5018,7 @@ def handleResponseToDialogInvitationQuestion(question_da, response_da_list):
         print 'receive'            
         removeQuestionFromPendingQuestionList('self', gl_da_request_dm_invitation_send_receive)
         removeQuestionFromPendingQuestionList('self', gl_da_request_dm_invitation_receive)
-        gl_agent.setRole('send', gl_default_phone_number)
+        gl_agent.setRole('send')
         initializeStatesToSendPhoneNumberData(gl_agent)
         str_da_say_phone_number_is = gl_str_da_say_field_is.replace('$30', 'telephone-number')
         da_say_phone_number_is = rp.parseDialogActFromString(str_da_say_phone_number_is)

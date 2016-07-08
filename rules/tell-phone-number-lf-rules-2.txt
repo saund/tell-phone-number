@@ -329,6 +329,11 @@ InformRoleInterpersonal(user-belief-yes) <-> i think
 
 InformRoleInterpersonal(agent-belief-yes) -> i believe
 
+InformRoleInterpersonal(user-belief-no) <- do not think so
+InformRoleInterpersonal(user-belief-no) <- i do not think
+InformRoleInterpersonal(user-belief-no) <-> i do not think so
+InformRoleInterpersonal(user-belief-no) <- i do not believe
+InformRoleInterpersonal(user-belief-no) <- i do not believe so
 InformRoleInterpersonal(user-belief-no) <- don't think so
 InformRoleInterpersonal(user-belief-no) <- i don't think
 InformRoleInterpersonal(user-belief-no) <-> i don't think so
@@ -339,7 +344,9 @@ InformRoleInterpersonal(user-belief-unsure) <- i'm not sure
 InformRoleInterpersonal(user-belief-unsure) <- i am not sure
 InformRoleInterpersonal(user-belief-unsure) <-> not sure
 InformRoleInterpersonal(user-belief-unsure) <- i don't know about that
+InformRoleInterpersonal(user-belief-unsure) <- i do not know about that
 InformRoleInterpersonal(user-belief-unsure) <- i don't know
+InformRoleInterpersonal(user-belief-unsure) <- i do not know
 InformRoleInterpersonal(user-belief-unsure) <- maybe
 
 InformRoleInterpersonal(thank-you) <-> thank you
