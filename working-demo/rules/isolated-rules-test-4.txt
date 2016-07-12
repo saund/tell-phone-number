@@ -1,0 +1,17 @@
+
+
+#A file for isolating rules to do targeted tests
+
+
+
+CommandCat[tell-me] <-> tell me
+
+CommandCat[tell-you] <-> tell you
+
+InfoTypeCat[telephone-number] <-> telephone number
+InfoTypeCat[telephone-number] <-> phone number
+
+
+RequestTopicInfo(SendReceive($1), InfoTopic($2)) <-> {CommandCat[$1]} {InfoTypeCat[$2]}
+
+

@@ -2861,6 +2861,11 @@ def handleRequestTopicInfo_SendRole(da_list):
             if num_name == 'digit':
                 field_name = mapping.get('30')
                 indexical = mapping.get('140')
+            #what is the third last part of the telephone number
+            if num_name == 'field':
+                field_name = 'segment'
+                indexical = mapping.get('140')
+                grammatical_be = 'present-singular'
 
     #handle 'User: what is the entire telephone number?', etc.
     if field_name == 'telephone-number' and indexical == 'entire':

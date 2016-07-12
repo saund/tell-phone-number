@@ -1492,6 +1492,76 @@ full topic as well as the topic data
 
 
 
+------------------------
+
+2016/07/12 10:07:12
+Output: Would you like to send or receive a phone number?
+Input: oh yeah tell me a phone number                <- failed, the "oh" threw it off, coverted to "zero"
+Output:  
+Input: yeah what is the phone number
+Output: area code four one five
+Input:  four  one  two 
+Output: i'll repeat that. the area code is four one five 
+Input:  four 
+Output: one
+Input:  one 
+Output: five
+Input:  five 
+Output: the exchange is five five six
+Input:  five  five  one 
+Output: i'll repeat that. the exchange is five five six 
+Input: okay got it
+Output: three three four two
+Input:  three  three  what was the area code again     <- did not switch to area code
+Output: four two
+Input: what was the area code again                     
+Output: the area code is four one five
+Input:  four  one  five  okay I got that 
+Output: four two                                       <- switched back to four two without context
+Input: what is  four   two                             
+Output: i heard you say, please tell me four two .     <- did not know how to interpret my question 
+        sorry, i did not understand that               <- requesting to get back to context
+Input: okay what's the last part of the phone number
+Output: i heard you say, please tell me last field of the telephone number .  <- should know this!
+        sorry, i did not understand that
+Input: okay tell me the whole phone number again          
+Output: area code four one five five five six three three four two   <- went way too fast
+Input: that was  two  fast for me                       <- did not interpret this correctly
+Output: 
+Output: We're all done
+Input: oh okay so
+Output: 
+Input: app
+Input: Nissan
+Input: how can I make it up as I go along that understands what you're saying
+Output: We're all done
+Input: when you speak to
+Input: supposed to
+Input: conversationally
+Input: you know  two  fast also they were bringing a thick accent that the system hasn't rained on
+Output: 
+Input: Google speech
+Input: perfect and then what my part is is that I like management is trying to get it to you know take the words that were said and turn that into a meaningful conversation
+Output: 
+Input: yeah yeah exactly
+Output: Hello? Would you like to send or receive a phone number?     <-why did it go back to the top level question?
+Input: interactions with
+Input: Siri
+Input: on the contextual Exchange
+Output: 
+Input: I'm trying to find out
+Input: Kmart commercial lease if you see anything commercial that says anything like that let me know I can figure this out
+Input: obviously I was doing was seeing was going to voice
+Input: it is something like
+Input: machine smarter in order to converse
+Input: command and give you exactly that's what we're trying to do here
+Output: Hello? Would you like to send or receive a phone number?   <- why did it go back to the top level question?
+Input: Computer stock now
+Input: stop now sees it
+Output: okay
+
+
+
 
 
  

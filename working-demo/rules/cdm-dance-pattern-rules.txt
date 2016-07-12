@@ -1,0 +1,174 @@
+
+
+TOPRULE = $GREETING | 
+		  $REQUEST_INFO | 
+		  $REQUEST_ACTION | 
+		  $INSTRUCT_INFO | 
+		  $STATEMENT;
+
+
+#TOPRULE = $INSTRUCT_INFO;
+
+#TOPRULE = $INSTRUCT_INFO_DANCE;
+#TOPRULE = $INSTRUCT_INFO_MY_DANCE | $INSTRUCT_INFO_ELSES_DANCE;
+#TOPRULE = $INSTRUCT_INFO_MY_DANCE;
+#TOPRULE = $INSTRUCT_INFO_ELSES_DANCE;
+
+
+GREETING = (((hello | hi | hey) ?there) | (whats up)) jibo {user_intent=greeting};
+
+PERSON = ( my{person_indicator=my} | her{person_indicator=her} | his{person_indicator=his} | 
+	   [1,1]$w{person_indicator=_parsed}){person_indicated=true};
+
+PERFORMABLE = ( dance{performable=greeting_dance} | (greeting dance){performable=greeting_dance} | 
+			(full dance){performable=full_dance}) {performable_indcated=true};
+
+OBJECT_PRONOUN = (its {object_pronoun=its} | that {object_pronoun=that});
+
+
+
+#REQUEST_INFO = ?jibo ((what is) | (what are) | (tell me) | get | (how long) |
+#			   (who do you think) | (who am) | (list all) | (list every) | 
+#			   (is my) | (how many)) *$w {request_info_args=_parsed};
+
+REQUEST_INFO = (?jibo $QUESTION_FORM *$w {request_info_args=_parsed}){user_intent=request_info};
+
+
+QUESTION_FORM = (((what is) | (what are) | get | (tell me)) {question_form=question_what} |		
+			     (who ?is ?are){question_form = question_who} |
+			     (list ?every ?all){question_form = question_enumerate} |
+				 (how many){question_form = question_count} |
+				 (how long ?is){question_form = question_how_long} |
+				 (is my){question_form = question_is_my});
+
+#What is my ?{greeting | full} dance?
+#What is the name of my ?{greeting | full} dance?
+#Tell me what my ?{greeting | full} dance is.
+#Tell me what my ?{greeting | full} dance is called.
+#Tell me the name of  my ?{greeting | full} dance.
+#Get my ?{greeting | full} dance.
+#Get the name of my ?{greeting | full} dance.
+
+#How long is my {greeting | full | long} dance?
+#How long does my {greeting | full | long} dance {last | take}?
+#What is the duration of my {greeting | full | long} dance?
+
+#Is my dance ?the [dance_name]?
+
+#What is my name?
+#What do you think my name is?
+#Who do you think I am?
+#Who do you think this is?
+#Who am I ?(Jibo)?
+
+#Tell me ?{all} the ?{greeting | full | long} dances you know.
+#List all dances.
+#List all of the dances.
+#List all known dances.
+#What are all of the dances?
+#What are ?{all of | all} the dances you know about?
+
+#How many dances do you know?
+#How many dances are there?
+#How many dances are there that you can play?
+#How many dances are there that you can give me?
+#How many dances do you know about?
+#How many dances are in your memory banks?
+#How many dances are in your list of dances?
+
+
+#REQUEST_ACTION = (?jibo (play | do | perform){requested_action=play} *$w {request_action_args=_parsed})
+#			   {user_intent=request_action};
+
+REQUEST_ACTION = ((?jibo (play | do | perform){requested_action=play}) ($OBJECT_PRONOUN | $PERSON) $PERFORMABLE *.) {user_intent=request_action};
+
+
+#{Play | do | perform} that dance.
+#{Play | do | perform} it.
+#{Play | do | perform} my ?{greeting | full | long} dance.
+#{Play | do | perform} Alice's ?{greeting | full | long} dance.
+
+#Do that again.
+#Perform that again.
+#One more time.
+#Six more times.
+#Play my dance six times.
+#Keep playing my dance.
+
+#{Play | do} my dance again.
+
+#Jibo {do | play} a different dance.
+#Not that one again.
+
+
+INSTRUCT_INFO = ($INSTRUCT_INFO_NAME | 
+			     $INSTRUCT_INFO_NOT_NAME | 
+				 $INSTRUCT_INFO_DANCE) {user_intent=instruct_info};
+
+INSTRUCT_INFO_NAME = ((this is) | 
+                      (my name is) | 
+                      (i am)){set_what=self_name} [1,2]$w{name_info=_parsed} $*;
+
+INSTRUCT_INFO_NOT_NAME = ((this is not) | 
+                          (my name is not) | 
+                          (i am not)){set_what=self_not_name} [1,2]$w{name_info=_parsed} $*;
+
+INSTRUCT_INFO_DANCE = $INSTRUCT_INFO_MY_DANCE | $INSTRUCT_INFO_ELSES_DANCE;
+
+INSTRUCT_INFO_MY_DANCE = (((i want my) |
+					       (i want to have) |
+					       (set my) | 
+                           (make my)){whose_dance=self} ?$w {dance_type=_parsed} dance ?to ?be){set_what=dance} 
+						   [1,5]$w{dance_info=_parsed};
+
+INSTRUCT_INFO_ELSES_DANCE = (((set) | 
+                              (make))?$w{whose_dance=_parsed} ?$w {dance_type=_parsed} dance ?to ?be){set_what=dance} 
+							  [1,5]$w{dance_info=_parsed};
+
+#INSTRUCT_INFO_ELSES_DANCE = ((set | 
+#                              make) ?$w {whose_dance=_parsed} dance ?to ?be){set_what=dance} 
+#							  [1,5]$w{dance_info=_parsed};
+
+
+#This is Alice.
+#My name is Alice.
+#Alice here.
+#I am Alice.
+#Yo Alice be my name.
+#
+#This is not Alice.
+#I am not Alice.
+#That's not me.
+#That's not my name.
+#That's not who I am.
+#You have the wrong person Jibo.
+#
+#?{Hey} ?{Jibo} that's not my ?{greeting | full | long} dance.
+#
+#Yes ?{Jibo}.
+#Yeah ?{Jibo}
+#Sure ?{Jibo}
+#Uh huh.
+#Yup.
+#
+#No ?{Jibo}.
+#Nope.
+#Nugatory.
+#
+#I don't want to share my ?{greeting | full | long} dance.
+#Only play my dance when I ask you to.
+#Only play my dance for me.
+#Play my dance only when I am here.
+
+
+
+
+
+STATEMENT = statement;
+
+
+#  -greeting          "Hello there Jibo"
+#  -request_info      "What is my dance?"
+#  -request_action    "Do that dance."
+#  -instruct_info     "Change my greeting dance."
+#  -statement         "That dance is too long."

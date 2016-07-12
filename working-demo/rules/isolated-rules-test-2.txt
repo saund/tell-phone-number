@@ -1,0 +1,11 @@
+
+
+#A file for isolating rules to do targeted tests
+
+
+DigitCat[one] <-> one
+DigitCat[two] <-> two
+
+
+InformTD(ItemValue(DigitSequence($1, $2))) <-> {DigitCat[$1]} {DigitCat[$2]} 
+

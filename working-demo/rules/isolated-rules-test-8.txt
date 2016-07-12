@@ -1,0 +1,19 @@
+
+
+#A file for isolating rules to do targeted tests
+
+
+#This test shows that you cannot have any unmatched arguments, something needs to match the
+#$100 in GrammaticalBeCat[$100].
+
+
+#{ definite-present, definite-past, indefinite-present, indefinite-past }
+GrammaticalBeIndicativeCat[definite-present] <-> is the
+GrammaticalBeIndicativeCat[definite-past] <-> was the
+GrammaticalBeIndicativeCat[indefinite-present] <-> is a
+GrammaticalBeIndicativeCat[indefinite-past] <-> was a
+
+
+#is the
+InformTopicInfo(GrammaticalBeIndicative($1)) <-> {GrammaticalBeIndicativeCat[$1]}
+

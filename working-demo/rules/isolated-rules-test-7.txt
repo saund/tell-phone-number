@@ -1,0 +1,94 @@
+
+
+#A file for isolating rules to do targeted tests
+
+
+#This test shows that you cannot have any unmatched arguments, something needs to match the
+#$100 in GrammaticalBeCat[$100].
+
+
+#Digit word categories
+DigitCat[one] <-> one
+DigitCat[two] <-> two
+DigitCat[three] <-> three
+DigitCat[four] <-> four
+DigitCat[five] <-> five
+DigitCat[six] <-> six
+DigitCat[seven] <-> seven
+DigitCat[eight] <-> eight
+DigitCat[nine] <-> nine
+DigitCat[zero] <-> zero
+DigitCat[zero] <- oh
+
+
+#Sending of digit values as InformTopicData DialogActs
+InformTopicInfo(ItemValue(Digit($1))) <-> {DigitCat[$1]}
+
+InformTopicInfo(ItemValue(DigitSequence($1, $2))) <-> \
+{DigitCat[$1]} {DigitCat[$2]} 
+InformTopicInfo(ItemValue(DigitSequence($1, $2, $3))) <-> \
+{DigitCat[$1]} {DigitCat[$2]} {DigitCat[$3]} 
+InformTopicInfo(ItemValue(DigitSequence($1, $2, $3, $4))) <-> \
+{DigitCat[$1]} {DigitCat[$2]} {DigitCat[$3]} {DigitCat[$4]}
+InformTopicInfo(ItemValue(DigitSequence($1, $2, $3, $4, $5))) <-> \
+{DigitCat[$1]} {DigitCat[$2]} {DigitCat[$3]} {DigitCat[$4]} {DigitCat[$5]}
+InformTopicInfo(ItemValue(DigitSequence($1, $2, $3, $4, $5, $6))) <-> \
+{DigitCat[$1]} {DigitCat[$2]} {DigitCat[$3]} {DigitCat[$4]} {DigitCat[$5]} {DigitCat[$6]}
+InformTopicInfo(ItemValue(DigitSequence($1, $2, $3, $4, $5, $6, $7))) <-> \
+{DigitCat[$1]} {DigitCat[$2]} {DigitCat[$3]} {DigitCat[$4]} {DigitCat[$5]} {DigitCat[$6]} {DigitCat[$7]}
+InformTopicInfo(ItemValue(DigitSequence($1, $2, $3, $4, $5, $6, $7, $8))) <-> \
+{DigitCat[$1]} {DigitCat[$2]} {DigitCat[$3]} {DigitCat[$4]} {DigitCat[$5]} {DigitCat[$6]} {DigitCat[$7]} {DigitCat[$8]}
+InformTopicInfo(ItemValue(DigitSequence($1, $2, $3, $4, $5, $6, $7, $8, $9))) <-> \
+{DigitCat[$1]} {DigitCat[$2]} {DigitCat[$3]} {DigitCat[$4]} {DigitCat[$5]} {DigitCat[$6]} {DigitCat[$7]} {DigitCat[$8]} {DigitCat[$9]}
+InformTopicInfo(ItemValue(DigitSequence($1, $2, $3, $4, $5, $6, $7, $8, $9, $10))) <-> \
+{DigitCat[$1]} {DigitCat[$2]} {DigitCat[$3]} {DigitCat[$4]} {DigitCat[$5]} {DigitCat[$6]} {DigitCat[$7]} {DigitCat[$8]} {DigitCat[$9]} {DigitCat[$10]}
+
+
+
+FieldNameCat[telephone-number] <- phone number
+FieldNameCat[telephone-number] <-> telephone number
+FieldNameCat[area-code] <-> area code
+FieldNameCat[exchange] <- prefix
+FieldNameCat[exchange] <-> exchange
+FieldNameCat[line-number] <-> line number
+FieldNameCat[line-number] <- last four digits
+FieldNameCat[line-number] <- last four numbers
+FieldNameCat[country-code] <-> country code
+FieldNameCat[extension] <-> extension
+
+
+GrammaticalBeCat[present-singular] <-> is
+GrammaticalBeCat[present-plural] <-> are
+GrammaticalBeCat[infinitive] <-> be
+GrammaticalBeCat[past-singular] <-> was
+GrammaticalBeCat[past-plural] <-> were
+
+
+#{ definite-present, definite-past, indefinite-present, indefinite-past }
+GrammaticalBeIndicativeCat[definite-present] <-> is the
+GrammaticalBeIndicativeCat[definite-past] <-> was the
+GrammaticalBeIndicativeCat[indefinite-present] <-> is a
+GrammaticalBeIndicativeCat[indefinite-past] <-> was a
+
+
+#what is the area code
+RequestTopicInfo(SendReceive(tell-me), FieldName($1)) <-> what is the {FieldNameCat[$1]}
+
+#what
+RequestDialogManagement(what) <-> what
+
+#is the area code
+RequestTopicInfo(request-confirmation, Tense($1), FieldName($2)) <-> {GrammaticalBeIndicativeCat[$1]}{FieldNameCat[$2]}
+
+#is the
+InformTopicInfo(GrammaticalBeIndicative($1)) <-> {GrammaticalBeIndicativeCat[$1]}
+
+#area code
+InformTopicInfo(FieldName($1)) <-> {FieldNameCat[$1]}
+
+
+
+
+#RequestTopicInfo(request-confirmation, Tense($1), FieldName($2)) <-> {GrammaticalBeCat[$1]} the {FieldNameCat[$2]}
+#RequestTopicInfo(request-confirmation, Tense($1), FieldName($2)) <- {GrammaticalBeCat[$1]} {FieldNameCat[$2]}
+

@@ -1127,7 +1127,10 @@ RequestDialogManagement(misalignment-request-repeat) <-> please say that again
 RequestDialogManagement(misalignment-request-repeat) <- say that again
 RequestDialogManagement(misalignment-request-repeat) <- say again
 RequestDialogManagement(misalignment-request-repeat) <- tell me that again
+RequestDialogManagement(misalignment-request-repeat) <- please tell me that again
 RequestDialogManagement(misalignment-request-repeat) <- repeat that
+RequestDialogManagement(misalignment-request-repeat) <- please repeat that
+RequestDialogManagement(misalignment-request-repeat) <- kindly repeat that
 RequestDialogManagement(misalignment-request-repeat) <- once more
 RequestDialogManagement(misalignment-request-repeat) <- one more time
 RequestDialogManagement(misalignment-request-repeat) <- repeat them

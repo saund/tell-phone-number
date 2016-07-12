@@ -1,0 +1,9 @@
+
+
+
+
+FieldNameCat[area-code] <-> area code
+
+InformDialogManagement(Knowledge(possess, PersonRef(self)), Tense(present), FieldName($30)) <-> \
+                               i {PossessionCat[have-present]} the {FieldNameCat[$30]}
+

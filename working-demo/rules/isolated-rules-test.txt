@@ -1,0 +1,9 @@
+
+
+
+CommandCat[tell-me] <-> please tell me
+CommandCat[tell-me] <- get
+
+InformDialogManagement(partner-confirm-partner-hearing-or-understanding) <-> i did get that
+
+RequestTopicInfo(SendReceive(tell-me)) <-> {CommandCat[tell-me]}

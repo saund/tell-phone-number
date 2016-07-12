@@ -314,6 +314,7 @@ def parseRuleLHSRHS(rule_text):
     lhs = lhs.strip()
     rhs = rule_text[max_index+1:]
     rhs = rhs.strip()
+    #rhs = rhs.lower()  Cannot put lower here because that wipes out casing of Utterance Categories
     if both_index < big_number:
         return (lhs, rhs, '<->')
     elif leftarrow_index < big_number:
@@ -1239,6 +1240,8 @@ gl_tell_map = False
 def setTellMap(val):
     global gl_tell_map
     gl_tell_map = val
+
+
 
 #recursively checks all predicates and argugments of the template rule_da against the 
 #generated DialogAct gen_da.  
