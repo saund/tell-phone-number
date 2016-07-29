@@ -554,15 +554,15 @@ RequestTopicInfo(SendReceive(tell-me), FieldName($30), Indexical($140), Grammati
 #Below, using SendReceive(tell-me) for now so doesn't actually allow consideration of whether this is a repeat request or not
 
 #repeat the next X, repeat the entire X  
-RequestTopicInfo(SendReceive(tell-me), ItemTypeName($20), Indexical($140), GrammaticalIndicative($100), GrammaticalBe($101)) <- \
+RequestTopicInfo(SendReceive(tell-me), ItemTypeName($20), Indexical($140), GrammaticalIndicative($100), GrammaticalBe(present-singular)) <- \
       {RepeatCat[repeat]} {GrammaticalIndicativeCat[$3]}{IndexicalCat[$140]}{ItemTypeNameCat[$20]}
 
 #"repeat the entire number"
-RequestTopicInfo(SendReceive(tell-me), ItemTypeChar($25), Indexical($140), GrammaticalIndicative($100), GrammaticalBe($101)) <- \
+RequestTopicInfo(SendReceive(tell-me), ItemTypeChar($25), Indexical($140), GrammaticalIndicative($100), GrammaticalBe(present-singular)) <- \
       {RepeatCat[repeat]} {GrammaticalIndicativeCat[$100]}{IndexicalCat[$140]}{ItemTypeCharCat[$25]}
 
 #"repeat the entire area code"
-RequestTopicInfo(SendReceive(tell-me), FieldName($30), Indexical($140), GrammaticalIndicative($100), GrammaticalBe($101)) <- \
+RequestTopicInfo(SendReceive(tell-me), FieldName($30), Indexical($140), GrammaticalIndicative($100), GrammaticalBe(present-singular)) <- \
       {RepeatCat[repeat]} {GrammaticalIndicativeCat[$100]}{IndexicalCat[$140]}{FieldNameCat[$30]}
 
 
@@ -611,7 +611,9 @@ RequestTopicInfo(request-affirmation) <-> is that correct
 RepeatCat[repeat] <-> please repeat
 RepeatCat[repeat] <- repeat
 RepeatCat[repeat] <- can you repeat
+RepeatCat[repeat] <- could you repeat
 RepeatCat[repeat] <- can you please repeat
+RepeatCat[repeat] <- could you please repeat
 RepeatCat[repeat] <- say again
 
 #Repeat as RequestTopicInfo which may be combined with other DialogActs,
@@ -1130,6 +1132,10 @@ RequestDialogManagement(misalignment-request-repeat) <- tell me that again
 RequestDialogManagement(misalignment-request-repeat) <- please tell me that again
 RequestDialogManagement(misalignment-request-repeat) <- repeat that
 RequestDialogManagement(misalignment-request-repeat) <- please repeat that
+RequestDialogManagement(misalignment-request-repeat) <- could you repeat that
+RequestDialogManagement(misalignment-request-repeat) <- could you please repeat that
+RequestDialogManagement(misalignment-request-repeat) <- can you repeat that
+RequestDialogManagement(misalignment-request-repeat) <- can you please repeat that
 RequestDialogManagement(misalignment-request-repeat) <- kindly repeat that
 RequestDialogManagement(misalignment-request-repeat) <- once more
 RequestDialogManagement(misalignment-request-repeat) <- one more time

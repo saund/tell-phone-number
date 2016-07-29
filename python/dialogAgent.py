@@ -1560,6 +1560,8 @@ gl_da_tell_me_item_type_char_indexical = rp.parseDialogActFromString('RequestTop
 gl_da_tell_you_item_type_char_indexical = rp.parseDialogActFromString('RequestTopicInfo(SendReceive(tell-you), ItemTypeChar($25), Indexical($140))')
 
 #tell me the entire number
+#repeat that last part
+#The indexical "last" refers to different things depending on the GrammaticalIndicative "the" vs "that"
 gl_da_tell_me_item_type_char_indexical_grammar = rp.parseDialogActFromString('RequestTopicInfo(SendReceive(tell-me), ItemTypeChar($25), Indexical($140), GrammaticalIndicative($100), GrammaticalBe($101))')
 gl_str_da_tell_me_item_type_char_indexical_grammar = 'RequestTopicInfo(SendReceive(tell-me), ItemTypeChar($25), Indexical($140), GrammaticalIndicative($100), GrammaticalBe($101))'
 
@@ -2824,6 +2826,7 @@ def handleRequestTopicInfo_SendRole(da_list):
     num_name = None
     field_name = None
     grammatical_be = None
+    grammatical_indicative = None
     mapping = rp.recursivelyMapDialogRule(gl_da_tell_me_field_indexical, da_request_ti)
     if mapping == None:
         mapping = rp.recursivelyMapDialogRule(gl_da_tell_me_field_indexical_grammar, da_request_ti)
@@ -2831,9 +2834,13 @@ def handleRequestTopicInfo_SendRole(da_list):
         print ' found mapping WW'
         field_name = mapping.get('30')
         indexical = mapping.get('140')
-    #handle "User: tell me the entire number", "tell me the third digit"
+    #handle "User: tell me the entire number", "tell me the third digit", "repeat that last part"
     #"number" can mean digit or telephone number. Here, the utterance does not include an indexical
     #like "third number", so we interpret it as the telephone number
+    #The indexical refers to different things depending on the GrammaticalIndicative "the" vs "that"
+    #"the" takes the context as the topic data, "that" takes the context as the conversation,
+    #so "repeat the last part" refers to the last field of the phone number, while
+    #"repeat that last part" refers to the last field uttered by the self
     if mapping == None:
         mapping = rp.recursivelyMapDialogRule(gl_da_tell_me_item_type_char_indexical, da_request_ti)
         if mapping == None:
@@ -2846,12 +2853,13 @@ def handleRequestTopicInfo_SendRole(da_list):
                 field_name = 'telephone-number'
                 indexical = mapping.get('140')
                 grammatical_be = mapping.get('101')
+                grammatical_indicative = mapping.get('100')
             #really, "field" should not be considered an ItemTypeCharCat.
             elif num_name == 'field':
                 field_name = 'segment'
                 indexical = mapping.get('140')
                 grammatical_be = mapping.get('101')
-
+                grammatical_indicative = mapping.get('100')
     if mapping == None:
         print ' trying mapping   gl_da_tell_me_item_type_char_indexical_of_field '
         #what is the third digit of the exchange?
@@ -2861,11 +2869,13 @@ def handleRequestTopicInfo_SendRole(da_list):
             if num_name == 'digit':
                 field_name = mapping.get('30')
                 indexical = mapping.get('140')
+                grammatical_indicative = mapping.get('100')
             #what is the third last part of the telephone number
             if num_name == 'field':
                 field_name = 'segment'
                 indexical = mapping.get('140')
                 grammatical_be = 'present-singular'
+                grammatical_indicative = mapping.get('100')
 
     #handle 'User: what is the entire telephone number?', etc.
     if field_name == 'telephone-number' and indexical == 'entire':
@@ -2939,11 +2949,19 @@ def handleRequestTopicInfo_SendRole(da_list):
             da_nothing_rel_to = rp.parseDialogActFromString(str_da_nothing_rel_to)
             return ([ da_nothing_rel_to ], None)
 
-    #handle "what is the next segment?"
+    #handle "what is the next segment?", "what is that last part again?"
     if field_name == 'segment':
         #'what is the first part?"
         print 'grammatical_be: ' + str(grammatical_be)
         if grammatical_be == 'present-singular' or grammatical_be == 'past-singular':
+            print 'grammatical_indicative: ' + str(grammatical_indicative)
+            #if the grammatical_indicative is definite-far ("that") then the reference is to the
+            #last topic information said, not the last segment of the topic data.
+            #In such case, synthesize a repeat request
+            if grammatical_indicative == 'definite-far':
+                synth_da_list = [ gl_da_misalignment_request_repeat_pronoun_ref ]
+                return handleRequestDialogManagement(synth_da_list)
+
             if indexical == 'first' or indexical == 'middle' or indexical == 'last':
                 (segment_name, start_index_pointer, chunk_size) = findSegmentNameAndChunkSizeForIndexical(indexical)
                 (ret_das, turn_topic) = handleSendSegmentChunkNameAndData(segment_name)
@@ -3515,7 +3533,7 @@ def handleRequestDialogManagement(da_list):
             
     #handle what was it again?   pronoun_ref, repeat the last utterance containing topic info
     if str_da_request_dm == gl_str_da_misalignment_request_repeat_pronoun_ref:
-        #print ' fetch InformTopicInfo'
+        print ' fetch InformTopicInfo'
         last_self_utterance_tup = fetchLastUtteranceFromTurnHistory('self', [ 'InformTopicInfo' ])
         if last_self_utterance_tup != None:
             last_self_utterance_das = last_self_utterance_tup[2]

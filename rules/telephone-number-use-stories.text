@@ -1522,7 +1522,7 @@ Input: what is  four   two
 Output: i heard you say, please tell me four two .     <- did not know how to interpret my question 
         sorry, i did not understand that               <- requesting to get back to context
 Input: okay what's the last part of the phone number
-Output: i heard you say, please tell me last field of the telephone number .  <- should know this!
+Output: i heard you say, please tell me last field of the telephone number .  <- should know this! (now fixed)
         sorry, i did not understand that
 Input: okay tell me the whole phone number again          
 Output: area code four one five five five six three three four two   <- went way too fast
@@ -1560,6 +1560,87 @@ Input: Computer stock now
 Input: stop now sees it
 Output: okay
 
+
+2016/07/12 17:07:12
+Output: Would you like to send or receive a phone number?
+Input: all this does is it tells you her phone number as the only purpose of a very narrow to me but intended to be deep in terms of the richness of interactions
+Output: 
+Input: oh yes tell me the phone number             <- "oh" taken as zero
+Output: 
+Input: yes tell me the phone number 
+Output: area code four one five
+Input:  four  one  six 
+Output: i'll repeat that. the area code is four one five
+Input: okay I think I know it                        
+Output: . sorry, i did not understand that          <- fail
+Input: Safeway
+Input: area code now
+Output: the area code is four one five
+Input: okay
+Output: five five six
+Input: what is the area code again
+Output: the area code is four one five
+Input:  four  one  two 
+Output: i'll repeat that. the area code is four one five
+Input:  four  one  five 
+Output: five five six
+Input:  five  five  six 
+Output: three three four two
+Input: what's before that
+Output: the exchange is five five six
+Input: before that                                             <- "before that" needs to handle ellipses
+Output: i'll repeat that. the exchange is five five six
+Input: what is before that
+Output: the area code is four one five
+Input: what is before that
+Output: there is nothing before the area code
+Input: okay what's the last part of the telephone number
+Output: the line number is three three four two
+Input:  three  three 
+Output: four two
+Input:  four 
+Output: two
+Input: okay got it
+Output: the exchange is five five six
+Input: you told me that already
+Output: i wanted to make sure you got it. We're all done
+Input: I think you're pretty close to the truth
+Output: . sorry, i did not understand that
+Input: OK Computer you can stop now
+Output: okay
+
+2016/07/12 18:07:12
+Output: Would you like to send or receive a phone number?
+Input: yes
+Output: sorry i am not yet able to take a telephone number from you. i can tell you a telephone number. Would you like to get a phone number from me?
+Input: I would                                         <- I would = "yes"
+Input: but I don't
+Input: so yes I would yes I would                               <- should get this as affirmative
+Output: Hello? Would you like to send or receive a phone number?  <- why back to the top?
+Input: yes I would
+Output: okay the telephone number is four one five
+Input:  four  one  three 
+Output: i'll repeat that. the area code is four one five
+Input: okay is there anything else to the number                    
+Output: i'll repeat that. the area code is four one five         <-> fail
+Input: very good tell me the rest of the number please
+Output: i heard you say, digits . sorry, i did not understand that
+Input: coverage is not your ex I actually got
+Input: the number please no you said they got it recognized that perfectly it is I just don't have the coverage because I have only tested this is why I need to get more
+Output: i heard you say, digits no yes this is why please tell me . sorry, i did not understand that
+Input: okay give me the area code again please        
+Output: the area code is four one five
+Input: thank you and the rest of the number                   <-  "and the rest of the number"  ellipses
+Output: you're welcome. i'll repeat that. the area code is four one five   
+Input: okay what is the rest                   
+Output: five five six
+Output: three three four two
+Input:  three  three  four  one 
+Output: i'll repeat that. the line number is three three four two
+Input: Arkansas something
+Input: find the transcripts and more ways of phrasing things
+Input: quit
+Output: 
 
 
 
